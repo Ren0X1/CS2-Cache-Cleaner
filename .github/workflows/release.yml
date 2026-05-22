@@ -1,0 +1,181 @@
+name: Release on main
+
+# ====================================================================
+#  Workflow para RNX Cache Cleaner Pro
+#  Crea automaticamente un tag + release cada vez que se ejecuta.
+#
+#  Disparadores:
+#   - push a la rama main  -> release automatica
+#   - workflow_dispatch    -> ejecucion manual desde Actions (con
+#                              opcion de forzar version)
+#
+#  Tip: incluye "[skip release]" en el mensaje de commit para
+#       saltarse este workflow en un push concreto.
+# ====================================================================
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '.github/workflows/**'   # evita bucles si editas el propio workflow
+      - '**/*.md'                # los cambios de README no disparan release
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version a publicar (opcional, ej: 3.2). Si se deja vacio se lee del .bat.'
+        required: false
+        type: string
+      prerelease:
+        description: 'Marcar como pre-release'
+        required: false
+        type: boolean
+        default: false
+
+# Necesario para que el workflow pueda crear tags y releases
+permissions:
+  contents: write
+
+jobs:
+  release:
+    # Saltar si el commit message contiene [skip release]
+    if: "!contains(github.event.head_commit.message, '[skip release]')"
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------------------------------
+      # 1) Clonar el repo COMPLETO (con todo el historial y tags)
+      # ----------------------------------------------------------------
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # necesario para que `git tag` vea los existentes
+
+      # ----------------------------------------------------------------
+      # 2) Determinar la version a usar
+      #    Prioridad:
+      #      1. Input manual del workflow_dispatch
+      #      2. Variable VERSION_SCRIPT del propio .bat
+      #    Si el tag ya existe -> sufijo "-build.<run_number>"
+      # ----------------------------------------------------------------
+      - name: Detectar version
+        id: version
+        shell: bash
+        run: |
+          set -e
+
+          # Buscar el archivo .bat principal (acepta cualquier nombre RNX_Cache_Cleaner*.bat)
+          BAT_FILE=$(ls RNX_Cache_Cleaner*.bat 2>/dev/null | head -n 1)
+          if [ -z "$BAT_FILE" ]; then
+            echo "::error::No se encontro ningun archivo RNX_Cache_Cleaner*.bat en la raiz."
+            exit 1
+          fi
+          echo "Archivo detectado: $BAT_FILE"
+          echo "bat_file=$BAT_FILE" >> "$GITHUB_OUTPUT"
+
+          # 1) Prioridad al input manual
+          INPUT_VERSION="${{ github.event.inputs.version }}"
+
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="$INPUT_VERSION"
+            echo "Usando version del input manual: $VERSION"
+          else
+            # 2) Leer VERSION_SCRIPT del .bat: set "VERSION_SCRIPT=3.1"
+            VERSION=$(grep -oP 'VERSION_SCRIPT=\K[0-9]+\.[0-9]+(\.[0-9]+)?' "$BAT_FILE" | head -n 1 || true)
+            if [ -z "$VERSION" ]; then
+              echo "::error::No se pudo extraer VERSION_SCRIPT del archivo $BAT_FILE"
+              exit 1
+            fi
+            echo "Version leida del .bat: $VERSION"
+          fi
+
+          TAG="v${VERSION}"
+
+          # Si el tag ya existe, añadir sufijo con el numero de run
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            TAG="${TAG}-build.${{ github.run_number }}"
+            echo "El tag base ya existe, usando: $TAG"
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
+
+      # ----------------------------------------------------------------
+      # 3) Comprobar que los archivos a publicar existen
+      # ----------------------------------------------------------------
+      - name: Verificar archivos
+        shell: bash
+        run: |
+          echo "Contenido del repo:"
+          ls -la
+          test -f "${{ steps.version.outputs.bat_file }}" || { echo "::error::Falta el .bat"; exit 1; }
+          test -f "README.md" || echo "::warning::No hay README.md, la release no lo incluira"
+
+      # ----------------------------------------------------------------
+      # 4) Crear tag local y empujarlo al repo
+      # ----------------------------------------------------------------
+      - name: Crear y empujar tag
+        shell: bash
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      # ----------------------------------------------------------------
+      # 5) Crear la release en GitHub
+      #    - generate_release_notes: true  -> notas auto con commits/PRs
+      #    - files: adjunta el .bat y el README como descargables
+      # ----------------------------------------------------------------
+      - name: Crear release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: RNX Cache Cleaner Pro ${{ steps.version.outputs.tag }}
+          body: |
+            ## RNX Cache Cleaner Pro ${{ steps.version.outputs.tag }}
+
+            Release automatica generada desde la rama `main`.
+
+            ### Descarga
+            Descarga el archivo `.bat` adjunto y ejecutalo como administrador.
+
+            ### Uso rapido
+            ```bat
+            RNX_Cache_Cleaner_v3.bat              :: menu interactivo
+            RNX_Cache_Cleaner_v3.bat /rapida      :: limpieza rapida directa
+            RNX_Cache_Cleaner_v3.bat /completa    :: limpieza completa directa
+            RNX_Cache_Cleaner_v3.bat /shader      :: solo shadercache
+            RNX_Cache_Cleaner_v3.bat /raton       :: solo configuracion raton
+            ```
+
+            Mas informacion en el [README](https://github.com/${{ github.repository }}/blob/main/README.md).
+
+            ---
+            **Commit:** ${{ github.sha }}
+            **Run:**    [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          generate_release_notes: true
+          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          files: |
+            ${{ steps.version.outputs.bat_file }}
+            README.md
+          fail_on_unmatched_files: false
+
+      # ----------------------------------------------------------------
+      # 6) Resumen visible en la pestaña Summary del run
+      # ----------------------------------------------------------------
+      - name: Resumen
+        shell: bash
+        run: |
+          {
+            echo "## Release publicada"
+            echo ""
+            echo "| Campo | Valor |"
+            echo "|-------|-------|"
+            echo "| Tag       | \`${{ steps.version.outputs.tag }}\` |"
+            echo "| Version   | \`${{ steps.version.outputs.version }}\` |"
+            echo "| Archivo   | \`${{ steps.version.outputs.bat_file }}\` |"
+            echo "| Commit    | \`${{ github.sha }}\` |"
+            echo "| Disparador| \`${{ github.event_name }}\` |"
+            echo ""
+            echo "[Ver la release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }})"
+          } >> "$GITHUB_STEP_SUMMARY"
