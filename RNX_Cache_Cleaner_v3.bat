@@ -17,7 +17,7 @@ if '%errorlevel%' NEQ '0' (
 )
 
 :: ----- Variables globales -----
-set "VERSION_SCRIPT=3.0"
+set "VERSION_SCRIPT=3.1"
 set "SCRIPT_DIR=%~dp0"
 set "LOG_FILE=%SCRIPT_DIR%RNX_Cleaner.log"
 set "EMPTY_DIR=%TEMP%\rnx_empty_dir"
