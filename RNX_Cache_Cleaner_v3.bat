@@ -7,17 +7,20 @@ setlocal enabledelayedexpansion
 :: ===================================================================
 
 :: ----- Auto-elevacion a administrador -----
+:: IMPORTANTE: pasamos %* (todos los argumentos) al proceso elevado.
+:: Sin esto, los modos silenciosos (/rapida, /completa, etc.) se pierden
+:: al relanzarse el script con UAC.
 >nul 2>&1 "%SYSTEMROOT%\system32\cacls.exe" "%SYSTEMROOT%\system32\config\system"
 if '%errorlevel%' NEQ '0' (
     echo Set UAC = CreateObject^("Shell.Application"^) > "%temp%\getadmin.vbs"
-    echo UAC.ShellExecute "%~s0", "", "", "runas", 1 >> "%temp%\getadmin.vbs"
+    echo UAC.ShellExecute "%~s0", "%*", "", "runas", 1 >> "%temp%\getadmin.vbs"
     "%temp%\getadmin.vbs"
     del "%temp%\getadmin.vbs"
     exit /B
 )
 
 :: ----- Variables globales -----
-set "VERSION_SCRIPT=3.1"
+set "VERSION_SCRIPT=3.2"
 set "SCRIPT_DIR=%~dp0"
 set "LOG_FILE=%SCRIPT_DIR%RNX_Cleaner.log"
 set "EMPTY_DIR=%TEMP%\rnx_empty_dir"
