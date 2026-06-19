@@ -8,137 +8,145 @@
 
 ### Descripción
 
-**RNX Cache Cleaner Pro v3.1** es una herramienta de limpieza y optimización del sistema Windows diseñada para liberar espacio, mejorar el rendimiento y eliminar archivos temporales, cachés y logs. Incluye módulos especializados para gamers (limpieza de shader cache de CS2 / Steam y caché de drivers gráficos) y configuración de periférico (importación de configuración de ratón).
+**RNX Cache Cleaner Pro v4.0** es una herramienta de limpieza y optimización del sistema Windows con una **interfaz cyberpunk/neón** y **navegación por flechas**. Limpia archivos temporales, cachés y logs, y añade módulos especializados para gamers: shader cache de CS2/Steam, caché de drivers gráficos y un **nuevo módulo de perfil NVIDIA** que importa un `.nip` optimizado para CS2.
 
-> **Novedad v3.1:** caché de drivers gráficos (NVIDIA/AMD/Intel), caché de Discord, optimización SSD con TRIM al final, y **modo silencioso por argumentos** para automatización.
+> **Novedad v4.0:** rediseño visual completo (colores neón ANSI, banner, menú navegable con ↑↓ y Enter), animaciones de carga rápidas (~0.5s), detección automática de GPU, y módulo de importación de perfil NVIDIA Profile Inspector para CS2.
 
-### ¿Qué hace el script?
+### Interfaz nueva
 
-Al ejecutarse se eleva automáticamente a administrador y muestra un **menú principal** con las siguientes opciones:
+- **Colores neón reales** mediante secuencias ANSI (cian, magenta, amarillo sobre negro)
+- **Menú navegable**: muévete con las **flechas ↑↓**, confirma con **Enter**, o pulsa el **número** directamente
+- **Opción resaltada** con fondo neón para ver siempre dónde estás
+- **Animaciones de carga** rápidas en cada tarea
+- **Detección de GPU**: el módulo NVIDIA solo aparece si tienes una tarjeta NVIDIA
+
+> Nota: los colores ANSI requieren Windows 10/11. El script activa el soporte automáticamente vía registro (`VirtualTerminalLevel`).
+
+### Menú principal
 
 | Opción | Descripción |
 |--------|-------------|
-| **[1] Limpieza RÁPIDA** | Limpieza esencial + caché GPU sin preguntar (recomendada para uso diario) |
-| **[2] Limpieza COMPLETA** | Todo automático + caché GPU + TRIM SSD al final |
+| **[1] Limpieza RÁPIDA** | Temp, GPU cache, DNS, Prefetch, recientes, eventos |
+| **[2] Limpieza COMPLETA** | Todo automático + TRIM SSD al final |
 | **[3] Limpieza PERSONALIZADA** | Pregunta Y/N a cada categoría (18 opciones) |
-| **[4] Solo SHADERCACHE** | Borra directamente la carpeta shadercache (CS2/Steam) |
-| **[5] Solo CONFIG RATÓN** | Importa directamente el archivo `raton.reg` |
-| **[6] Ver LOG** | Muestra las últimas 30 líneas del registro de operaciones |
-| **[0] Salir** | Cierra el script |
+| **[4] SHADERCACHE** | Borra directamente la carpeta shadercache (CS2/Steam) |
+| **[5] CONFIG RATÓN** | Importa `raton.reg` |
+| **[6] VER LOG** | Muestra las últimas 30 líneas del registro |
+| **[7] PERFIL NVIDIA CS2** 🆕 | Importa un `.nip` optimizado (solo si hay GPU NVIDIA) |
+| **[0 / Salir]** | Cierra el script |
 
-### 🆕 Modo silencioso (argumentos de línea de comandos)
-
-Puedes saltarte el menú lanzando el script con un argumento. Útil para accesos directos en el escritorio o tareas programadas:
+### Modo silencioso (argumentos)
 
 ```bat
-RNX_Cache_Cleaner_v3.bat /rapida     :: Limpieza rápida sin preguntar nada
-RNX_Cache_Cleaner_v3.bat /completa   :: Limpieza completa sin preguntar nada
-RNX_Cache_Cleaner_v3.bat /shader     :: Solo borrar shadercache
-RNX_Cache_Cleaner_v3.bat /raton      :: Solo importar raton.reg
+RNX_Cache_Cleaner.bat /rapida     :: Limpieza rápida directa
+RNX_Cache_Cleaner.bat /completa   :: Limpieza completa directa
+RNX_Cache_Cleaner.bat /todo       :: TODO: completa + shadercache + ratón + perfil NVIDIA
+RNX_Cache_Cleaner.bat /shader     :: Solo shadercache
+RNX_Cache_Cleaner.bat /raton      :: Solo configuración ratón
+RNX_Cache_Cleaner.bat /nvidia     :: Solo importar perfil NVIDIA CS2
 ```
 
-**Ejemplo: programar limpieza semanal automática**
+Ideal para accesos directos en el escritorio o tareas programadas (el menú y las intros se saltan por completo).
 
-1. Abre el **Programador de tareas** de Windows
-2. Crear tarea → ejecutar `RNX_Cache_Cleaner_v3.bat` con argumento `/rapida`
-3. Marcar "Ejecutar con los privilegios más altos"
-4. Activador: semanal, domingo a las 3:00
+> **`/todo` vs `/completa`**: `/completa` solo hace la limpieza del sistema y termina. `/todo` hace todo eso y **además** borra el shadercache (usando la ruta guardada o la de defecto), aplica `raton.reg` e importa el perfil NVIDIA — todo sin preguntar nada. Si falta algún archivo (raton.reg, .nip, etc.), simplemente lo omite y lo anota en el log.
+
+> **El log se sobrescribe** en cada ejecución: `RNX_Cleaner.log` siempre contiene únicamente la última pasada, con su fecha y hora en la primera línea.
+
+### 🆕 Módulo Perfil NVIDIA para CS2
+
+Importa un perfil `.nip` optimizado para CS2 directamente al driver NVIDIA, usando **NVIDIA Profile Inspector** en modo silencioso (sin abrir su interfaz).
+
+**Cómo funciona:**
+1. Detecta automáticamente si tu GPU es NVIDIA (si no lo es, el módulo no aparece)
+2. Importa el perfil de CS2 en silencio con `-silentImport`
+3. El perfil afecta solo a CS2, no a tu configuración global
+
+**Requisitos del módulo (debes aportarlos tú):**
+
+| Archivo | Dónde colocarlo | De dónde sacarlo |
+|---------|-----------------|------------------|
+| `nvidiaProfileInspector.exe` | Junto al script o en subcarpeta `tools\` | [github.com/Orbmu2k/nvidiaProfileInspector](https://github.com/Orbmu2k/nvidiaProfileInspector) |
+| `CS2_Profile.nip` | Junto al script (o se te pedirá la ruta) | Lo creas/exportas tú desde Profile Inspector, o usas uno de la comunidad |
+
+> ⚠️ **Importante sobre los `.nip`**: revisa siempre el contenido de un `.nip` de terceros antes de aplicarlo, ya que NVIDIA Profile Inspector expone ajustes no documentados y específicos de versión de driver.
 
 ### Áreas de limpieza disponibles
 
 | # | Categoría | Qué limpia |
 |---|-----------|------------|
-| 1 | **Windows Temp** | `C:\Windows\Temp` (vía robocopy `/MIR`, ultra rápido) |
+| 1 | **Windows Temp** | `C:\Windows\Temp` (vía robocopy `/MIR`) |
 | 2 | **Temp de usuario** | `%TEMP%` |
 | 3 | **Prefetch** | `C:\Windows\Prefetch` |
 | 4 | **Recientes** | `Recent`, `AutomaticDestinations`, `CustomDestinations` |
-| 5 | **Cola de impresión** | `C:\Windows\System32\spool\PRINTERS` (con reinicio del servicio spooler) |
+| 5 | **Cola de impresión** | `spool\PRINTERS` (con reinicio del spooler) |
 | 6 | **Cache DNS** | `ipconfig /flushdns` |
-| 7 | **Windows Update** | `SoftwareDistribution\Download` (con reinicio de wuauserv, bits, cryptsvc) |
-| 8 | **Miniaturas** | `thumbcache_*.db` (reinicia explorer.exe automáticamente) |
-| 9 | **Icon Cache** | `IconCache.db` y `iconcache_*.db` |
-| 10 | **Microsoft Store** | `wsreset.exe` para resetear la caché del Store |
-| 11 | **Delivery Optimization** | Caché de descarga compartida de Windows Update |
-| 12 | **Memory dumps** | `Minidump`, `MEMORY.DMP`, CBS logs, WER reports |
+| 7 | **Windows Update** | `SoftwareDistribution\Download` (reinicia servicios) |
+| 8 | **Miniaturas** | `thumbcache_*.db` (reinicia explorer) |
+| 9 | **Icon Cache** | `IconCache.db`, `iconcache_*.db` |
+| 10 | **Microsoft Store** | `wsreset.exe` |
+| 11 | **Delivery Optimization** | Caché compartida de Windows Update |
+| 12 | **Memory dumps** | `Minidump`, `MEMORY.DMP`, CBS logs, WER |
 | 13 | **Cache de fuentes** | `FontCache*.dat`, `FNTCACHE.DAT` |
-| 14 | **Papelera de reciclaje** | Vacía la papelera vía PowerShell `Clear-RecycleBin` |
-| 15 | **Registros de eventos** | `wevtutil cl` + archivos `.evtx` físicos + logs de `Panther`, `CBS`, `DISM` |
-| 16 🆕 | **Caché GPU drivers** | NVIDIA (`DXCache`, `GLCache`, `ComputeCache`, `NV_Cache`), AMD (`DxCache`, `GLCache`), Intel (`ShaderCache`) |
-| 17 🆕 | **Caché Discord** | `Cache`, `Code Cache`, `GPUCache` de Discord (Stable, PTB, Canary). Cierra Discord automáticamente |
-| 18 🆕 | **Optimización SSD** | `defrag C: /L` ejecuta TRIM en SSDs (consolida bloques libres tras la limpieza) |
+| 14 | **Papelera de reciclaje** | `Clear-RecycleBin` |
+| 15 | **Registros de eventos** | `wevtutil cl` + `.evtx` + Panther + CBS + DISM |
+| 16 | **Caché GPU drivers** | NVIDIA / AMD / Intel |
+| 17 | **Caché Discord** | Cierra Discord y limpia su caché |
+| 18 | **Optimización SSD** | `defrag C: /L` (TRIM) |
 
 ### Módulos opcionales (al final de la limpieza interactiva)
 
-#### 🎮 Módulo Shadercache (CS2 / Steam)
+#### 🎮 Shadercache (CS2 / Steam)
+- Ruta por defecto: `C:\Program Files (x86)\Steam\steamapps\shadercache\730`
+- Detecta si Steam está abierto y avisa antes de borrar
+- Guarda la ruta en `shadercache.txt`
 
-- **Ruta por defecto**: `C:\Program Files (x86)\Steam\steamapps\shadercache\730` (CS2 = 730)
-- **Verificación de Steam**: Detecta si `steam.exe` está corriendo y avisa antes de borrar
-- **Memoria de rutas**: Guarda la ruta usada en `shadercache.txt`
-- **Beneficio**: Fuerza recompilación de shaders y puede mejorar rendimiento / arreglar glitches en CS2
-- **Complemento ideal**: Combinarlo con la opción 16 (caché GPU drivers) para una limpieza gráfica total
-
-#### 🖱️ Módulo Configuración de Ratón
-
-- Importa el archivo `raton.reg` (mismo directorio del script) al registro de Windows
-- Si no encuentra el archivo, permite indicar la ruta manualmente
-- Útil para aplicar configuración de sensibilidad / aceleración tras formatear
-
-### Características principales v3.1
-
-✅ **Elevación automática a administrador**
-✅ **Menú interactivo** con 7 opciones
-✅ **Tres modos de limpieza**: Rápida, Completa, Personalizada (18 categorías)
-✅ **🆕 Modo silencioso** con argumentos `/rapida`, `/completa`, `/shader`, `/raton`
-✅ **🆕 Caché de drivers gráficos** (NVIDIA / AMD / Intel) — ideal para gamers
-✅ **🆕 Limpieza de Discord** con cierre automático del proceso
-✅ **🆕 TRIM/optimización SSD** al final de la limpieza completa
-✅ **Medición de espacio liberado** en MB (vía PowerShell `Get-PSDrive`)
-✅ **Sistema de log** con timestamp en `RNX_Cleaner.log`
-✅ **Barra de progreso visual** con bloques `[##########]`
-✅ **Header unificado** (subrutina reutilizada — sin código duplicado)
-✅ **Uso de `robocopy /MIR`** para vaciar carpetas grandes en segundos
-✅ **Detección de procesos** (Steam, Discord) antes de borrar
-✅ **Limpieza profunda de logs**: eventos + `.evtx` + Panther + CBS + DISM
-✅ **Manejo de errores** con códigos de color (verde OK, rojo ERROR, amarillo AVISO)
-✅ **Memoria de configuración** (shadercache.txt, raton.reg)
+#### 🖱️ Configuración de ratón
+- Importa `raton.reg` al registro de Windows
 
 ### Cómo usar
 
-**Modo interactivo (normal)**
-1. **Descarga** el archivo `RNX_Cache_Cleaner_v3.bat`
-2. **Haz clic derecho** → **"Ejecutar como administrador"** (también se autoeleva con doble clic)
-3. **Elige una opción** del menú principal
-4. Al final, el script muestra cuántos MB has liberado
+**Modo interactivo**
+1. Descarga `RNX_Cache_Cleaner.bat`
+2. Clic derecho → **Ejecutar como administrador** (también se autoeleva)
+3. Navega con **flechas** y **Enter**, o pulsa el número de la opción
+4. Al final verás cuántos MB has liberado
 
-**Modo silencioso (avanzado)**
+**Modo silencioso**
 1. Crea un acceso directo al `.bat`
-2. Click derecho → Propiedades → en "Destino" añade ` /rapida` al final
-3. Marca "Ejecutar como administrador" en propiedades avanzadas
-4. Doble clic ejecuta limpieza directa sin menú
+2. Propiedades → en "Destino" añade ` /completa` (o el modo que quieras)
+3. Marca "Ejecutar como administrador" en opciones avanzadas
+
+**Programar limpieza semanal**
+1. Programador de tareas → Crear tarea
+2. Acción: ejecutar `RNX_Cache_Cleaner.bat` con argumento `/rapida`
+3. Marcar "Ejecutar con los privilegios más altos"
+4. Activador: semanal
 
 ### Requisitos
 
-- Windows 10 o Windows 11 recomendado (compatible desde Windows 7)
-- PowerShell 5.0+ (incluido en Windows 10/11 por defecto)
-- Permisos de administrador (el script los solicita automáticamente)
-- Steam instalado (solo si vas a usar el módulo shadercache)
+- **Windows 10 u 11** (necesario para los colores neón ANSI; en 7/8 funciona pero sin color)
+- PowerShell 5.0+ (incluido por defecto)
+- Permisos de administrador (se solicitan solos)
+- Steam (solo para el módulo shadercache)
+- GPU + NVIDIA Profile Inspector + un `.nip` (solo para el módulo NVIDIA)
 
-### Archivos auxiliares (opcionales)
+### Archivos auxiliares
 
-| Archivo | Propósito | Se crea automáticamente |
-|---------|-----------|------------------------|
-| `shadercache.txt` | Guarda la ruta de shadercache para no volver a pedirla | Sí, al primer uso |
-| `raton.reg` | Configuración del ratón que se importa al registro | No (lo tienes que aportar tú) |
-| `RNX_Cleaner.log` | Log con timestamp de todas las operaciones realizadas | Sí, al primer uso |
+| Archivo | Propósito | Se crea solo |
+|---------|-----------|--------------|
+| `shadercache.txt` | Ruta guardada de shadercache | Sí |
+| `raton.reg` | Config de ratón a importar | No (lo aportas tú) |
+| `RNX_Cleaner.log` | Log con timestamps | Sí |
+| `CS2_Profile.nip` | Perfil NVIDIA para CS2 | No (lo aportas tú) |
+| `nvidiaProfileInspector.exe` | Herramienta de importación | No (descárgalo) |
 
 ### Notas de seguridad
 
-- ⚠️ Los archivos eliminados **NO se pueden recuperar** desde la papelera (se borran directamente).
-- ⚠️ Borrar **registros de eventos** dificulta el diagnóstico de problemas pasados.
-- ⚠️ La opción de **caché de Discord** cierra Discord automáticamente. Guarda lo que tengas abierto antes.
-- ⚠️ El módulo de ratón modifica el **registro de Windows**. Asegúrate de confiar en `raton.reg`.
-- ⚠️ Cierra **CS2 y Steam** antes de usar el módulo shadercache.
-- ⚠️ La primera ejecución tras una actualización mayor de Windows puede liberar varios GB.
+- ⚠️ Los archivos eliminados no se pueden recuperar.
+- ⚠️ Borrar registros de eventos dificulta el diagnóstico posterior.
+- ⚠️ El módulo Discord cierra Discord automáticamente.
+- ⚠️ El módulo de ratón y el de NVIDIA modifican el registro / perfiles del driver. El perfil NVIDIA solo afecta a CS2; el de ratón es global (haz copia de tu `.reg` actual si te preocupa).
+- ⚠️ Cierra CS2 y Steam antes de usar el módulo shadercache.
 
 ---
 
@@ -146,169 +154,181 @@ RNX_Cache_Cleaner_v3.bat /raton      :: Solo importar raton.reg
 
 ### Description
 
-**RNX Cache Cleaner Pro v3.1** is a Windows system cleaning and optimization tool designed to free disk space, improve performance, and remove temporary files, caches, and logs. It includes specialized modules for gamers (CS2 / Steam shader cache and GPU driver cache cleaning) and peripheral configuration (mouse settings import).
+**RNX Cache Cleaner Pro v4.0** is a Windows cleaning and optimization tool with a **cyberpunk/neon interface** and **arrow-key navigation**. It cleans temporary files, caches and logs, and adds gamer-focused modules: CS2/Steam shader cache, GPU driver cache, and a **new NVIDIA profile module** that imports a CS2-optimized `.nip`.
 
-> **What's new in v3.1:** GPU driver cache (NVIDIA/AMD/Intel), Discord cache, SSD TRIM optimization at the end, and **silent mode via command-line arguments** for automation.
+> **What's new in v4.0:** full visual redesign (ANSI neon colors, banner, arrow-navigable menu with ↑↓ and Enter), fast loading animations (~0.5s), automatic GPU detection, and an NVIDIA Profile Inspector import module for CS2.
 
-### What does the script do?
+### New interface
 
-When launched, it auto-elevates to administrator and shows a **main menu** with the following options:
+- **Real neon colors** via ANSI escape sequences (cyan, magenta, yellow on black)
+- **Navigable menu**: move with **arrows ↑↓**, confirm with **Enter**, or press the **number** directly
+- **Highlighted option** with neon background so you always see where you are
+- **Loading animations** on each task
+- **GPU detection**: the NVIDIA module only appears if you have an NVIDIA card
+
+> Note: ANSI colors require Windows 10/11. The script enables support automatically via registry (`VirtualTerminalLevel`).
+
+### Main menu
 
 | Option | Description |
 |--------|-------------|
-| **[1] QUICK Cleanup** | Essential cleanup + GPU cache, no questions (recommended for daily use) |
-| **[2] FULL Cleanup** | Everything automatic + GPU cache + SSD TRIM at the end |
+| **[1] QUICK Cleanup** | Temp, GPU cache, DNS, Prefetch, recent, events |
+| **[2] FULL Cleanup** | Everything automatic + SSD TRIM at the end |
 | **[3] CUSTOM Cleanup** | Y/N prompt for each category (18 options) |
-| **[4] Shadercache only** | Directly deletes the shadercache folder (CS2 / Steam) |
-| **[5] Mouse config only** | Directly imports the `raton.reg` file |
-| **[6] View LOG** | Shows the last 30 lines of the operations log |
-| **[0] Exit** | Closes the script |
+| **[4] SHADERCACHE** | Directly deletes the shadercache folder (CS2/Steam) |
+| **[5] MOUSE CONFIG** | Imports `raton.reg` |
+| **[6] VIEW LOG** | Shows the last 30 lines of the log |
+| **[7] NVIDIA CS2 PROFILE** 🆕 | Imports an optimized `.nip` (only if NVIDIA GPU) |
+| **[0 / Exit]** | Closes the script |
 
-### 🆕 Silent mode (command-line arguments)
-
-You can skip the menu by launching the script with an argument. Useful for desktop shortcuts or scheduled tasks:
+### Silent mode (arguments)
 
 ```bat
-RNX_Cache_Cleaner_v3.bat /rapida     :: Quick cleanup, no prompts
-RNX_Cache_Cleaner_v3.bat /completa   :: Full cleanup, no prompts
-RNX_Cache_Cleaner_v3.bat /shader     :: Shadercache only
-RNX_Cache_Cleaner_v3.bat /raton      :: Mouse config only
+RNX_Cache_Cleaner.bat /rapida     :: Quick cleanup
+RNX_Cache_Cleaner.bat /completa   :: Full cleanup
+RNX_Cache_Cleaner.bat /todo       :: EVERYTHING: full + shadercache + mouse + NVIDIA profile
+RNX_Cache_Cleaner.bat /shader     :: Shadercache only
+RNX_Cache_Cleaner.bat /raton      :: Mouse config only
+RNX_Cache_Cleaner.bat /nvidia     :: NVIDIA CS2 profile only
 ```
 
-**Example: schedule weekly automatic cleanup**
+Ideal for desktop shortcuts or scheduled tasks (menu and intros are fully skipped).
 
-1. Open **Task Scheduler**
-2. Create task → run `RNX_Cache_Cleaner_v3.bat` with argument `/rapida`
-3. Check "Run with highest privileges"
-4. Trigger: weekly, Sunday at 3:00 AM
+> **`/todo` vs `/completa`**: `/completa` only runs the system cleanup and exits. `/todo` does all of that and **also** deletes the shadercache (using the saved or default path), applies `raton.reg`, and imports the NVIDIA profile — all without asking. If any file is missing (raton.reg, .nip, etc.), it's simply skipped and noted in the log.
+
+> **The log is overwritten** on each run: `RNX_Cleaner.log` always contains only the last pass, with its date and time on the first line.
+
+### 🆕 NVIDIA CS2 Profile module
+
+Imports a CS2-optimized `.nip` profile directly into the NVIDIA driver, using **NVIDIA Profile Inspector** in silent mode (without opening its UI).
+
+**How it works:**
+1. Automatically detects whether your GPU is NVIDIA (if not, the module doesn't appear)
+2. Imports the CS2 profile silently with `-silentImport`
+3. The profile affects only CS2, not your global configuration
+
+**Module requirements (you must provide these):**
+
+| File | Where to place it | Where to get it |
+|------|-------------------|-----------------|
+| `nvidiaProfileInspector.exe` | Next to the script or in `tools\` | [github.com/Orbmu2k/nvidiaProfileInspector](https://github.com/Orbmu2k/nvidiaProfileInspector) |
+| `CS2_Profile.nip` | Next to the script (or you'll be asked) | Export it yourself from Profile Inspector, or use a community one |
+
+> ⚠️ **Important about `.nip` files**: always review the contents of a third-party `.nip` before applying it, since NVIDIA Profile Inspector exposes undocumented, driver-version-specific settings.
 
 ### Available cleanup areas
 
 | # | Category | What it cleans |
 |---|----------|----------------|
-| 1 | **Windows Temp** | `C:\Windows\Temp` (via robocopy `/MIR`, ultra fast) |
+| 1 | **Windows Temp** | `C:\Windows\Temp` (via robocopy `/MIR`) |
 | 2 | **User Temp** | `%TEMP%` |
 | 3 | **Prefetch** | `C:\Windows\Prefetch` |
 | 4 | **Recent files** | `Recent`, `AutomaticDestinations`, `CustomDestinations` |
-| 5 | **Print queue** | `C:\Windows\System32\spool\PRINTERS` (with spooler restart) |
+| 5 | **Print queue** | `spool\PRINTERS` (with spooler restart) |
 | 6 | **DNS cache** | `ipconfig /flushdns` |
-| 7 | **Windows Update** | `SoftwareDistribution\Download` (with wuauserv, bits, cryptsvc restart) |
-| 8 | **Thumbnails** | `thumbcache_*.db` (automatically restarts explorer.exe) |
-| 9 | **Icon Cache** | `IconCache.db` and `iconcache_*.db` |
-| 10 | **Microsoft Store** | `wsreset.exe` to reset Store cache |
-| 11 | **Delivery Optimization** | Windows Update shared download cache |
-| 12 | **Memory dumps** | `Minidump`, `MEMORY.DMP`, CBS logs, WER reports |
+| 7 | **Windows Update** | `SoftwareDistribution\Download` (restarts services) |
+| 8 | **Thumbnails** | `thumbcache_*.db` (restarts explorer) |
+| 9 | **Icon Cache** | `IconCache.db`, `iconcache_*.db` |
+| 10 | **Microsoft Store** | `wsreset.exe` |
+| 11 | **Delivery Optimization** | Windows Update shared cache |
+| 12 | **Memory dumps** | `Minidump`, `MEMORY.DMP`, CBS logs, WER |
 | 13 | **Font cache** | `FontCache*.dat`, `FNTCACHE.DAT` |
-| 14 | **Recycle Bin** | Empties via PowerShell `Clear-RecycleBin` |
-| 15 | **Event logs** | `wevtutil cl` + physical `.evtx` files + `Panther`, `CBS`, `DISM` logs |
-| 16 🆕 | **GPU driver cache** | NVIDIA (`DXCache`, `GLCache`, `ComputeCache`, `NV_Cache`), AMD (`DxCache`, `GLCache`), Intel (`ShaderCache`) |
-| 17 🆕 | **Discord cache** | Discord's `Cache`, `Code Cache`, `GPUCache` (Stable, PTB, Canary). Auto-closes Discord |
-| 18 🆕 | **SSD optimization** | `defrag C: /L` runs TRIM on SSDs (consolidates free blocks after cleanup) |
+| 14 | **Recycle Bin** | `Clear-RecycleBin` |
+| 15 | **Event logs** | `wevtutil cl` + `.evtx` + Panther + CBS + DISM |
+| 16 | **GPU driver cache** | NVIDIA / AMD / Intel |
+| 17 | **Discord cache** | Closes Discord and clears its cache |
+| 18 | **SSD optimization** | `defrag C: /L` (TRIM) |
 
 ### Optional modules (after interactive cleanup)
 
-#### 🎮 Shadercache module (CS2 / Steam)
+#### 🎮 Shadercache (CS2 / Steam)
+- Default path: `C:\Program Files (x86)\Steam\steamapps\shadercache\730`
+- Detects if Steam is running and warns before deletion
+- Saves path in `shadercache.txt`
 
-- **Default path**: `C:\Program Files (x86)\Steam\steamapps\shadercache\730` (CS2 = 730)
-- **Steam detection**: Checks if `steam.exe` is running and warns before deletion
-- **Path memory**: Saves the used path in `shadercache.txt`
-- **Benefit**: Forces shader recompilation and can improve performance / fix glitches in CS2
-- **Perfect combo**: Pair it with option 16 (GPU driver cache) for total graphics cleanup
-
-#### 🖱️ Mouse configuration module
-
-- Imports the `raton.reg` file (same directory as the script) into the Windows registry
-- If not found, lets you specify the path manually
-
-### Key features v3.1
-
-✅ **Automatic admin elevation**
-✅ **Interactive menu** with 7 options
-✅ **Three cleanup modes**: Quick, Full, Custom (18 categories)
-✅ **🆕 Silent mode** via `/rapida`, `/completa`, `/shader`, `/raton` arguments
-✅ **🆕 GPU driver cache** (NVIDIA / AMD / Intel) — ideal for gamers
-✅ **🆕 Discord cleanup** with automatic process closure
-✅ **🆕 SSD TRIM/optimization** at the end of full cleanup
-✅ **Freed space measurement** in MB
-✅ **Logging system** with timestamps
-✅ **Visual progress bar**
-✅ **`robocopy /MIR` usage** for fast large folder cleaning
-✅ **Process detection** (Steam, Discord) before deletion
-✅ **Deep log cleanup**: events + `.evtx` + Panther + CBS + DISM
+#### 🖱️ Mouse configuration
+- Imports `raton.reg` into the Windows registry
 
 ### How to use
 
-**Interactive mode (normal)**
-1. **Download** `RNX_Cache_Cleaner_v3.bat`
-2. **Right-click** → **"Run as administrator"** (also self-elevates on double-click)
-3. **Choose an option** from the main menu
-4. At the end, the script shows how many MB you freed
+**Interactive mode**
+1. Download `RNX_Cache_Cleaner.bat`
+2. Right-click → **Run as administrator** (also self-elevates)
+3. Navigate with **arrows** and **Enter**, or press the option number
+4. At the end you'll see how many MB you freed
 
-**Silent mode (advanced)**
+**Silent mode**
 1. Create a shortcut to the `.bat`
-2. Right-click → Properties → in "Target" append ` /rapida` at the end
-3. Check "Run as administrator" in advanced properties
-4. Double-click runs cleanup directly without menu
+2. Properties → in "Target" append ` /completa` (or your chosen mode)
+3. Check "Run as administrator" in advanced options
+
+**Schedule weekly cleanup**
+1. Task Scheduler → Create task
+2. Action: run `RNX_Cache_Cleaner.bat` with argument `/rapida`
+3. Check "Run with highest privileges"
+4. Trigger: weekly
 
 ### Requirements
 
-- Windows 10 or Windows 11 recommended (compatible from Windows 7)
-- PowerShell 5.0+ (included in Windows 10/11 by default)
-- Administrator permissions (the script requests them automatically)
-- Steam installed (only if using the shadercache module)
+- **Windows 10 or 11** (needed for neon ANSI colors; works on 7/8 but without color)
+- PowerShell 5.0+ (included by default)
+- Administrator permissions (auto-requested)
+- Steam (only for shadercache module)
+- NVIDIA GPU + NVIDIA Profile Inspector + a `.nip` (only for NVIDIA module)
 
-### Auxiliary files (optional)
+### Auxiliary files
 
 | File | Purpose | Auto-created |
 |------|---------|--------------|
-| `shadercache.txt` | Stores the shadercache path so it's not asked again | Yes, on first use |
-| `raton.reg` | Mouse configuration imported into registry | No (you must provide it) |
-| `RNX_Cleaner.log` | Timestamped log of all operations performed | Yes, on first use |
+| `shadercache.txt` | Saved shadercache path | Yes |
+| `raton.reg` | Mouse config to import | No (you provide it) |
+| `RNX_Cleaner.log` | Timestamped log | Yes |
+| `CS2_Profile.nip` | NVIDIA profile for CS2 | No (you provide it) |
+| `nvidiaProfileInspector.exe` | Import tool | No (download it) |
 
 ### Safety notes
 
-- ⚠️ Deleted files **CANNOT be recovered** from the recycle bin.
-- ⚠️ Deleting **event logs** makes diagnosing past problems harder.
-- ⚠️ The **Discord cache** option auto-closes Discord. Save anything important first.
-- ⚠️ The mouse module modifies the **Windows registry**. Make sure you trust `raton.reg`.
-- ⚠️ Close **CS2 and Steam** before using the shadercache module.
-- ⚠️ First run after a major Windows update may free several GB.
+- ⚠️ Deleted files cannot be recovered.
+- ⚠️ Deleting event logs makes later diagnosis harder.
+- ⚠️ The Discord module closes Discord automatically.
+- ⚠️ The mouse and NVIDIA modules modify the registry / driver profiles. The NVIDIA profile only affects CS2; the mouse one is global (back up your current `.reg` if concerned).
+- ⚠️ Close CS2 and Steam before using the shadercache module.
 
 ---
 
 ### Changelog
 
-#### v3.1 (current)
-- 🆕 GPU driver cache cleanup (NVIDIA / AMD / Intel)
-- 🆕 Discord cache cleanup with automatic process closure
-- 🆕 SSD TRIM/optimization (`defrag /L`) at end of full cleanup
-- 🆕 Silent mode via command-line arguments (`/rapida`, `/completa`, `/shader`, `/raton`)
-- GPU cache added to Quick Cleanup (gaming-oriented)
-- 3 new categories in Custom Cleanup (16, 17, 18)
-- README expanded with Task Scheduler example
+#### v4.2 (current)
+- El perfil NVIDIA CS2 ya no hace backup de la config previa (el perfil solo afecta a CS2)
+- La limpieza completa (opción [2] y `/completa`) ahora aplica también el perfil NVIDIA CS2
+
+#### v4.1
+- 🆕 Modo `/todo`: limpieza completa + shadercache + ratón + perfil NVIDIA, todo desatendido
+- 🆕 El log ahora se sobrescribe en cada ejecución (solo queda la última, con fecha/hora)
+- Shadercache y ratón ahora se registran en el log también en modo automático
+
+#### v4.0
+- 🆕 Full cyberpunk/neon UI redesign (ANSI colors, banner, highlighted items)
+- 🆕 Arrow-key menu navigation (↑↓ + Enter) plus number shortcuts
+- 🆕 Fast loading animations (~0.5s) replacing static progress screens
+- 🆕 Automatic GPU brand detection
+- 🆕 NVIDIA CS2 profile module (silent `.nip` import via Profile Inspector)
+- 🆕 `/nvidia` silent-mode argument
+- File renamed to `RNX_Cache_Cleaner.bat` (version no longer in filename)
+
+#### v3.1
+- GPU driver cache, Discord cache, SSD TRIM, silent-mode arguments
 
 #### v3.0
-- Interactive main menu with 7 options
-- Three cleanup modes: Quick / Full / Custom
-- 8 new cleanup categories (DNS, Windows Update, Thumbnails, Icon Cache, Store, Delivery Optimization, Memory Dumps, Fonts, Recycle Bin)
-- Freed space measurement
-- Logging system with timestamps
-- Reinforced log cleanup (.evtx + Panther + CBS + DISM)
-- Steam process detection before shadercache deletion
-- `robocopy /MIR` for fast large folder cleaning
-- Unified header subroutine
+- Interactive menu, three cleanup modes, 8 new categories, freed-space measurement, logging
 
 #### v2.0
 - Initial public release
-- Automatic admin elevation
-- Sequential cleanup with progress bar
-- Shadercache module with path memory
-- Mouse config module
 
 ---
 
 ### Autor / Author
-RNX Cache Cleaner Pro v3.1
+RNX Cache Cleaner Pro v4.0
 
 ### Licencia / License
 Libre para usar / Free to use
