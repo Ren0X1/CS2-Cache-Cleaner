@@ -22,7 +22,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version a publicar (opcional, ej: 3.2). Si se deja vacio se lee del .bat.'
+        description: 'Version a publicar (opcional, ej: 4.3). Si se deja vacio se lee del .bat.'
         required: false
         type: string
       prerelease:
@@ -79,7 +79,7 @@ jobs:
             VERSION="$INPUT_VERSION"
             echo "Usando version del input manual: $VERSION"
           else
-            # 2) Leer VERSION_SCRIPT del .bat: set "VERSION_SCRIPT=3.1"
+            # 2) Leer VERSION_SCRIPT del .bat: set "VERSION_SCRIPT=4.2"
             VERSION=$(grep -oP 'VERSION_SCRIPT=\K[0-9]+\.[0-9]+(\.[0-9]+)?' "$BAT_FILE" | head -n 1 || true)
             if [ -z "$VERSION" ]; then
               echo "::error::No se pudo extraer VERSION_SCRIPT del archivo $BAT_FILE"
@@ -137,22 +137,24 @@ jobs:
             Release automatica generada desde la rama `main`.
 
             ### Descarga
-            Descarga el archivo `.bat` adjunto y ejecutalo como administrador.
+            Descarga el archivo `${{ steps.version.outputs.bat_file }}` adjunto y ejecutalo como administrador (se autoeleva solo).
 
-            ### Uso rapido
+            ### Modos de uso
             ```bat
-            RNX_Cache_Cleaner_v3.bat              :: menu interactivo
-            RNX_Cache_Cleaner_v3.bat /rapida      :: limpieza rapida directa
-            RNX_Cache_Cleaner_v3.bat /completa    :: limpieza completa directa
-            RNX_Cache_Cleaner_v3.bat /shader      :: solo shadercache
-            RNX_Cache_Cleaner_v3.bat /raton       :: solo configuracion raton
+            ${{ steps.version.outputs.bat_file }}            :: menu interactivo (flechas + Enter)
+            ${{ steps.version.outputs.bat_file }} /rapida    :: limpieza rapida
+            ${{ steps.version.outputs.bat_file }} /completa  :: limpieza completa + TRIM + perfil NVIDIA
+            ${{ steps.version.outputs.bat_file }} /todo      :: TODO: completa + shadercache + raton + NVIDIA
+            ${{ steps.version.outputs.bat_file }} /shader    :: solo shadercache (CS2/Steam)
+            ${{ steps.version.outputs.bat_file }} /raton     :: solo importar raton.reg
+            ${{ steps.version.outputs.bat_file }} /nvidia    :: solo perfil NVIDIA CS2
             ```
 
-            Mas informacion en el [README](https://github.com/${{ github.repository }}/blob/main/README.md).
+            Consulta el [README](https://github.com/${{ github.repository }}/blob/main/README.md) para la lista completa de areas de limpieza y requisitos del modulo NVIDIA.
 
             ---
             **Commit:** ${{ github.sha }}
-            **Run:**    [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            **Run:** [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
           generate_release_notes: true
           prerelease: ${{ github.event.inputs.prerelease == 'true' }}
           files: |
