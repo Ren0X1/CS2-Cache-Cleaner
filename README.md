@@ -77,7 +77,7 @@ Importa un perfil `.nip` optimizado para CS2 directamente al driver NVIDIA, usan
 | 1 | **Windows Temp** | `C:\Windows\Temp` (vía robocopy `/MIR`) |
 | 2 | **Temp de usuario** | `%TEMP%` |
 | 3 | **Prefetch** | `C:\Windows\Prefetch` |
-| 4 | **Recientes** | `Recent`, `AutomaticDestinations`, `CustomDestinations` |
+| 4 | **Recientes** | Accesos directos recientes de `Recent` (preserva los anclados del Explorador) |
 | 5 | **Cola de impresión** | `spool\PRINTERS` (con reinicio del spooler) |
 | 6 | **Cache DNS** | `ipconfig /flushdns` |
 | 7 | **Windows Update** | `SoftwareDistribution\Download` (reinicia servicios) |
@@ -223,7 +223,7 @@ Imports a CS2-optimized `.nip` profile directly into the NVIDIA driver, using **
 | 1 | **Windows Temp** | `C:\Windows\Temp` (via robocopy `/MIR`) |
 | 2 | **User Temp** | `%TEMP%` |
 | 3 | **Prefetch** | `C:\Windows\Prefetch` |
-| 4 | **Recent files** | `Recent`, `AutomaticDestinations`, `CustomDestinations` |
+| 4 | **Recent files** | Recent shortcuts in `Recent` (preserves Explorer pinned items) |
 | 5 | **Print queue** | `spool\PRINTERS` (with spooler restart) |
 | 6 | **DNS cache** | `ipconfig /flushdns` |
 | 7 | **Windows Update** | `SoftwareDistribution\Download` (restarts services) |
@@ -298,7 +298,10 @@ Imports a CS2-optimized `.nip` profile directly into the NVIDIA driver, using **
 
 ### Changelog
 
-#### v4.2 (current)
+#### v4.3 (current)
+- 🐛 Corregido: la limpieza de "Recientes" ya no borra las Jump Lists (`AutomaticDestinations`/`CustomDestinations`), que es donde Windows guarda los elementos anclados del panel del Explorador. Ahora solo borra los accesos recientes sueltos, así tus anclados (Desktop, Downloads, etc.) se mantienen.
+
+#### v4.2
 - El perfil NVIDIA CS2 ya no hace backup de la config previa (el perfil solo afecta a CS2)
 - La limpieza completa (opción [2] y `/completa`) ahora aplica también el perfil NVIDIA CS2
 

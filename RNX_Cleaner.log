@@ -1,2 +1,24 @@
-
-
+=== RNX Cache Cleaner v4.2 - Ejecucion 20/06/2026 13:13:27 ===
+[20/06/2026 13:13:27,53] === INICIO LIMPIEZA COMPLETA === 
+[20/06/2026 13:13:27,65] Limpiada: C:\Windows\Temp 
+[20/06/2026 13:13:27,78] Limpiada: C:\Users\alex-\AppData\Local\Temp 
+[20/06/2026 13:13:27,91] Limpiada: Prefetch 
+[20/06/2026 13:13:28,01] Limpiada: Recent 
+[20/06/2026 13:13:32,69] Limpiada: cola de impresion 
+[20/06/2026 13:13:32,80] Cache DNS vaciada 
+[20/06/2026 13:13:46,61] Limpiada: cache Windows Update 
+[20/06/2026 13:13:46,77] Limpiadas: miniaturas 
+[20/06/2026 13:13:46,97] Limpiado: icon cache 
+[20/06/2026 13:13:48,10] Cache Microsoft Store reiniciada 
+[20/06/2026 13:13:48,26] Limpiada: Delivery Optimization 
+[20/06/2026 13:13:48,47] Limpiados: memory dumps y CBS logs 
+[20/06/2026 13:13:49,26] Cache drivers graficos limpiada 
+[20/06/2026 13:13:49,58] Limpiada: cache de fuentes 
+[20/06/2026 13:13:50,56] Papelera de reciclaje vaciada 
+[20/06/2026 13:14:04,92] Registros de eventos y logs de Windows borrados 
+[20/06/2026 13:14:08,82] TRIM/optimizacion ejecutado en C: 
+[20/06/2026 13:14:09,76] NVIDIA: perfil CS2 importado: C:\Users\alex-\Documents\Git\CS2-Cache-Cleaner\CS2.nip 
+[20/06/2026 13:14:12,21] === FIN LIMPIEZA COMPLETA === 
+[20/06/2026 13:14:12,32] Shadercache eliminada: C:\Program Files (x86)\Steam\steamapps\shadercache\730 
+[20/06/2026 13:14:12,42] Config raton aplicada: C:\Users\alex-\Documents\Git\CS2-Cache-Cleaner\raton.reg 
+[20/06/2026 13:14:12,42] === FIN MODO /todo === 

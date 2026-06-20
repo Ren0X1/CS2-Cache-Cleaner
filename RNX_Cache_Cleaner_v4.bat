@@ -44,7 +44,7 @@ set "HL=%ESC%[1;30;48;5;201m"
 set "HL_CYAN=%ESC%[1;30;48;5;51m"
 
 :: ----- Variables globales -----
-set "VERSION_SCRIPT=4.2"
+set "VERSION_SCRIPT=4.3"
 set "SCRIPT_DIR=%~dp0"
 set "LOG_FILE=%SCRIPT_DIR%RNX_Cleaner.log"
 set "EMPTY_DIR=%TEMP%\rnx_empty_dir"
@@ -372,10 +372,12 @@ call :LOG "Limpiada: Prefetch"
 exit /b
 
 :LIMPIAR_RECENT
-del /f /q "%APPDATA%\Microsoft\Windows\Recent\*.*" >nul 2>&1
-del /f /q "%APPDATA%\Microsoft\Windows\Recent\AutomaticDestinations\*.*" >nul 2>&1
-del /f /q "%APPDATA%\Microsoft\Windows\Recent\CustomDestinations\*.*" >nul 2>&1
-call :LOG "Limpiada: Recent"
+:: Solo borramos los accesos recientes sueltos (caché que Windows regenera).
+:: NO tocamos AutomaticDestinations ni CustomDestinations: ahi viven las
+:: Jump Lists y los elementos ANCLADOS del panel del Explorador (Desktop,
+:: Downloads, etc.). Borrarlos hacia que desaparecieran los anclados.
+del /f /q "%APPDATA%\Microsoft\Windows\Recent\*.lnk" >nul 2>&1
+call :LOG "Limpiada: Recent (anclados del Explorador preservados)"
 exit /b
 
 :LIMPIAR_COLA_IMPRESION
