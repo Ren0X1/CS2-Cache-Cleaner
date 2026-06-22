@@ -80,12 +80,6 @@
         <ValueType>Dword</ValueType>
       </ProfileSetting>
       <ProfileSetting>
-        <SettingNameInfo />
-        <SettingID>12623113</SettingID>
-        <SettingValue>2</SettingValue>
-        <ValueType>Dword</ValueType>
-      </ProfileSetting>
-      <ProfileSetting>
         <SettingNameInfo>Texture filtering - Quality</SettingNameInfo>
         <SettingID>13510289</SettingID>
         <SettingValue>20</SettingValue>
@@ -112,13 +106,7 @@
       <ProfileSetting>
         <SettingNameInfo>Anisotropic filtering setting</SettingNameInfo>
         <SettingID>270426537</SettingID>
-        <SettingValue>1</SettingValue>
-        <ValueType>Dword</ValueType>
-      </ProfileSetting>
-      <ProfileSetting>
-        <SettingNameInfo />
-        <SettingID>271076560</SettingID>
-        <SettingValue>0</SettingValue>
+        <SettingValue>16</SettingValue>
         <ValueType>Dword</ValueType>
       </ProfileSetting>
       <ProfileSetting>
@@ -134,21 +122,9 @@
         <ValueType>Dword</ValueType>
       </ProfileSetting>
       <ProfileSetting>
-        <SettingNameInfo />
-        <SettingID>274606621</SettingID>
-        <SettingValue>4</SettingValue>
-        <ValueType>Dword</ValueType>
-      </ProfileSetting>
-      <ProfileSetting>
         <SettingNameInfo>Enable Ansel</SettingNameInfo>
         <SettingID>276158834</SettingID>
         <SettingValue>0</SettingValue>
-        <ValueType>Dword</ValueType>
-      </ProfileSetting>
-      <ProfileSetting>
-        <SettingNameInfo />
-        <SettingID>276387096</SettingID>
-        <SettingValue>60</SettingValue>
         <ValueType>Dword</ValueType>
       </ProfileSetting>
       <ProfileSetting>
@@ -212,18 +188,6 @@
         <ValueType>Dword</ValueType>
       </ProfileSetting>
       <ProfileSetting>
-        <SettingNameInfo>Enable application for Optimus</SettingNameInfo>
-        <SettingID>284810369</SettingID>
-        <SettingValue>17</SettingValue>
-        <ValueType>Dword</ValueType>
-      </ProfileSetting>
-      <ProfileSetting>
-        <SettingNameInfo>Shim Rendering Mode Options per application for Optimus</SettingNameInfo>
-        <SettingID>284810372</SettingID>
-        <SettingValue>16777216</SettingValue>
-        <ValueType>Dword</ValueType>
-      </ProfileSetting>
-      <ProfileSetting>
         <SettingNameInfo>Enable G-SYNC globally</SettingNameInfo>
         <SettingID>294973784</SettingID>
         <SettingValue>0</SettingValue>
@@ -245,12 +209,6 @@
         <SettingNameInfo />
         <SettingID>1343646814</SettingID>
         <SettingValue>0</SettingValue>
-        <ValueType>Dword</ValueType>
-      </ProfileSetting>
-      <ProfileSetting>
-        <SettingNameInfo />
-        <SettingID>2156231208</SettingID>
-        <SettingValue>1</SettingValue>
         <ValueType>Dword</ValueType>
       </ProfileSetting>
     </Settings>
