@@ -44,10 +44,18 @@ set "HL=%ESC%[1;30;48;5;201m"
 set "HL_CYAN=%ESC%[1;30;48;5;51m"
 
 :: ----- Variables globales -----
-set "VERSION_SCRIPT=4.3"
+set "VERSION_SCRIPT=4.4"
 set "SCRIPT_DIR=%~dp0"
 set "LOG_FILE=%SCRIPT_DIR%RNX_Cleaner.log"
 set "EMPTY_DIR=%TEMP%\rnx_empty_dir"
+
+:: ----- Backup de la configuracion de Steam (userdata) -----
+:: Carpeta destino (se sincroniza con el repositorio de GitHub) y tamano
+:: maximo por archivo: lo que pase de aqui se omite del ZIP. Ojo: si un
+:: ZIP acaba pesando mas de 100 MB, GitHub no lo aceptara (el script
+:: avisa); en ese caso baja este valor.
+set "BACKUP_DIR=%SCRIPT_DIR%backups"
+set "BACKUP_MAX_MB=500"
 for /f "tokens=4-5 delims=. " %%i in ('ver') do set WIN_VERSION=%%i.%%j
 
 :: Detectar marca de GPU (PowerShell es mas fiable que wmic, que esta deprecado)
@@ -74,14 +82,24 @@ Title RNX Cache Cleaner Pro v%VERSION_SCRIPT%
 
 :: ===================================================================
 ::  MODO ARGUMENTOS (ejecucion silenciosa sin menu)
+::  Con cualquier parametro (/todo, /completa, ...) se hace ANTES un
+::  backup de la configuracion de Steam (userdata) en \backups.
 :: ===================================================================
 set "SILENT_MODE=0"
-if /i "%~1"=="/rapida"   ( set "SILENT_MODE=1" & goto LIMPIEZA_RAPIDA )
-if /i "%~1"=="/completa" ( set "SILENT_MODE=1" & goto LIMPIEZA_COMPLETA )
-if /i "%~1"=="/todo"     ( set "SILENT_MODE=1" & set "MODO_TODO=1" & goto LIMPIEZA_COMPLETA )
-if /i "%~1"=="/shader"   ( set "SILENT_MODE=1" & goto SHADERCACHE_DIRECTO )
-if /i "%~1"=="/raton"    ( set "SILENT_MODE=1" & goto RATON_DIRECTO )
-if /i "%~1"=="/nvidia"   ( set "SILENT_MODE=1" & goto NVIDIA_DIRECTO )
+set "SILENT_TARGET="
+if /i "%~1"=="/rapida"   ( set "SILENT_MODE=1" & set "SILENT_TARGET=LIMPIEZA_RAPIDA" )
+if /i "%~1"=="/completa" ( set "SILENT_MODE=1" & set "SILENT_TARGET=LIMPIEZA_COMPLETA" )
+if /i "%~1"=="/todo"     ( set "SILENT_MODE=1" & set "MODO_TODO=1" & set "SILENT_TARGET=LIMPIEZA_COMPLETA" )
+if /i "%~1"=="/shader"   ( set "SILENT_MODE=1" & set "SILENT_TARGET=SHADERCACHE_DIRECTO" )
+if /i "%~1"=="/raton"    ( set "SILENT_MODE=1" & set "SILENT_TARGET=RATON_DIRECTO" )
+if /i "%~1"=="/nvidia"   ( set "SILENT_MODE=1" & set "SILENT_TARGET=NVIDIA_DIRECTO" )
+:: /backup solo hace la copia de seguridad y sale
+if /i "%~1"=="/backup"   ( set "SILENT_MODE=1" & set "SILENT_TARGET=FIN_SCRIPT" )
+
+if "!SILENT_MODE!"=="1" (
+    call :BACKUP_USERDATA
+    goto !SILENT_TARGET!
+)
 
 :: ===================================================================
 ::  MENU PRINCIPAL (navegacion por flechas)
@@ -210,7 +228,7 @@ exit /b
 cls
 call :BANNER
 echo.
-echo  %C_YELLOW%  [>] LIMPIEZA RAPIDA%C_RESET%
+echo  %C_YELLOW%  [^>] LIMPIEZA RAPIDA%C_RESET%
 echo.
 call :MEDIR_ESPACIO_ANTES
 call :LOG "=== INICIO LIMPIEZA RAPIDA ==="
@@ -241,7 +259,7 @@ goto PREGUNTAR_SHADER
 cls
 call :BANNER
 echo.
-echo  %C_YELLOW%  [>] LIMPIEZA COMPLETA%C_RESET%
+echo  %C_YELLOW%  [^>] LIMPIEZA COMPLETA%C_RESET%
 echo.
 call :MEDIR_ESPACIO_ANTES
 call :LOG "=== INICIO LIMPIEZA COMPLETA ==="
@@ -299,7 +317,7 @@ goto PREGUNTAR_SHADER
 cls
 call :BANNER
 echo.
-echo  %C_YELLOW%  [>] LIMPIEZA PERSONALIZADA%C_RESET%  %C_GREY%^(responde Y/N a cada una^)%C_RESET%
+echo  %C_YELLOW%  [^>] LIMPIEZA PERSONALIZADA%C_RESET%  %C_GREY%^(responde Y/N a cada una^)%C_RESET%
 echo.
 for %%V in (WTEMP UTEMP PREF RECENT PRINT DNS WUP THUMB ICON STORE DELIV DUMPS FONT RECYCLE EVENTOS GPU DISCORD SSD) do set "OPT_%%V=N"
 
@@ -327,7 +345,7 @@ call :LOG "=== INICIO LIMPIEZA PERSONALIZADA ==="
 cls
 call :BANNER
 echo.
-echo  %C_YELLOW%  [>] Ejecutando seleccion...%C_RESET%
+echo  %C_YELLOW%  [^>] Ejecutando seleccion...%C_RESET%
 echo.
 if /i "!OPT_WTEMP!"=="Y" ( call :LOADING "Windows Temp.............." & call :LIMPIAR_WINDOWS_TEMP )
 if /i "!OPT_UTEMP!"=="Y" ( call :LOADING "Temp de usuario..........." & call :LIMPIAR_USER_TEMP )
@@ -487,6 +505,36 @@ call :LOG "TRIM/optimizacion ejecutado en C:"
 exit /b
 
 :: ===================================================================
+::  BACKUP DE LA CONFIGURACION DE STEAM (userdata)
+::  Genera backups\<STEAMID>.zip con toda la carpeta userdata de cada
+::  cuenta (todos los juegos, estructura de Steam intacta dentro del
+::  ZIP). Se salta capturas (760) y clips (gamerecordings). El trabajo
+::  pesado lo hace RNX_Backup_Userdata.ps1.
+:: ===================================================================
+:BACKUP_USERDATA
+set "BACKUP_PS=%SCRIPT_DIR%RNX_Backup_Userdata.ps1"
+if not exist "!BACKUP_PS!" set "BACKUP_PS=%SCRIPT_DIR%tools\RNX_Backup_Userdata.ps1"
+if not exist "!BACKUP_PS!" (
+    call :LOG "BACKUP: RNX_Backup_Userdata.ps1 no encontrado, modulo omitido"
+    exit /b
+)
+cls
+call :BANNER
+echo.
+echo  %C_MAGENTA%  [^>] BACKUP CONFIG STEAM%C_RESET%  %C_GREY%^(userdata -^> backups\STEAMID.zip^)%C_RESET%
+echo.
+powershell -NoProfile -ExecutionPolicy Bypass -File "!BACKUP_PS!" -Destino "%BACKUP_DIR%" -LogFile "%LOG_FILE%" -MaxMB %BACKUP_MAX_MB%
+if !errorlevel! EQU 0 (
+    echo.
+    echo  %C_GREEN%  [OK] Backup de configuracion completado.%C_RESET%
+) else (
+    echo.
+    echo  %C_YELLOW%  [AVISO] Backup incompleto, revisa el log.%C_RESET%
+)
+ping -n 3 -w 500 127.0.0.1 >nul
+exit /b
+
+:: ===================================================================
 ::  MEDICION DE ESPACIO
 :: ===================================================================
 :MEDIR_ESPACIO_ANTES
@@ -524,7 +572,7 @@ cls
 call :BANNER
 echo.
 if exist "%LOG_FILE%" (
-    echo  %C_YELLOW%  [>] ULTIMAS 30 LINEAS DEL LOG%C_RESET%
+    echo  %C_YELLOW%  [^>] ULTIMAS 30 LINEAS DEL LOG%C_RESET%
     echo.
     powershell -NoProfile -Command "Get-Content '%LOG_FILE%' -Tail 30 | ForEach-Object { Write-Host $_ }"
 ) else (
@@ -542,7 +590,7 @@ goto MENU_PRINCIPAL
 cls
 call :BANNER
 echo.
-echo  %C_MAGENTA%  [>] MODULO SHADERCACHE%C_RESET%
+echo  %C_MAGENTA%  [^>] MODULO SHADERCACHE%C_RESET%
 echo.
 set /p BORRAR_SHADER="   Borrar la carpeta shadercache? (Y/N): "
 if /i "!BORRAR_SHADER!" NEQ "Y" goto PREGUNTAR_RATON
@@ -552,7 +600,7 @@ goto SHADERCACHE_CORE
 cls
 call :BANNER
 echo.
-echo  %C_MAGENTA%  [>] MODULO SHADERCACHE%C_RESET%
+echo  %C_MAGENTA%  [^>] MODULO SHADERCACHE%C_RESET%
 echo.
 
 :SHADERCACHE_CORE
@@ -602,7 +650,7 @@ goto PREGUNTAR_RATON
 cls
 call :BANNER
 echo.
-echo  %C_MAGENTA%  [>] MODULO CONFIG RATON%C_RESET%
+echo  %C_MAGENTA%  [^>] MODULO CONFIG RATON%C_RESET%
 echo.
 set /p APLICAR_RATON="   Aplicar configuracion del raton? (Y/N): "
 if /i "!APLICAR_RATON!" NEQ "Y" goto FIN_MODULOS
@@ -612,7 +660,7 @@ goto RATON_CORE
 cls
 call :BANNER
 echo.
-echo  %C_MAGENTA%  [>] MODULO CONFIG RATON%C_RESET%
+echo  %C_MAGENTA%  [^>] MODULO CONFIG RATON%C_RESET%
 echo.
 
 :RATON_CORE
@@ -648,7 +696,7 @@ goto FIN_SCRIPT
 :: ===================================================================
 :TODO_MODULOS
 echo.
-echo  %C_MAGENTA%  [>] MODULOS AUTOMATICOS ^(/todo^)%C_RESET%
+echo  %C_MAGENTA%  [^>] MODULOS AUTOMATICOS ^(/todo^)%C_RESET%
 echo.
 
 :: --- Shadercache ---
@@ -724,7 +772,7 @@ exit /b
 cls
 call :BANNER
 echo.
-echo  %C_GREEN%  [>] MODULO PERFIL NVIDIA - CS2%C_RESET%
+echo  %C_GREEN%  [^>] MODULO PERFIL NVIDIA - CS2%C_RESET%
 echo.
 if "%GPU_NVIDIA%" NEQ "1" (
     echo  %C_RED%  [ERROR] No se detecto ninguna GPU NVIDIA en este equipo.%C_RESET%
@@ -784,7 +832,7 @@ if exist "%EMPTY_DIR%" rd /s /q "%EMPTY_DIR%" >nul 2>&1
 cls
 call :BANNER
 echo.
-echo  %C_CYAN%  [>] Sesion finalizada.%C_RESET%  %C_GREY%Log: %LOG_FILE%%C_RESET%
+echo  %C_CYAN%  [^>] Sesion finalizada.%C_RESET%  %C_GREY%Log: %LOG_FILE%%C_RESET%
 echo.
 if "!SILENT_MODE!"=="1" exit /B
 echo  %C_GREY%  Pulsa una tecla para salir...%C_RESET%
