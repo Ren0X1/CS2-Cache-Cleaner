@@ -15,8 +15,10 @@
      - Solo se reescribe el ZIP de una cuenta si su contenido ha cambiado
        (se compara el hash guardado en _indice.txt), asi el repositorio
        de git no crece en cada ejecucion.
-     - Se excluyen por defecto las capturas (760) y los clips de video
-       (gamerecordings) y cualquier archivo mayor de -MaxMB.
+     - Se excluyen por defecto las capturas (760), los clips de video
+       (gamerecordings) y las cachés que Steam regenera solo
+       (inventorymsgcache, ugc, ugcmsgcache), ademas de cualquier
+       archivo mayor de -MaxMB.
 
      Uso:
        powershell -NoProfile -ExecutionPolicy Bypass -File RNX_Backup_Userdata.ps1 -Destino "C:\...\backups"
@@ -28,12 +30,16 @@ param(
     [string]$RutaSteam = '',
     [string]$LogFile   = '',
     [int]$MaxMB        = 500,
-    [string[]]$Excluir = @('760', 'gamerecordings')
+    [string[]]$Excluir = @('760', 'gamerecordings', 'inventorymsgcache', 'ugc', 'ugcmsgcache')
 )
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference    = 'SilentlyContinue'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+# Con "powershell -File", -Excluir 760,gamerecordings llega como UNA sola
+# cadena, no como array: hay que partirla por comas a mano.
+$Excluir = @($Excluir | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 
 # ----- Paleta neon (la misma que usa el .bat) -----
 $E  = [char]27

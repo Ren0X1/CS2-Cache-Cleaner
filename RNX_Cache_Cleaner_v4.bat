@@ -56,6 +56,9 @@ set "EMPTY_DIR=%TEMP%\rnx_empty_dir"
 :: avisa); en ese caso baja este valor.
 set "BACKUP_DIR=%SCRIPT_DIR%backups"
 set "BACKUP_MAX_MB=500"
+:: Carpetas de userdata que NO se guardan (separadas por comas, sin espacios):
+:: capturas, clips de video y cachés que Steam regenera solo.
+set "BACKUP_EXCLUIR=760,gamerecordings,inventorymsgcache,ugc,ugcmsgcache"
 for /f "tokens=4-5 delims=. " %%i in ('ver') do set WIN_VERSION=%%i.%%j
 
 :: Detectar marca de GPU (PowerShell es mas fiable que wmic, que esta deprecado)
@@ -508,7 +511,7 @@ exit /b
 ::  BACKUP DE LA CONFIGURACION DE STEAM (userdata)
 ::  Genera backups\<STEAMID>.zip con toda la carpeta userdata de cada
 ::  cuenta (todos los juegos, estructura de Steam intacta dentro del
-::  ZIP). Se salta capturas (760) y clips (gamerecordings). El trabajo
+::  ZIP). Se salta lo que indique BACKUP_EXCLUIR. El trabajo
 ::  pesado lo hace RNX_Backup_Userdata.ps1.
 :: ===================================================================
 :BACKUP_USERDATA
@@ -523,7 +526,7 @@ call :BANNER
 echo.
 echo  %C_MAGENTA%  [^>] BACKUP CONFIG STEAM%C_RESET%  %C_GREY%^(userdata -^> backups\STEAMID.zip^)%C_RESET%
 echo.
-powershell -NoProfile -ExecutionPolicy Bypass -File "!BACKUP_PS!" -Destino "%BACKUP_DIR%" -LogFile "%LOG_FILE%" -MaxMB %BACKUP_MAX_MB%
+powershell -NoProfile -ExecutionPolicy Bypass -File "!BACKUP_PS!" -Destino "%BACKUP_DIR%" -LogFile "%LOG_FILE%" -MaxMB %BACKUP_MAX_MB% -Excluir %BACKUP_EXCLUIR%
 if !errorlevel! EQU 0 (
     echo.
     echo  %C_GREEN%  [OK] Backup de configuracion completado.%C_RESET%

@@ -72,7 +72,7 @@ backups\
 Detalles:
 
 - **Steam se localiza solo** por registro (`HKCU\Software\Valve\Steam`) con respaldo a las rutas típicas.
-- **Se excluyen** `760` (capturas de pantalla) y `gamerecordings` (clips de vídeo), que son los que disparan el tamaño y no son configuración.
+- **Se excluyen** `760` (capturas), `gamerecordings` (clips de vídeo) y las cachés que Steam regenera solo (`inventorymsgcache`, `ugc`, `ugcmsgcache`). La lista está en `BACKUP_EXCLUIR` dentro del `.bat` — añade ahí `config` si tampoco quieres tus launch options y ajustes de Steam.
 - **Archivos > 500 MB se omiten** (ajustable en `BACKUP_MAX_MB` dentro del `.bat`). Si con ese límite algún ZIP acaba pesando más de 100 MB, el script **avisa**: GitHub rechaza archivos de ese tamaño, así que tendrías que bajar el límite para dejar fuera las partidas guardadas más gordas.
 - **Solo se reescribe el ZIP si algo cambió**: se compara el hash de la cuenta contra `_indice.txt`, así el repositorio no engorda en cada ejecución.
 - **Archivos en uso** (Steam abierto) se saltan y se anotan en el log; el resto se guarda igual.
@@ -260,7 +260,7 @@ backups\
 Details:
 
 - **Steam is located automatically** through the registry (`HKCU\Software\Valve\Steam`), falling back to the usual install paths.
-- **Excluded**: `760` (screenshots) and `gamerecordings` (video clips) — they dominate the size and are not configuration.
+- **Excluded**: `760` (screenshots), `gamerecordings` (video clips) and the caches Steam rebuilds by itself (`inventorymsgcache`, `ugc`, `ugcmsgcache`). The list lives in `BACKUP_EXCLUIR` inside the `.bat` — add `config` there too if you don't want your launch options and Steam settings either.
 - **Files over 500 MB are skipped** (tune `BACKUP_MAX_MB` in the `.bat`). If a ZIP still ends up over 100 MB the script warns you: GitHub rejects files that big, so you'd need to lower the limit to leave the largest savegames out.
 - **The ZIP is only rewritten when something changed**: the account hash is compared against `_indice.txt`, so the repository doesn't grow on every run.
 - **Locked files** (Steam running) are skipped and noted in the log; everything else is still saved.
@@ -385,7 +385,8 @@ Imports a CS2-optimized `.nip` profile directly into the NVIDIA driver, using **
 #### v4.4 (current)
 - 🆕 **Backup automático de la configuración de Steam**: con cualquier argumento (`/todo`, `/completa`, …) se guarda `userdata` completo en `backups\<STEAMID>.zip` antes de limpiar, con la estructura de Steam intacta dentro del ZIP
 - 🆕 Nuevo argumento `/backup` (solo la copia de seguridad, sin limpiar)
-- 🆕 Nuevo módulo `RNX_Backup_Userdata.ps1`: detecta Steam por registro, excluye capturas (`760`) y clips (`gamerecordings`), omite archivos de más de `BACKUP_MAX_MB` y **solo reescribe el ZIP si el contenido cambió** (hash en `_indice.txt`)
+- 🆕 Nuevo módulo `RNX_Backup_Userdata.ps1`: detecta Steam por registro, omite archivos de más de `BACKUP_MAX_MB` y **solo reescribe el ZIP si el contenido cambió** (hash en `_indice.txt`)
+- 🆕 Lista de exclusiones configurable en `BACKUP_EXCLUIR`: por defecto capturas (`760`), clips (`gamerecordings`) y cachés regenerables (`inventorymsgcache`, `ugc`, `ugcmsgcache`)
 - 🆕 `.gitattributes` con Git LFS para `backups/*.zip`
 - 🐛 **Corregido: el `.bat` tenía finales de línea Unix (LF)**. `cmd` se descuadraba al parsear y se comía el primer carácter de algunas líneas (`call` → `all`), abortando la ejecución a medias. Ahora el archivo es CRLF y `.gitattributes` lo fuerza
 - 🐛 Corregido: los `[>]` de los `echo` no estaban escapados, así que `cmd` los interpretaba como redirección — los títulos de sección salían en blanco y se creaba un archivo basura llamado `]`
