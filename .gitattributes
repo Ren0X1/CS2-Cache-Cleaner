@@ -1,0 +1,7 @@
+# Scripts de Windows: siempre CRLF (con LF, cmd se come caracteres al parsear)
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+*.reg text eol=crlf
+
+# Los backups de userdata son ZIP binarios y pesados: van por Git LFS
+backups/*.zip filter=lfs diff=lfs merge=lfs -text

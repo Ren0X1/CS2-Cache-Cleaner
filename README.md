@@ -44,13 +44,52 @@ RNX_Cache_Cleaner.bat /todo       :: TODO: completa + shadercache + ratón + per
 RNX_Cache_Cleaner.bat /shader     :: Solo shadercache
 RNX_Cache_Cleaner.bat /raton      :: Solo configuración ratón
 RNX_Cache_Cleaner.bat /nvidia     :: Solo importar perfil NVIDIA CS2
+RNX_Cache_Cleaner.bat /backup     :: Solo backup de la config de Steam
 ```
 
 Ideal para accesos directos en el escritorio o tareas programadas (el menú y las intros se saltan por completo).
 
+> **Backup automático**: con **cualquier** argumento (`/todo`, `/completa`, `/rapida`, …) se hace primero una copia de seguridad de la configuración de Steam en `backups\`. Ver [Backup de configuración de Steam](#-backup-de-configuración-de-steam-userdata).
+
 > **`/todo` vs `/completa`**: `/completa` solo hace la limpieza del sistema y termina. `/todo` hace todo eso y **además** borra el shadercache (usando la ruta guardada o la de defecto), aplica `raton.reg` e importa el perfil NVIDIA — todo sin preguntar nada. Si falta algún archivo (raton.reg, .nip, etc.), simplemente lo omite y lo anota en el log.
 
 > **El log se sobrescribe** en cada ejecución: `RNX_Cleaner.log` siempre contiene únicamente la última pasada, con su fecha y hora en la primera línea.
+
+### 🆕 Backup de configuración de Steam (userdata)
+
+Antes de limpiar nada, si el script se lanza **con argumentos** se guarda una copia de la carpeta `userdata` de Steam — la configuración de **todos** los juegos, no solo CS2. Un ZIP por cuenta, con la estructura de Steam intacta dentro:
+
+```
+backups\
+├── 76561198xxxxxxxx.zip      <- un ZIP por SteamID
+│   ├── 730/local/cfg/...     <- CS2 (binds, video, convars)
+│   ├── 730/remote/cfg/...
+│   ├── config/localconfig.vdf
+│   └── <cualquier otro appid>/...
+└── _indice.txt               <- hash de cada cuenta (control de cambios)
+```
+
+Detalles:
+
+- **Steam se localiza solo** por registro (`HKCU\Software\Valve\Steam`) con respaldo a las rutas típicas.
+- **Se excluyen** `760` (capturas de pantalla) y `gamerecordings` (clips de vídeo), que son los que disparan el tamaño y no son configuración.
+- **Archivos > 500 MB se omiten** (ajustable en `BACKUP_MAX_MB` dentro del `.bat`). Si con ese límite algún ZIP acaba pesando más de 100 MB, el script **avisa**: GitHub rechaza archivos de ese tamaño, así que tendrías que bajar el límite para dejar fuera las partidas guardadas más gordas.
+- **Solo se reescribe el ZIP si algo cambió**: se compara el hash de la cuenta contra `_indice.txt`, así el repositorio no engorda en cada ejecución.
+- **Archivos en uso** (Steam abierto) se saltan y se anotan en el log; el resto se guarda igual.
+- La carpeta `backups\` está pensada para **sincronizarse con GitHub** (`git add backups && git commit && git push`).
+
+**Git LFS** — el repositorio ya trae `.gitattributes` con `backups/*.zip filter=lfs`, así que los ZIP viajan por [Git Large File Storage](https://git-lfs.com/) en vez de ir dentro del historial normal. Ventaja: el límite por archivo sube de 100 MB a 2 GB. Para activarlo en tu clon:
+
+```bat
+git lfs install
+git add .gitattributes backups
+git commit -m "Backup userdata"
+git push
+```
+
+> ⚠️ **Cuota**: una cuenta gratuita de GitHub tiene **1 GB de almacenamiento LFS y 1 GB de ancho de banda al mes**, y LFS guarda **cada versión** del ZIP para siempre. Con un ZIP de ~250 MB agotas la cuota en 4 subidas. Si tus partidas guardadas engordan el backup, baja `BACKUP_MAX_MB` o excluye más carpetas en vez de comprar packs de datos.
+
+> ⚠️ **Privacidad**: `localconfig.vdf` contiene tu SteamID, tu biblioteca, launch options y nicks de amigos. Si vas a subir `backups\` a un repositorio **público**, revísalo antes — en git queda en el historial aunque lo borres después.
 
 ### 🆕 Módulo Perfil NVIDIA para CS2
 
@@ -139,6 +178,9 @@ Importa un perfil `.nip` optimizado para CS2 directamente al driver NVIDIA, usan
 | `RNX_Cleaner.log` | Log con timestamps | Sí |
 | `CS2_Profile.nip` | Perfil NVIDIA para CS2 | No (lo aportas tú) |
 | `nvidiaProfileInspector.exe` | Herramienta de importación | No (descárgalo) |
+| `RNX_Backup_Userdata.ps1` | Motor del backup de Steam | No (viene con el repo) |
+| `backups\` | ZIP de config por SteamID | Sí |
+| `.gitattributes` | CRLF en los scripts + LFS para los ZIP | No (viene con el repo) |
 
 ### Notas de seguridad
 
@@ -190,13 +232,52 @@ RNX_Cache_Cleaner.bat /todo       :: EVERYTHING: full + shadercache + mouse + NV
 RNX_Cache_Cleaner.bat /shader     :: Shadercache only
 RNX_Cache_Cleaner.bat /raton      :: Mouse config only
 RNX_Cache_Cleaner.bat /nvidia     :: NVIDIA CS2 profile only
+RNX_Cache_Cleaner.bat /backup     :: Steam config backup only
 ```
 
 Ideal for desktop shortcuts or scheduled tasks (menu and intros are fully skipped).
 
+> **Automatic backup**: with **any** argument (`/todo`, `/completa`, `/rapida`, …) a backup of your Steam configuration is written to `backups\` first. See [Steam configuration backup](#-steam-configuration-backup-userdata).
+
 > **`/todo` vs `/completa`**: `/completa` only runs the system cleanup and exits. `/todo` does all of that and **also** deletes the shadercache (using the saved or default path), applies `raton.reg`, and imports the NVIDIA profile — all without asking. If any file is missing (raton.reg, .nip, etc.), it's simply skipped and noted in the log.
 
 > **The log is overwritten** on each run: `RNX_Cleaner.log` always contains only the last pass, with its date and time on the first line.
+
+### 🆕 Steam configuration backup (userdata)
+
+Before cleaning anything, when the script runs **with arguments** it backs up Steam's `userdata` folder — the settings of **every** game, not just CS2. One ZIP per account, with Steam's original structure preserved inside:
+
+```
+backups\
+├── 76561198xxxxxxxx.zip      <- one ZIP per SteamID
+│   ├── 730/local/cfg/...     <- CS2 (binds, video, convars)
+│   ├── 730/remote/cfg/...
+│   ├── config/localconfig.vdf
+│   └── <any other appid>/...
+└── _indice.txt               <- per-account hash (change tracking)
+```
+
+Details:
+
+- **Steam is located automatically** through the registry (`HKCU\Software\Valve\Steam`), falling back to the usual install paths.
+- **Excluded**: `760` (screenshots) and `gamerecordings` (video clips) — they dominate the size and are not configuration.
+- **Files over 500 MB are skipped** (tune `BACKUP_MAX_MB` in the `.bat`). If a ZIP still ends up over 100 MB the script warns you: GitHub rejects files that big, so you'd need to lower the limit to leave the largest savegames out.
+- **The ZIP is only rewritten when something changed**: the account hash is compared against `_indice.txt`, so the repository doesn't grow on every run.
+- **Locked files** (Steam running) are skipped and noted in the log; everything else is still saved.
+- The `backups\` folder is meant to be **synced to GitHub** (`git add backups && git commit && git push`).
+
+**Git LFS** — the repository ships a `.gitattributes` with `backups/*.zip filter=lfs`, so the ZIPs travel through [Git Large File Storage](https://git-lfs.com/) instead of the regular history. That raises the per-file limit from 100 MB to 2 GB. To enable it on your clone:
+
+```bat
+git lfs install
+git add .gitattributes backups
+git commit -m "Backup userdata"
+git push
+```
+
+> ⚠️ **Quota**: a free GitHub account gets **1 GB of LFS storage and 1 GB of bandwidth per month**, and LFS keeps **every version** of the ZIP forever. With a ~250 MB ZIP you burn through that in 4 pushes. If your savegames bloat the backup, lower `BACKUP_MAX_MB` or exclude more folders instead of buying data packs.
+
+> ⚠️ **Privacy**: `localconfig.vdf` holds your SteamID, library, launch options and friend nicknames. Review it before pushing `backups\` to a **public** repository — it stays in git history even if you delete it later.
 
 ### 🆕 NVIDIA CS2 Profile module
 
@@ -285,6 +366,9 @@ Imports a CS2-optimized `.nip` profile directly into the NVIDIA driver, using **
 | `RNX_Cleaner.log` | Timestamped log | Yes |
 | `CS2_Profile.nip` | NVIDIA profile for CS2 | No (you provide it) |
 | `nvidiaProfileInspector.exe` | Import tool | No (download it) |
+| `RNX_Backup_Userdata.ps1` | Steam backup engine | No (ships with the repo) |
+| `backups\` | Per-SteamID config ZIPs | Yes |
+| `.gitattributes` | CRLF for scripts + LFS for the ZIPs | No (ships with the repo) |
 
 ### Safety notes
 
@@ -298,7 +382,15 @@ Imports a CS2-optimized `.nip` profile directly into the NVIDIA driver, using **
 
 ### Changelog
 
-#### v4.3 (current)
+#### v4.4 (current)
+- 🆕 **Backup automático de la configuración de Steam**: con cualquier argumento (`/todo`, `/completa`, …) se guarda `userdata` completo en `backups\<STEAMID>.zip` antes de limpiar, con la estructura de Steam intacta dentro del ZIP
+- 🆕 Nuevo argumento `/backup` (solo la copia de seguridad, sin limpiar)
+- 🆕 Nuevo módulo `RNX_Backup_Userdata.ps1`: detecta Steam por registro, excluye capturas (`760`) y clips (`gamerecordings`), omite archivos de más de `BACKUP_MAX_MB` y **solo reescribe el ZIP si el contenido cambió** (hash en `_indice.txt`)
+- 🆕 `.gitattributes` con Git LFS para `backups/*.zip`
+- 🐛 **Corregido: el `.bat` tenía finales de línea Unix (LF)**. `cmd` se descuadraba al parsear y se comía el primer carácter de algunas líneas (`call` → `all`), abortando la ejecución a medias. Ahora el archivo es CRLF y `.gitattributes` lo fuerza
+- 🐛 Corregido: los `[>]` de los `echo` no estaban escapados, así que `cmd` los interpretaba como redirección — los títulos de sección salían en blanco y se creaba un archivo basura llamado `]`
+
+#### v4.3
 - 🐛 Corregido: la limpieza de "Recientes" ya no borra las Jump Lists (`AutomaticDestinations`/`CustomDestinations`), que es donde Windows guarda los elementos anclados del panel del Explorador. Ahora solo borra los accesos recientes sueltos, así tus anclados (Desktop, Downloads, etc.) se mantienen.
 
 #### v4.2
