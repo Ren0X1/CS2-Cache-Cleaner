@@ -42,6 +42,7 @@ The menu is a neon ANSI interface with arrow navigation and the current option h
 RNX_Cache_Cleaner_v4.bat /rapida     :: quick cleanup
 RNX_Cache_Cleaner_v4.bat /completa   :: full cleanup
 RNX_Cache_Cleaner_v4.bat /todo       :: EVERYTHING: full + shadercache + mouse + NVIDIA profile
+RNX_Cache_Cleaner_v4.bat /nobackup   :: same as /todo but no backup and no GitHub sync
 RNX_Cache_Cleaner_v4.bat /shader     :: shadercache only
 RNX_Cache_Cleaner_v4.bat /raton      :: mouse config only
 RNX_Cache_Cleaner_v4.bat /nvidia     :: NVIDIA CS2 profile only
@@ -50,7 +51,9 @@ RNX_Cache_Cleaner_v4.bat /backup     :: Steam config backup only
 
 Ideal for desktop shortcuts or scheduled tasks — the menu and the intros are skipped entirely.
 
-> 💾 **Automatic backup**: with **any** argument (`/todo`, `/completa`, `/rapida`…) your Steam configuration is saved to `backups\` *before* anything is deleted. See [Steam configuration backup](#-steam-configuration-backup-userdata).
+> 💾 **Automatic backup**: with **any** argument except `/nobackup` (`/todo`, `/completa`, `/rapida`…) your Steam configuration is saved to `backups\` *before* anything is deleted, and pushed to GitHub afterwards. See [Steam configuration backup](#-steam-configuration-backup-userdata).
+
+> 🚫 **`/nobackup`**: exactly what `/todo` does — full cleanup, shadercache, mouse and NVIDIA profile — but it skips the Steam backup **and** the GitHub push. Handy when you just want to clean fast, or when you are on a metered connection.
 
 > ⚖️ **`/todo` vs `/completa`**: `/completa` runs the system cleanup and exits. `/todo` does all of that and **also** deletes the shadercache (saved or default path), applies `raton.reg` and imports the NVIDIA profile — without asking anything. Missing files are skipped and noted in the log.
 
@@ -96,7 +99,7 @@ git push
 
 ## ☁️ Automatic GitHub sync
 
-Every time a backup runs — `/todo`, `/completa`, `/rapida`, `/backup`… — the script tries to push it to GitHub by itself. No manual `git` needed:
+Every time a backup runs — `/todo`, `/completa`, `/rapida`, `/backup`… (everything except `/nobackup`) — the script tries to push it to GitHub by itself. No manual `git` needed:
 
 ```
 backup  ->  git add backups  ->  git commit  ->  git fetch  ->  git push
@@ -216,6 +219,7 @@ Imports a CS2-optimized `.nip` profile straight into the NVIDIA driver using **N
 - 🆕 **Automatic GitHub sync after every backup**: `commit` + `fetch` + `push` of `backups\`, no manual git
 - 🆕 New `RNX_Git_Sync.ps1` module: commits only the watched paths, disables credential prompts, times every git command out and refuses to rebase over a dirty working tree
 - 🆕 New settings in the `.bat`: `GIT_SYNC`, `GIT_REMOTO`, `GIT_RAMA`, `GIT_TIMEOUT`
+- 🆕 New `/nobackup` argument: everything `/todo` does, minus the backup and the GitHub push
 - 🛡️ A failed push (no network, no credentials, LFS quota) no longer loses anything: the commit stays local and goes up on the next run
 
 ### v4.4

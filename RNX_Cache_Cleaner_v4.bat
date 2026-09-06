@@ -99,17 +99,25 @@ Title RNX Cache Cleaner Pro v%VERSION_SCRIPT%
 :: ===================================================================
 set "SILENT_MODE=0"
 set "SILENT_TARGET="
+:: 1 = este modo NO hace backup ni sincroniza con GitHub
+set "SIN_BACKUP=0"
 if /i "%~1"=="/rapida"   ( set "SILENT_MODE=1" & set "SILENT_TARGET=LIMPIEZA_RAPIDA" )
 if /i "%~1"=="/completa" ( set "SILENT_MODE=1" & set "SILENT_TARGET=LIMPIEZA_COMPLETA" )
 if /i "%~1"=="/todo"     ( set "SILENT_MODE=1" & set "MODO_TODO=1" & set "SILENT_TARGET=LIMPIEZA_COMPLETA" )
 if /i "%~1"=="/shader"   ( set "SILENT_MODE=1" & set "SILENT_TARGET=SHADERCACHE_DIRECTO" )
 if /i "%~1"=="/raton"    ( set "SILENT_MODE=1" & set "SILENT_TARGET=RATON_DIRECTO" )
 if /i "%~1"=="/nvidia"   ( set "SILENT_MODE=1" & set "SILENT_TARGET=NVIDIA_DIRECTO" )
+:: /nobackup = lo mismo que /todo pero sin backup ni subida a GitHub
+if /i "%~1"=="/nobackup" ( set "SILENT_MODE=1" & set "MODO_TODO=1" & set "SILENT_TARGET=LIMPIEZA_COMPLETA" & set "SIN_BACKUP=1" )
 :: /backup solo hace la copia de seguridad y sale
 if /i "%~1"=="/backup"   ( set "SILENT_MODE=1" & set "SILENT_TARGET=FIN_SCRIPT" )
 
 if "!SILENT_MODE!"=="1" (
-    call :BACKUP_USERDATA
+    if "!SIN_BACKUP!"=="1" (
+        call :LOG "MODO /nobackup: backup y sincronizacion con GitHub omitidos"
+    ) else (
+        call :BACKUP_USERDATA
+    )
     goto !SILENT_TARGET!
 )
 
