@@ -79,7 +79,7 @@ backups\
 - 📦 **Files over 500 MB are skipped** (tune `BACKUP_MAX_MB` in the `.bat`). If a ZIP still ends up over 100 MB the script warns you: GitHub rejects files that big, so you'd need to lower the limit to leave the largest savegames out.
 - ♻️ **The ZIP is only rewritten when something changed**: the account hash is compared against `_indice.txt`, so the repository doesn't grow on every run.
 - 🔒 **Locked files** (Steam running) are skipped and noted in the log; everything else is still saved.
-- ☁️ The `backups\` folder is meant to be **synced to GitHub** (`git add backups && git commit && git push`).
+- ☁️ **The `backups\` folder is pushed to GitHub on its own**: every backup ends with a `commit` + `push` of that folder. See [Automatic GitHub sync](#️-automatic-github-sync).
 
 **Git LFS** — the repository ships a `.gitattributes` with `backups/*.zip filter=lfs`, so the ZIPs travel through [Git Large File Storage](https://git-lfs.com/) instead of the regular history. That raises the per-file limit from 100 MB to 2 GB. To enable it on your clone:
 
@@ -91,6 +91,37 @@ git push
 ```
 
 > ⚠️ **Quota**: a free GitHub account gets **1 GB of LFS storage and 1 GB of bandwidth per month**, and LFS keeps **every version** of the ZIP forever. With a ~250 MB ZIP you burn through that in 4 pushes. If your savegames bloat the backup, lower `BACKUP_MAX_MB` or exclude more folders instead of buying data packs.
+
+---
+
+## ☁️ Automatic GitHub sync
+
+Every time a backup runs — `/todo`, `/completa`, `/rapida`, `/backup`… — the script tries to push it to GitHub by itself. No manual `git` needed:
+
+```
+backup  ->  git add backups  ->  git commit  ->  git fetch  ->  git push
+```
+
+The work is done by `RNX_Git_Sync.ps1`, and it plays safe:
+
+- 📦 **Only `backups\` is committed.** Anything else you have half-finished in the repo is left untouched — the commit is scoped to that path.
+- 🔇 **It never blocks the cleanup.** Credential pop-ups are disabled (`GIT_TERMINAL_PROMPT=0`) and every git command has a time limit (`GIT_TIMEOUT`, 900 s by default).
+- 🧹 **It never leaves conflict markers in your files.** If GitHub has new commits *and* you have unsaved changes it stops and tells you, instead of rebasing on top of a dirty tree.
+- 🔁 **Nothing is lost if the push fails** (no network, no credentials, LFS quota…): the commit stays local and goes up on the next run, and the reason is written to `RNX_Cleaner.log`.
+- 😴 **No changes, no commit**: if the ZIPs are identical to the last run there is nothing to push.
+
+Settings live at the top of the `.bat`:
+
+```bat
+set "GIT_SYNC=1"        :: 0 = keep the backups local only
+set "GIT_REMOTO=origin" :: remote to push to
+set "GIT_RAMA="         :: empty = whatever branch you are on
+set "GIT_TIMEOUT=900"   :: seconds per git command
+```
+
+> 🔑 **Credentials**: the first push has to be done by hand once (`git push`) so Git Credential Manager stores them. From then on it is unattended. If they are missing the script says so and keeps the commit local.
+
+> ⚠️ **This burns LFS quota**: every changed ZIP is a new LFS version on each run. With a ~250 MB ZIP the free 1 GB/month of bandwidth is gone in about 4 pushes — see the quota note above, and set `GIT_SYNC=0` if you would rather push by hand.
 
 > ⚠️ **Privacy**: `localconfig.vdf` holds your SteamID, library, launch options and friend nicknames. Review it before pushing `backups\` to a **public** repository — it stays in git history even if you delete it later.
 
@@ -163,6 +194,7 @@ Imports a CS2-optimized `.nip` profile straight into the NVIDIA driver using **N
 | `CS2_Profile.nip` | NVIDIA profile for CS2 | ❌ you provide it |
 | `nvidiaProfileInspector.exe` | Import tool | ❌ download it |
 | `RNX_Backup_Userdata.ps1` | Steam backup engine | 📦 ships with the repo |
+| `RNX_Git_Sync.ps1` | Auto commit + push of `backups\` | 📦 ships with the repo |
 | `backups\` | Per-SteamID config ZIPs | ✅ |
 | `.gitattributes` | CRLF for the scripts + LFS for the ZIPs | 📦 ships with the repo |
 
@@ -180,7 +212,13 @@ Imports a CS2-optimized `.nip` profile straight into the NVIDIA driver using **N
 
 ## 📜 Changelog
 
-### v4.4 (current)
+### v4.5 (current)
+- 🆕 **Automatic GitHub sync after every backup**: `commit` + `fetch` + `push` of `backups\`, no manual git
+- 🆕 New `RNX_Git_Sync.ps1` module: commits only the watched paths, disables credential prompts, times every git command out and refuses to rebase over a dirty working tree
+- 🆕 New settings in the `.bat`: `GIT_SYNC`, `GIT_REMOTO`, `GIT_RAMA`, `GIT_TIMEOUT`
+- 🛡️ A failed push (no network, no credentials, LFS quota) no longer loses anything: the commit stays local and goes up on the next run
+
+### v4.4
 - 🆕 **Automatic Steam configuration backup**: with any argument (`/todo`, `/completa`, …) the whole `userdata` folder is saved to `backups\<STEAMID>.zip` before cleaning, with Steam's structure preserved inside the ZIP
 - 🆕 New `/backup` argument (backup only, no cleaning)
 - 🆕 New `RNX_Backup_Userdata.ps1` module: finds Steam through the registry, skips files larger than `BACKUP_MAX_MB` and **only rewrites the ZIP when the contents changed** (hash in `_indice.txt`)

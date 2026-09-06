@@ -44,7 +44,7 @@ set "HL=%ESC%[1;30;48;5;201m"
 set "HL_CYAN=%ESC%[1;30;48;5;51m"
 
 :: ----- Variables globales -----
-set "VERSION_SCRIPT=4.4"
+set "VERSION_SCRIPT=4.5"
 set "SCRIPT_DIR=%~dp0"
 set "LOG_FILE=%SCRIPT_DIR%RNX_Cleaner.log"
 set "EMPTY_DIR=%TEMP%\rnx_empty_dir"
@@ -59,6 +59,15 @@ set "BACKUP_MAX_MB=500"
 :: Carpetas de userdata que NO se guardan (separadas por comas, sin espacios):
 :: capturas, clips de video y cachés que Steam regenera solo.
 set "BACKUP_EXCLUIR=760,gamerecordings,inventorymsgcache,ugc,ugcmsgcache"
+:: ----- Sincronizacion automatica con GitHub -----
+:: Tras CADA backup se hace commit + push de la carpeta backups al
+:: repositorio (rama actual). Pon GIT_SYNC=0 para dejar las copias
+:: solo en local. GIT_RAMA vacio = la rama en la que estes.
+set "GIT_SYNC=1"
+set "GIT_REMOTO=origin"
+set "GIT_RAMA="
+:: Segundos maximos por comando de git (los ZIP grandes tardan)
+set "GIT_TIMEOUT=900"
 for /f "tokens=4-5 delims=. " %%i in ('ver') do set WIN_VERSION=%%i.%%j
 
 :: Detectar marca de GPU (PowerShell es mas fiable que wmic, que esta deprecado)
@@ -534,7 +543,41 @@ if !errorlevel! EQU 0 (
     echo.
     echo  %C_YELLOW%  [AVISO] Backup incompleto, revisa el log.%C_RESET%
 )
+:: Suba lo que suba el backup, se intenta sincronizar con GitHub
+call :GIT_SYNC_PUSH
 ping -n 3 -w 500 127.0.0.1 >nul
+exit /b
+
+:: ===================================================================
+::  SINCRONIZACION CON GITHUB (se ejecuta despues de CADA backup)
+::  commit + pull --rebase + push de la carpeta backups. Si no hay
+::  git, repositorio, red o credenciales solo se avisa: la limpieza
+::  nunca se detiene por esto. El trabajo lo hace RNX_Git_Sync.ps1.
+:: ===================================================================
+:GIT_SYNC_PUSH
+if not "%GIT_SYNC%"=="1" (
+    call :LOG "GIT: sincronizacion desactivada (GIT_SYNC=0)"
+    exit /b
+)
+set "GIT_PS=%SCRIPT_DIR%RNX_Git_Sync.ps1"
+if not exist "!GIT_PS!" set "GIT_PS=%SCRIPT_DIR%tools\RNX_Git_Sync.ps1"
+if not exist "!GIT_PS!" (
+    call :LOG "GIT: RNX_Git_Sync.ps1 no encontrado, sincronizacion omitida"
+    exit /b
+)
+set "GIT_ARG_RAMA="
+if not "%GIT_RAMA%"=="" set "GIT_ARG_RAMA=-Rama %GIT_RAMA%"
+echo.
+echo  %C_MAGENTA%  [^>] SYNC GITHUB%C_RESET%  %C_GREY%^(backups -^> %GIT_REMOTO%^)%C_RESET%
+echo.
+powershell -NoProfile -ExecutionPolicy Bypass -File "!GIT_PS!" -Repo "%SCRIPT_DIR%." -Rutas backups -Remoto %GIT_REMOTO% !GIT_ARG_RAMA! -LogFile "%LOG_FILE%" -TimeoutSeg %GIT_TIMEOUT%
+if !errorlevel! EQU 0 (
+    echo.
+    echo  %C_GREEN%  [OK] Backups sincronizados con GitHub.%C_RESET%
+) else (
+    echo.
+    echo  %C_YELLOW%  [AVISO] No se pudo subir a GitHub, revisa el log.%C_RESET%
+)
 exit /b
 
 :: ===================================================================
