@@ -1,24 +1,25 @@
-=== RNX Cache Cleaner v4.3 - Ejecucion 22/06/2026 12:08:01 ===
-[22/06/2026 12:08:01,71] === INICIO LIMPIEZA COMPLETA === 
-[22/06/2026 12:08:01,83] Limpiada: C:\Windows\Temp 
-[22/06/2026 12:08:01,95] Limpiada: C:\Users\alex-\AppData\Local\Temp 
-[22/06/2026 12:08:02,07] Limpiada: Prefetch 
-[22/06/2026 12:08:02,17] Limpiada: Recent (anclados del Explorador preservados) 
-[22/06/2026 12:08:06,83] Limpiada: cola de impresion 
-[22/06/2026 12:08:06,93] Cache DNS vaciada 
-[22/06/2026 12:08:18,19] Limpiada: cache Windows Update 
-[22/06/2026 12:08:18,34] Limpiadas: miniaturas 
-[22/06/2026 12:08:18,45] Limpiado: icon cache 
-[22/06/2026 12:08:19,59] Cache Microsoft Store reiniciada 
-[22/06/2026 12:08:19,73] Limpiada: Delivery Optimization 
-[22/06/2026 12:08:19,87] Limpiados: memory dumps y CBS logs 
-[22/06/2026 12:08:20,15] Cache drivers graficos limpiada 
-[22/06/2026 12:08:20,28] Limpiada: cache de fuentes 
-[22/06/2026 12:08:20,90] Papelera de reciclaje vaciada 
-[22/06/2026 12:08:34,80] Registros de eventos y logs de Windows borrados 
-[22/06/2026 12:08:38,45] TRIM/optimizacion ejecutado en C: 
-[22/06/2026 12:08:39,36] NVIDIA: perfil CS2 importado: C:\Users\alex-\Documents\Git\CS2-Cache-Cleaner\CS2.nip 
-[22/06/2026 12:08:41,81] === FIN LIMPIEZA COMPLETA === 
-[22/06/2026 12:08:41,91] Shadercache eliminada: C:\Program Files (x86)\Steam\steamapps\shadercache\730 
-[22/06/2026 12:08:42,02] Config raton aplicada: C:\Users\alex-\Documents\Git\CS2-Cache-Cleaner\raton.reg 
-[22/06/2026 12:08:42,02] === FIN MODO /todo === 
+=== RNX Cache Cleaner v4.4 - Ejecucion 07/09/2026  0:22:22 ===
+[07/09/2026 00:22:22] BACKUP: origen  C:\program files (x86)\steam\userdata
+[07/09/2026 00:22:22] BACKUP: destino C:\Users\alex-\Documents\Git\CS2-Cache-Cleaner\backups
+[07/09/2026 00:22:36] BACKUP: AVISO - 207303375.zip pesa 275.4 MB; GitHub rechaza archivos de mas de 100 MB salvo que uses Git LFS (ver .gitattributes). Si no, baja -MaxMB para dejar fuera las partidas guardadas gigantes
+[07/09/2026 00:22:36] BACKUP: 207303375.zip actualizado - 984 archivos, 275.4 MB
+[07/09/2026 00:22:40] BACKUP: 400449696.zip actualizado - 307 archivos, 13.1 MB
+[07/09/2026 00:22:40] BACKUP: 686800168.zip creado - 35 archivos, 0.1 MB
+[07/09/2026 00:22:40] BACKUP: OK - 3 cuenta(s), 288.6 MB en C:\Users\alex-\Documents\Git\CS2-Cache-Cleaner\backups
+[07/09/2026  0:22:43,31] === INICIO LIMPIEZA COMPLETA === 
+[07/09/2026  0:22:43,46] Limpiada: C:\Windows\Temp 
+[07/09/2026  0:22:44,25] Limpiada: C:\Users\alex-\AppData\Local\Temp 
+[07/09/2026  0:22:44,42] Limpiada: Prefetch 
+[07/09/2026  0:22:44,53] Limpiada: Recent (anclados del Explorador preservados) 
+[07/09/2026  0:22:46,71] Limpiada: cola de impresion 
+[07/09/2026  0:22:46,84] Cache DNS vaciada 
+[07/09/2026  0:23:00,66] Limpiada: cache Windows Update 
+[07/09/2026  0:23:00,86] Limpiadas: miniaturas 
+[07/09/2026  0:23:01,00] Limpiado: icon cache 
+[07/09/2026  0:23:02,19] Cache Microsoft Store reiniciada 
+[07/09/2026  0:23:02,40] Limpiada: Delivery Optimization 
+[07/09/2026  0:23:02,64] Limpiados: memory dumps y CBS logs 
+[07/09/2026  0:23:03,10] Cache drivers graficos limpiada 
+[07/09/2026  0:23:03,26] Limpiada: cache de fuentes 
+[07/09/2026  0:23:03,82] Papelera de reciclaje vaciada 
+[07/09/2026  0:23:22,09] Registros de eventos y logs de Windows borrados 
