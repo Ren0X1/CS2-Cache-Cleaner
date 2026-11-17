@@ -1,28 +1,31 @@
 name: Release on main
 
 # ====================================================================
-#  Workflow para RNX Cache Cleaner Pro
-#  Crea automaticamente un tag + release cada vez que se ejecuta.
+#  RNX Cache Cleaner Pro - compila el .exe y el instalador y publica
+#  una release con los dos.
 #
 #  Disparadores:
-#   - push a la rama main  -> release automatica
-#   - workflow_dispatch    -> ejecucion manual desde Actions (con
-#                              opcion de forzar version)
+#   - push a main que toque el codigo (src/**) o el instalador
+#   - workflow_dispatch (manual desde Actions, con opcion de version)
 #
-#  Tip: incluye "[skip release]" en el mensaje de commit para
-#       saltarse este workflow en un push concreto.
+#  Secret necesario para que el backup a Google Drive funcione:
+#   GOOGLE_CLIENT_JSON = contenido del JSON del "ID de cliente OAuth"
+#                        (tipo Aplicacion de escritorio) de Google Cloud.
+#   Sin el secret el programa compila igual, pero sin Google Drive.
+#
+#  Tip: "[skip release]" en el mensaje del commit se salta la release.
 # ====================================================================
 
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - '.github/workflows/**'   # evita bucles si editas el propio workflow
-      - '**/*.md'                # los cambios de README no disparan release
+    paths:
+      - 'src/**'
+      - 'installer/**'
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version a publicar (opcional, ej: 4.3). Si se deja vacio se lee del .bat.'
+        description: 'Version a publicar (opcional, ej: 5.1.0). Vacio = Major.Minor del .csproj + numero de run.'
         required: false
         type: string
       prerelease:
@@ -31,88 +34,70 @@ on:
         type: boolean
         default: false
 
-# Necesario para que el workflow pueda crear tags y releases
 permissions:
   contents: write
 
 jobs:
   release:
-    # Saltar si el commit message contiene [skip release]
     if: "!contains(github.event.head_commit.message, '[skip release]')"
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
-      # ----------------------------------------------------------------
-      # 1) Clonar el repo COMPLETO (con todo el historial y tags)
-      # ----------------------------------------------------------------
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # necesario para que `git tag` vea los existentes
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
 
       # ----------------------------------------------------------------
-      # 2) Determinar la version a usar
-      #    Prioridad:
-      #      1. Input manual del workflow_dispatch
-      #      2. Variable VERSION_SCRIPT del propio .bat
-      #    Si el tag ya existe -> sufijo "-build.<run_number>"
+      # Version: input manual > <Version> del .csproj.
+      # Si el tag ya existe se anade -build.<run>.
       # ----------------------------------------------------------------
       - name: Detectar version
         id: version
         shell: bash
         run: |
           set -e
-
-          # Buscar el archivo .bat principal (acepta cualquier nombre RNX_Cache_Cleaner*.bat)
-          BAT_FILE=$(ls RNX_Cache_Cleaner*.bat 2>/dev/null | head -n 1)
-          if [ -z "$BAT_FILE" ]; then
-            echo "::error::No se encontro ningun archivo RNX_Cache_Cleaner*.bat en la raiz."
-            exit 1
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            # Major.Minor sale del .csproj; el tercer numero es el run de Actions,
+            # asi cada release es mayor que la anterior y la autoactualizacion la detecta
+            BASE=$(grep -oP '<Version>\K[0-9]+\.[0-9]+' src/RnxCleaner/RnxCleaner.csproj | head -n 1)
+            [ -n "$BASE" ] || { echo "::error::No se pudo leer <Version> del .csproj"; exit 1; }
+            VERSION="${BASE}.${{ github.run_number }}"
           fi
-          echo "Archivo detectado: $BAT_FILE"
-          echo "bat_file=$BAT_FILE" >> "$GITHUB_OUTPUT"
-
-          # 1) Prioridad al input manual
-          INPUT_VERSION="${{ github.event.inputs.version }}"
-
-          if [ -n "$INPUT_VERSION" ]; then
-            VERSION="$INPUT_VERSION"
-            echo "Usando version del input manual: $VERSION"
-          else
-            # 2) Leer VERSION_SCRIPT del .bat: set "VERSION_SCRIPT=4.2"
-            VERSION=$(grep -oP 'VERSION_SCRIPT=\K[0-9]+\.[0-9]+(\.[0-9]+)?' "$BAT_FILE" | head -n 1 || true)
-            if [ -z "$VERSION" ]; then
-              echo "::error::No se pudo extraer VERSION_SCRIPT del archivo $BAT_FILE"
-              exit 1
-            fi
-            echo "Version leida del .bat: $VERSION"
-          fi
-
           TAG="v${VERSION}"
-
-          # Si el tag ya existe, añadir sufijo con el numero de run
           if git rev-parse "$TAG" >/dev/null 2>&1; then
-            TAG="${TAG}-build.${{ github.run_number }}"
-            echo "El tag base ya existe, usando: $TAG"
+            echo "::error::El tag $TAG ya existe"; exit 1
           fi
-
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=$TAG"         >> "$GITHUB_OUTPUT"
 
-      # ----------------------------------------------------------------
-      # 3) Comprobar que los archivos a publicar existen
-      # ----------------------------------------------------------------
-      - name: Verificar archivos
+      # El cliente OAuth de Google no esta en el repo (es publico): llega por secret
+      - name: Cliente OAuth de Google Drive
         shell: bash
+        env:
+          GOOGLE_CLIENT_JSON: ${{ secrets.GOOGLE_CLIENT_JSON }}
         run: |
-          echo "Contenido del repo:"
-          ls -la
-          test -f "${{ steps.version.outputs.bat_file }}" || { echo "::error::Falta el .bat"; exit 1; }
-          test -f "README.md" || echo "::warning::No hay README.md, la release no lo incluira"
+          if [ -n "$GOOGLE_CLIENT_JSON" ]; then
+            printf '%s' "$GOOGLE_CLIENT_JSON" > src/RnxCleaner/Assets/google_client.json
+            echo "Google Drive: activado"
+          else
+            echo "::warning::Sin secret GOOGLE_CLIENT_JSON: el .exe se compila sin Google Drive"
+          fi
 
-      # ----------------------------------------------------------------
-      # 4) Crear tag local y empujarlo al repo
-      # ----------------------------------------------------------------
+      - name: Publicar .exe (single-file, autocontenido)
+        shell: bash
+        run: dotnet publish src/RnxCleaner/RnxCleaner.csproj -c Release -o dist -p:Version=${{ steps.version.outputs.version }}
+
+      - name: Compilar instalador MSI
+        shell: bash
+        run: dotnet build installer/RnxCleaner.Installer.wixproj -c Release -p:Version=${{ steps.version.outputs.version }}
+
       - name: Crear y empujar tag
         shell: bash
         run: |
@@ -121,11 +106,6 @@ jobs:
           git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
           git push origin "${{ steps.version.outputs.tag }}"
 
-      # ----------------------------------------------------------------
-      # 5) Crear la release en GitHub
-      #    - generate_release_notes: true  -> notas auto con commits/PRs
-      #    - files: adjunta el .bat y el README como descargables
-      # ----------------------------------------------------------------
       - name: Crear release
         uses: softprops/action-gh-release@v2
         with:
@@ -134,50 +114,30 @@ jobs:
           body: |
             ## RNX Cache Cleaner Pro ${{ steps.version.outputs.tag }}
 
-            Release automatica generada desde la rama `main`.
-
             ### Descarga
-            Descarga el archivo `${{ steps.version.outputs.bat_file }}` adjunto y ejecutalo como administrador (se autoeleva solo).
+            - **`RNX_Cache_Cleaner_${{ steps.version.outputs.version }}.msi`** - instalador (recomendado): menu Inicio, escritorio, desinstalador y autoactualizacion.
+            - **`RNX_Cache_Cleaner.exe`** - version portable: un solo archivo, sin instalar.
 
-            ### Modos de uso
+            No hace falta instalar .NET. El programa pide permisos de administrador al abrirse y avisa solo cuando hay una version nueva (boton Actualizar; la configuracion se conserva).
+
+            ### Modos desde la linea de comandos / accesos directos
             ```bat
-            ${{ steps.version.outputs.bat_file }}            :: menu interactivo (flechas + Enter)
-            ${{ steps.version.outputs.bat_file }} /rapida    :: limpieza rapida
-            ${{ steps.version.outputs.bat_file }} /completa  :: limpieza completa + TRIM + perfil NVIDIA
-            ${{ steps.version.outputs.bat_file }} /todo      :: TODO: completa + shadercache + raton + NVIDIA
-            ${{ steps.version.outputs.bat_file }} /shader    :: solo shadercache (CS2/Steam)
-            ${{ steps.version.outputs.bat_file }} /raton     :: solo importar raton.reg
-            ${{ steps.version.outputs.bat_file }} /nvidia    :: solo perfil NVIDIA CS2
+            RNX_Cache_Cleaner.exe            :: interfaz grafica
+            RNX_Cache_Cleaner.exe /rapida    :: limpieza rapida
+            RNX_Cache_Cleaner.exe /completa  :: limpieza completa + TRIM + perfil NVIDIA
+            RNX_Cache_Cleaner.exe /todo      :: completa + shadercache + raton + NVIDIA
+            RNX_Cache_Cleaner.exe /nobackup  :: lo mismo que /todo pero sin backup
+            RNX_Cache_Cleaner.exe /shader    :: solo shadercache
+            RNX_Cache_Cleaner.exe /raton     :: solo raton.reg
+            RNX_Cache_Cleaner.exe /nvidia    :: solo perfil NVIDIA CS2
+            RNX_Cache_Cleaner.exe /backup    :: solo backup de Steam a Google Drive
             ```
-
-            Consulta el [README](https://github.com/${{ github.repository }}/blob/main/README.md) para la lista completa de areas de limpieza y requisitos del modulo NVIDIA.
 
             ---
             **Commit:** ${{ github.sha }}
-            **Run:** [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
           generate_release_notes: true
           prerelease: ${{ github.event.inputs.prerelease == 'true' }}
           files: |
-            ${{ steps.version.outputs.bat_file }}
-            README.md
-          fail_on_unmatched_files: false
-
-      # ----------------------------------------------------------------
-      # 6) Resumen visible en la pestaña Summary del run
-      # ----------------------------------------------------------------
-      - name: Resumen
-        shell: bash
-        run: |
-          {
-            echo "## Release publicada"
-            echo ""
-            echo "| Campo | Valor |"
-            echo "|-------|-------|"
-            echo "| Tag       | \`${{ steps.version.outputs.tag }}\` |"
-            echo "| Version   | \`${{ steps.version.outputs.version }}\` |"
-            echo "| Archivo   | \`${{ steps.version.outputs.bat_file }}\` |"
-            echo "| Commit    | \`${{ github.sha }}\` |"
-            echo "| Disparador| \`${{ github.event_name }}\` |"
-            echo ""
-            echo "[Ver la release](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.tag }})"
-          } >> "$GITHUB_STEP_SUMMARY"
+            dist/RNX_Cache_Cleaner.exe
+            dist/RNX_Cache_Cleaner_${{ steps.version.outputs.version }}.msi
+          fail_on_unmatched_files: true

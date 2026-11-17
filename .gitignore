@@ -1,0 +1,13 @@
+# Compilacion
+bin/
+obj/
+dist/
+*.user
+.vs/
+
+# Cliente OAuth de Google: lo mete el workflow desde un secret
+src/RnxCleaner/Assets/google_client.json
+
+# Restos de la version .bat (ya no se versionan)
+RNX_Cleaner.log
+backups/

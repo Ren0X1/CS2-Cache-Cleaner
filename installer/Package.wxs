@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSI por usuario de RNX Cache Cleaner Pro.
+
+  - Se instala en %LOCALAPPDATA%\Programs\RNX Cache Cleaner sin pedir
+    administrador (el propio programa lo pide al abrirse).
+  - MajorUpgrade: instalar una version nueva sustituye a la anterior.
+    Es lo que usa la autoactualizacion (msiexec /i ... /passive).
+  - Ajustes, log, token de Google y backups NO forman parte del MSI:
+    viven en %LOCALAPPDATA%\RNX Cache Cleaner y sobreviven a
+    actualizaciones y desinstalaciones.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="RNX Cache Cleaner Pro"
+           Manufacturer="RNX Systems"
+           Version="$(Version)"
+           UpgradeCode="e1b6b2b7-c2be-48c5-9aa9-a9899a7d8808"
+           Scope="perUser"
+           Compressed="yes"
+           Language="3082">
+
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="Ya tienes instalada una version mas nueva de [ProductName]." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="rnx.ico" SourceFile="$(AssetsDir)rnx.ico" />
+    <Property Id="ARPPRODUCTICON" Value="rnx.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/Ren0X1/CS2-Cache-Cleaner" />
+    <Property Id="ARPNOMODIFY" Value="1" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="UserProgramsDir" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="RNX Cache Cleaner" />
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="RNX Cache Cleaner Pro">
+
+      <Component Id="AppExe" Directory="INSTALLFOLDER" Guid="bcd0c1bd-2a3a-466b-abd6-cad033e15fcc">
+        <File Id="AppExeFile" Source="$(PublishDir)RNX_Cache_Cleaner.exe" />
+        <!-- En instalaciones por usuario la KeyPath tiene que ser de HKCU -->
+        <RegistryValue Root="HKCU" Key="Software\RNX\CacheCleaner" Name="InstallDir" Type="string" Value="[INSTALLFOLDER]" KeyPath="yes" />
+        <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+        <RemoveFolder Id="RemoveUserPrograms" Directory="UserProgramsDir" On="uninstall" />
+      </Component>
+
+      <Component Id="StartMenuShortcuts" Directory="ProgramMenuFolder" Guid="cd733839-f257-4839-a0bb-5dec96b2ef99">
+        <Shortcut Id="StartMenuApp" Name="RNX Cache Cleaner" Target="[#AppExeFile]" WorkingDirectory="INSTALLFOLDER" Icon="rnx.ico" />
+        <Shortcut Id="StartMenuTodo" Name="RNX - TODO" Target="[#AppExeFile]" Arguments="/todo" WorkingDirectory="INSTALLFOLDER" Icon="rnx.ico"
+                  Description="Limpieza completa + shadercache + raton + perfil NVIDIA" />
+        <RegistryValue Root="HKCU" Key="Software\RNX\CacheCleaner" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+
+      <Component Id="DesktopShortcut" Directory="DesktopFolder" Guid="e8a3383e-0cf4-4fec-91ae-4e2ce770df55">
+        <Shortcut Id="DesktopApp" Name="RNX Cache Cleaner" Target="[#AppExeFile]" WorkingDirectory="INSTALLFOLDER" Icon="rnx.ico" />
+        <RegistryValue Root="HKCU" Key="Software\RNX\CacheCleaner" Name="Desktop" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </Feature>
+
+    <!-- Al terminar, abrir el programa. Va a traves de explorer.exe para que
+         Windows muestre el aviso de administrador (msiexec no puede elevar). -->
+    <CustomAction Id="LaunchApp" Directory="INSTALLFOLDER" ExeCommand="&quot;[WindowsFolder]explorer.exe&quot; &quot;[#AppExeFile]&quot;" Return="asyncNoWait" Impersonate="yes" />
+    <InstallExecuteSequence>
+      <Custom Action="LaunchApp" After="InstallFinalize" Condition="NOT REMOVE AND NOT NOLAUNCH" />
+    </InstallExecuteSequence>
+  </Package>
+</Wix>
