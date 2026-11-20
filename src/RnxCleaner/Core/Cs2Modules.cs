@@ -163,6 +163,7 @@ public static class Cs2Modules
             Logger.Error(T("lg.nv.missing"));
             return false;
         }
+        Undo.SaveNvidia();
         var code = await Sys.RunAsync(exe, $"-silentImport \"{nip}\"", 120, ct);
         if (code == 0) { s.NvidiaApplied = DateTime.Now; s.Save(); Logger.Ok(T("lg.nv.ok")); return true; }
         Logger.Error(T("lg.nv.fail", code));

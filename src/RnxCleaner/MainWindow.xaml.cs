@@ -488,6 +488,15 @@ public partial class MainWindow : Window
     {
         if (_running) return;
 
+        // Con CS2 abierto el shadercache y el perfil NVIDIA no se aplican bien
+        if (plan.Interactive && (plan.Shader || plan.Nvidia) && SystemInfo.IsRunning("cs2"))
+        {
+            if (!await Confirm(T("dlg.warn"), T("dlg.cs2.t"), T("dlg.cs2.x"), T("dlg.cs2.yes"), T("dlg.cancel")))
+                return;
+            Sys.KillProcess("cs2");
+            Logger.Info(T("lg.cs2.closed"));
+        }
+
         // Con Steam abierto la shadercache puede no borrarse entera
         if (plan.Shader && plan.Interactive && SystemInfo.IsRunning("steam"))
         {
@@ -912,6 +921,97 @@ public partial class MainWindow : Window
         if (!block) _ = PingServersAsync();
     }
 
+    // ---- Presets: dejar solo los N mejores por ping o solo una region
+    private void SvPreset_Click(object s, RoutedEventArgs e)
+    {
+        if (_pops.Count == 0 || _svBusy) return;
+        SvPresetList.Children.Clear();
+        foreach (var n in new[] { 3, 5, 10 })
+        {
+            int k = n;
+            SvPresetList.Children.Add(MenuRow(T("sv.best", n), false, null, () => _ = KeepBestAsync(k), SvPresetPopup));
+        }
+        SvPresetList.Children.Add(new Border { Height = 1, Margin = new Thickness(8, 4, 8, 4), Background = (Brush)FindResource("Line2") });
+        foreach (var r in ServerBlocker.Regions.Where(r => r != "other" && _pops.Any(p => p.Region == r)))
+        {
+            var reg = r;
+            SvPresetList.Children.Add(MenuRow(T("sv.only", T("region." + r)), false, null, () => _ = KeepRegionAsync(reg), SvPresetPopup));
+        }
+        SvPresetPopup.IsOpen = true;
+    }
+
+    private bool _svBusy;
+
+    /// <summary>Deja abiertas exactamente las ubicaciones de "keep" y bloquea el resto.</summary>
+    private void ApplyServerSet(IEnumerable<string> keepCodes) => ServerBlocker.KeepOnly(_pops, keepCodes);
+
+    private async Task KeepBestAsync(int n)
+    {
+        _svBusy = true;
+        var before = ServerBlocker.BlockedRules().Keys.ToList();
+        try
+        {
+            // Para medir el ping de todas hay que abrirlas un momento
+            ShowToast(T("sv.measuring"));
+            ServerBlocker.UnblockAll();
+            ReadFirewallState();
+            lock (_pings) _pings.Clear();
+            RenderServers();
+            await PingServersAsync();
+
+            List<(ValvePop Pop, long Ms)> ranked;
+            lock (_pings)
+                ranked = _pops.Where(p => _pings.TryGetValue(p.Code, out var ms) && ms is not null)
+                              .Select(p => (p, _pings[p.Code]!.Value)).OrderBy(x => x.Item2).ToList();
+            if (ranked.Count == 0)
+            {
+                ApplyServerSet(_pops.Select(p => p.Code).Except(before, StringComparer.OrdinalIgnoreCase));
+                ShowToast(T("sv.toast.noPing"));
+                return;
+            }
+            var keep = ranked.Take(n).ToList();
+            var list = string.Join(", ", keep.Select(k => $"{k.Pop.Name} ({k.Ms} ms)"));
+            if (!await Confirm(T("sv.title").ToUpper(Culture), T("sv.best.t", keep.Count), T("sv.best.x", list, _pops.Count - keep.Count), T("sv.apply"), T("dlg.cancel")))
+            {
+                ApplyServerSet(_pops.Select(p => p.Code).Except(before, StringComparer.OrdinalIgnoreCase));
+                return;
+            }
+            ApplyServerSet(keep.Select(k => k.Pop.Code));
+            ShowToast(T("sv.toast.preset", _pops.Count - keep.Count));
+        }
+        catch (Exception ex) { ShowToast(T("sv.toast.fail", ex.Message)); }
+        finally
+        {
+            _svBusy = false;
+            ReadFirewallState();
+            RenderServers();
+        }
+    }
+
+    private async Task KeepRegionAsync(string region)
+    {
+        var keep = _pops.Where(p => p.Region == region).Select(p => p.Code).ToList();
+        int toBlock = _pops.Count - keep.Count;
+        var name = T("region." + region);
+        if (!await Confirm(T("sv.title").ToUpper(Culture), T("sv.only.t", name), T("sv.only.x", toBlock, name), T("sv.apply"), T("dlg.cancel")))
+            return;
+        _svBusy = true;
+        try
+        {
+            ApplyServerSet(keep);
+            ShowToast(T("sv.toast.preset", toBlock));
+        }
+        catch (Exception ex) { ShowToast(T("sv.toast.fail", ex.Message)); }
+        finally
+        {
+            _svBusy = false;
+            ReadFirewallState();
+            lock (_pings) _pings.Clear();
+            RenderServers();
+            _ = PingServersAsync();
+        }
+    }
+
     private async void SvRefresh_Click(object s, RoutedEventArgs e) { lock (_pings) _pings.Clear(); await LoadServersAsync(); }
 
     private async void SvUnblockAll_Click(object s, RoutedEventArgs e)
@@ -963,6 +1063,7 @@ public partial class MainWindow : Window
         var parts = new List<string>();
         if (Undo.HasMouse) parts.Add(T("undo.part.mouse"));
         if (Undo.SavedPower() is { } p) parts.Add(T("undo.part.power", p.Name));
+        if (Undo.HasNvidia) parts.Add(T("undo.part.nvidia"));
         UndoSub.Text = parts.Count > 0 ? T("cs2.undo.saved", string.Join(" · ", parts)) : T("cs2.undo.none");
         UndoBtn.IsEnabled = parts.Count > 0 && !_running;
     }

@@ -45,6 +45,7 @@ Don't want to play on Madrid, Paris or any other location? The **Servers** tab l
 - ✅ **Status read from the firewall**: Blocked / Allowed is always taken from the rules that actually exist, not from a file, so it stays correct even if you edit the firewall by hand.
 - 🔄 **Self-updating rules**: if Valve changes the IPs of a location you blocked, its rule is rebuilt the next time you open the tab.
 - 🧹 **Unblock all** removes only the rules created by RNX Cache Cleaner; your other firewall rules are never touched.
+- ⚡ **Quick setup**: keep only the 3, 5 or 10 best locations by ping (the app opens them all for a moment to measure, then asks before applying), or play only in one region.
 
 Changes apply to your next matchmaking search.
 
@@ -117,7 +118,7 @@ Your settings, Google sign-in, history and backups live in `%LOCALAPPDATA%\RNX C
 | 15 | **Event logs** | Every event log + Windows/Panther/DISM logs | ✅ | ✅ |
 | 16 | **GPU driver cache** | NVIDIA / AMD / Intel shader caches | ✅ | ✅ |
 | 17 | **Discord cache** | Closes Discord and clears its cache | | |
-| 18 | **SSD optimization** | `defrag C: /L` (TRIM) | | ✅ |
+| 18 | **SSD optimization** | `defrag X: /L` on every fixed drive (TRIM) | | ✅ |
 
 ### 🎮 CS2 modules
 
@@ -141,7 +142,8 @@ The CS2 mouse module, Full and Everything all use the chosen file. If it disappe
 ### 🧯 Safety: restore point and undo
 
 - **Restore point** — before **Full** and **Everything** the app creates a Windows restore point (Settings → Safety, on by default). Windows only allows one every 24 hours; if there's a recent one, that one is kept. If System Protection is off on `C:`, the log says so.
-- **Undo** — the first time RNX applies the mouse settings or the power plan, what you had before is saved. **CS2 modules → Undo** puts it back. The NVIDIA profile can't be undone this way; use the restore point.
+- **Undo** — the first time RNX applies the mouse settings, the NVIDIA profile or the power plan, what you had before is saved (for NVIDIA, the driver's profile database). **CS2 modules → Undo** puts it back.
+- **CS2 open** — if CS2 is running when you clean the shader cache or apply the NVIDIA profile, the app asks to close it first.
 - **Current state** — the CS2 modules tab shows the active power plan, whether your mouse settings match the `.reg` the app uses, the shader cache size and when the NVIDIA profile was last applied.
 
 ### ⏰ Scheduled cleanup
@@ -197,7 +199,14 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 
 ## 📜 Changelog
 
-### v5.1.1 (current)
+### v5.1.2 (current)
+- 💽 **TRIM on every drive**: SSD optimization now runs on every fixed drive, not just `C:` (drives without TRIM, like HDDs, are skipped and logged)
+- ⚡ **Servers → Quick setup**: keep only the 3, 5 or 10 best locations by ping, or play only in one region (Europe, North America...), with one click
+- ↩️ **Undo now includes the NVIDIA profile**: your previous driver profiles are saved before importing RNX Performance and Undo puts them back
+- 🎮 **CS2 open warning**: if the game is running when you clean the shader cache or apply the NVIDIA profile, the app offers to close it first
+- 📝 The log header shows the full version (e.g. v5.1.2)
+
+### v5.1.1
 - 🛡️ **New Servers tab**: block Valve server locations (Madrid, Paris...) with Windows Firewall rules, with live ping and status read from the firewall
 - ⚡ **RNX Performance power plan** applied by Everything (`/todo`, `/nobackup`) and from the CS2 modules tab, without ever duplicating it
 - 🎮 New default NVIDIA profile: **RNX Performance** (replaces the previous one)

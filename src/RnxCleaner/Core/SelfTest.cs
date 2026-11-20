@@ -126,6 +126,10 @@ public static class SelfTest
         bool ok = true;
         void Check(bool cond, string what) { L((cond ? "[OK]   " : "[FAIL] ") + what); ok &= cond; }
         Logger.Written += e => L("       log: " + e.Text);
+        // Los datos de deshacer reales del usuario se apartan y se devuelven al final
+        var undoDir = Path.Combine(AppPaths.Root, "undo");
+        var undoBak = undoDir + ".selftest";
+        if (Directory.Exists(undoDir)) { if (Directory.Exists(undoBak)) Directory.Delete(undoBak, true); Directory.Move(undoDir, undoBak); }
         try
         {
             Loc.Set("es");
@@ -169,6 +173,29 @@ public static class SelfTest
             Scheduler.Apply("off", "todo");
             Check(!Scheduler.Query().Exists, "Desactivar borra la tarea");
 
+            // 3b) Deshacer perfil NVIDIA
+            L("--- Deshacer NVIDIA");
+            var drs = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "NVIDIA Corporation", "Drs", "nvdrsdb0.bin");
+            string H() { using var f = new FileStream(drs, FileMode.Open, FileAccess.Read, FileShare.ReadWrite); return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(f))[..16]; }
+            var h0 = H();
+            Check(await Cs2Modules.ImportNvidiaProfileAsync(s), "Perfil RNX importado");
+            Check(Undo.HasNvidia, "Se guardaron los perfiles NVIDIA anteriores");
+            L($"hash antes={h0} tras importar={H()}");
+            Check(await Undo.RestoreAsync(), "Deshacer NVIDIA sin errores");
+            Check(H() == h0 && !Undo.HasNvidia, "Los perfiles NVIDIA vuelven a ser identicos a los de antes");
+
+            // 3c) Presets de servidores (deja el firewall como estaba)
+            L("--- Presets de servidores");
+            var (pops, _) = await ServerBlocker.LoadAsync(CancellationToken.None);
+            var before = ServerBlocker.BlockedRules().Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var eu = pops.Where(p => p.Region == "eu").Select(p => p.Code).ToList();
+            ServerBlocker.KeepOnly(pops, eu);
+            var mid = ServerBlocker.BlockedRules();
+            Check(eu.All(c => !mid.ContainsKey(c)) && pops.Where(p => p.Region != "eu").All(p => mid.ContainsKey(p.Code)), $"Solo Europa: {eu.Count} abiertas, {mid.Count} bloqueadas");
+            ServerBlocker.KeepOnly(pops, pops.Select(p => p.Code).Where(c => !before.Contains(c)));
+            var end = ServerBlocker.BlockedRules().Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            Check(end.SetEquals(before), $"Firewall restaurado como estaba ({end.Count} bloqueadas)");
+
             // 4) Novedades
             L("--- Novedades");
             var notes = Updater.WhatsNew("## x\n<!--notes-->\r\n- **Uno** con `code`\r\n- Dos\r\n<!--/notes-->\nresto");
@@ -181,6 +208,11 @@ public static class SelfTest
             L("[INFO] Aviso mostrado (comprobar a ojo)");
         }
         catch (Exception ex) { L("[FAIL] Excepcion: " + ex); ok = false; }
+        finally
+        {
+            try { if (Directory.Exists(undoDir)) Directory.Delete(undoDir, true); } catch { }
+            if (Directory.Exists(undoBak)) Directory.Move(undoBak, undoDir);
+        }
         L(ok ? "RESULTADO: TODO OK" : "RESULTADO: HAY FALLOS");
         await File.WriteAllTextAsync(reportPath, sb.ToString(), Encoding.UTF8);
     }

@@ -215,10 +215,21 @@ public static class CleanupCatalog
                 Sys.EmptyDirectory(Path.Combine(Sys.RoamingAppData, "discord", d));
             Logger.Detail(T("lg.z.discord"));
         }),
-        new("ssd", "Optimizar SSD (TRIM)", "defrag C: /L", false, true, false, async ct =>
+        new("ssd", "Optimizar SSD (TRIM)", "defrag X: /L", false, true, false, async ct =>
         {
-            await Sys.RunAsync("defrag.exe", "C: /L", 900, ct);
-            Logger.Detail(T("lg.z.ssd"));
+            // TRIM en TODOS los discos fijos; en los HDD (sin TRIM) defrag /L falla y se anota
+            var drives = DriveInfo.GetDrives()
+                .Where(d => d.DriveType == DriveType.Fixed && d.IsReady && d.DriveFormat is "NTFS" or "ReFS")
+                .Select(d => d.Name.TrimEnd('\\')).ToList();
+            var done = new List<string>();
+            foreach (var d in drives)
+            {
+                ct.ThrowIfCancellationRequested();
+                var code = await Sys.RunAsync("defrag.exe", $"{d} /L", 900, ct);
+                if (code == 0) done.Add(d);
+                else Logger.Detail(T("lg.z.ssd.skip", d, code));
+            }
+            Logger.Detail(T("lg.z.ssd", done.Count > 0 ? string.Join(" ", done) : "-"));
         }),
     ];
 

@@ -82,10 +82,46 @@ public static class Undo
     private static string Dir => Path.Combine(AppPaths.Root, "undo");
     private static string MouseFile => Path.Combine(Dir, "mouse_before.reg");
     private static string PowerFile => Path.Combine(Dir, "power_before.txt");
+    private static string NvidiaDir => Path.Combine(Dir, "nvidia");
+
+    /// <summary>Base de datos de perfiles del driver NVIDIA (la que modifica Profile Inspector).</summary>
+    private static string DrsDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "NVIDIA Corporation", "Drs");
+    private static readonly string[] DrsFiles = ["nvdrsdb0.bin", "nvdrsdb1.bin", "nvdrssel.bin"];
 
     public static bool HasMouse => File.Exists(MouseFile);
     public static bool HasPower => File.Exists(PowerFile);
-    public static bool Available => HasMouse || HasPower;
+    public static bool HasNvidia => File.Exists(Path.Combine(NvidiaDir, "nvdrsdb0.bin"));
+    public static bool Available => HasMouse || HasPower || HasNvidia;
+
+    /// <summary>Copia los perfiles NVIDIA actuales antes de importar el RNX Performance.</summary>
+    public static void SaveNvidia()
+    {
+        if (HasNvidia) return;
+        try
+        {
+            if (!File.Exists(Path.Combine(DrsDir, "nvdrsdb0.bin"))) return;
+            Directory.CreateDirectory(NvidiaDir);
+            foreach (var f in DrsFiles)
+            {
+                var src = Path.Combine(DrsDir, f);
+                if (File.Exists(src)) CopyShared(src, Path.Combine(NvidiaDir, f));
+            }
+            Logger.Detail(T("lg.undo.savedNvidia"));
+        }
+        catch (Exception ex)
+        {
+            try { Directory.Delete(NvidiaDir, true); } catch { }
+            Logger.Detail(T("lg.undo.fail", ex.Message));
+        }
+    }
+
+    /// <summary>Copia aunque el driver tenga el archivo abierto (FileShare.ReadWrite).</summary>
+    private static void CopyShared(string src, string dst)
+    {
+        using var i = new FileStream(src, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        using var o = new FileStream(dst, FileMode.Create, FileAccess.Write, FileShare.None);
+        i.CopyTo(o);
+    }
 
     /// <summary>GUID y nombre del plan guardado.</summary>
     public static (string Guid, string Name)? SavedPower()
@@ -130,6 +166,20 @@ public static class Undo
                 Logger.Ok(T("lg.undo.mouse"));
             }
             else { ok = false; Logger.Error(T("lg.undo.fail", "reg import " + code)); }
+        }
+        if (HasNvidia)
+        {
+            try
+            {
+                foreach (var f in DrsFiles)
+                {
+                    var src = Path.Combine(NvidiaDir, f);
+                    if (File.Exists(src)) File.Copy(src, Path.Combine(DrsDir, f), overwrite: true);
+                }
+                Directory.Delete(NvidiaDir, true);
+                Logger.Ok(T("lg.undo.nvidia"));
+            }
+            catch (Exception ex) { ok = false; Logger.Error(T("lg.undo.fail", "NVIDIA: " + ex.Message)); }
         }
         if (SavedPower() is { } p)
         {

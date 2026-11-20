@@ -20,7 +20,7 @@ public static class AppPaths
     public static string GoogleToken => Path.Combine(Root, "google");
 
     public static string Version { get; } =
-        Assembly.GetExecutingAssembly().GetName().Version is { } v ? $"{v.Major}.{v.Minor}" : "5.0";
+        Assembly.GetExecutingAssembly().GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{Math.Max(v.Build, 0)}" : "5.0";
 
     public static void Ensure()
     {

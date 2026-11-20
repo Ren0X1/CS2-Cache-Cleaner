@@ -139,6 +139,19 @@ public static class ServerBlocker
         Logger.Ok(T("lg.sv.unblocked", name ?? code));
     }
 
+    /// <summary>Deja abiertas solo las ubicaciones de keepCodes y bloquea el resto.</summary>
+    public static void KeepOnly(IEnumerable<ValvePop> pops, IEnumerable<string> keepCodes)
+    {
+        var keep = keepCodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var now = BlockedRules();
+        foreach (var p in pops)
+        {
+            bool block = !keep.Contains(p.Code);
+            if (block && !now.ContainsKey(p.Code)) Block(p);
+            else if (!block && now.ContainsKey(p.Code)) Unblock(p.Code, p.Name);
+        }
+    }
+
     public static int UnblockAll()
     {
         var codes = BlockedRules().Keys.ToList();
