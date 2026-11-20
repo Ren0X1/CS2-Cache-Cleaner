@@ -30,7 +30,7 @@ public static class AppPaths
     }
 
     /// <summary>
-    /// Extrae una herramienta embebida (nvidiaProfileInspector.exe, CS2.nip,
+    /// Extrae una herramienta embebida (nvidiaProfileInspector.exe, RNX_Performance.nip,
     /// raton.reg) a la carpeta tools y devuelve su ruta. Solo reescribe el
     /// archivo si ha cambiado (p. ej. tras actualizar el programa).
     /// </summary>

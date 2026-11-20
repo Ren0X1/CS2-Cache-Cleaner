@@ -46,8 +46,6 @@
 
       <Component Id="StartMenuShortcuts" Directory="ProgramMenuFolder" Guid="cd733839-f257-4839-a0bb-5dec96b2ef99">
         <Shortcut Id="StartMenuApp" Name="RNX Cache Cleaner" Target="[#AppExeFile]" WorkingDirectory="INSTALLFOLDER" Icon="rnx.ico" />
-        <Shortcut Id="StartMenuTodo" Name="RNX - TODO" Target="[#AppExeFile]" Arguments="/todo" WorkingDirectory="INSTALLFOLDER" Icon="rnx.ico"
-                  Description="Limpieza completa + shadercache + raton + perfil NVIDIA" />
         <RegistryValue Root="HKCU" Key="Software\RNX\CacheCleaner" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
       </Component>
 

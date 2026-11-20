@@ -46,8 +46,10 @@
                     <RadioButton x:Name="NavHome" Content="{c:L nav.home}" Tag="&#xE80F;" Style="{StaticResource NavButton}" GroupName="nav" IsChecked="True" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavCustom" Content="{c:L nav.custom}" Tag="&#xE9D5;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavCs2" Content="{c:L nav.cs2}" Tag="&#xE7FC;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavServers" Content="{c:L nav.servers}" Tag="&#xE909;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavBackup" Content="{c:L nav.backup}" Tag="&#xE753;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavHistory" Content="{c:L nav.history}" Tag="&#xE9D2;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavSettings" Content="{c:L nav.settings}" Tag="&#xE713;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavLog" Content="{c:L nav.log}" Tag="&#xE9F9;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                 </StackPanel>
                 <StackPanel Grid.Row="4" Margin="4,0">
@@ -198,6 +200,25 @@
                             <TextBlock Text="{c:L cs2.title}" Style="{StaticResource H1}"/>
                             <TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,22" Text="{c:L cs2.sub}"/>
 
+                            <TextBlock Text="{c:L cs2.st.title}" Style="{StaticResource Overline}"/>
+                            <Border Style="{StaticResource Card}" Margin="0,0,0,22">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0"><TextBlock Text="{c:L cs2.st.power}" Style="{StaticResource Meta}" FontSize="12"/><TextBlock x:Name="StPower" Margin="0,4,0,0" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="…"/></StackPanel>
+                                        <StackPanel Grid.Column="1" Margin="0,0,16,0"><TextBlock Text="{c:L cs2.st.mouse}" Style="{StaticResource Meta}" FontSize="12"/><TextBlock x:Name="StMouse" Margin="0,4,0,0" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="…"/></StackPanel>
+                                        <StackPanel Grid.Column="2" Margin="0,0,16,0"><TextBlock Text="{c:L cs2.st.shader}" Style="{StaticResource Meta}" FontSize="12"/><TextBlock x:Name="StShader" Margin="0,4,0,0" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="…"/></StackPanel>
+                                        <StackPanel Grid.Column="3" Margin="0,0,16,0"><TextBlock Text="{c:L cs2.st.nvidia}" Style="{StaticResource Meta}" FontSize="12"/><TextBlock x:Name="StNvidia" Margin="0,4,0,0" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="…"/></StackPanel>
+                                    </Grid>
+                                    <Border Height="1" Background="{DynamicResource Line2}" Margin="0,16"/>
+                                    <DockPanel>
+                                        <Button x:Name="UndoBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Center" Click="Undo_Click" Content="{c:L cs2.undo.btn}"/>
+                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L cs2.undo.title}" Style="{StaticResource H2}"/><TextBlock x:Name="UndoSub" Style="{StaticResource Sub}" Margin="0,4,0,0" Text="-"/></StackPanel>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="{c:L cs2.mods}" Style="{StaticResource Overline}"/>
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
                                     <DockPanel>
@@ -229,12 +250,109 @@
                             </Border>
                             <Border Style="{StaticResource Card}" Margin="0,14,0,0">
                                 <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Click="Power_Click" Content="{c:L cs2.pw.btn}"/>
+                                    <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L mod.power}" Style="{StaticResource H2}"/><TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{c:L cs2.pw.sub}"/></StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                                <DockPanel>
                                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="ShortcutNoBackup_Click" Content="{c:L sc.nobackup}"/>
-                                        <Button Style="{StaticResource GhostButton}" Click="ShortcutTodo_Click" Content="{c:L sc.todo}"/>
+                                        <Button Style="{StaticResource GhostButton}" Click="ShortcutNoBackup_Click" Content="{c:L sc.nobackup}"/>
                                     </StackPanel>
                                     <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L sc.title}" Style="{StaticResource H2}"/><TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{c:L sc.sub}"/></StackPanel>
                                 </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ======== SERVIDORES DE VALVE ======== -->
+                    <Grid x:Name="PageServers" Visibility="Collapsed" Margin="36,34,36,28">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <DockPanel Margin="0,0,0,16">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="SvRefresh_Click" Content="{c:L sv.refresh}"/>
+                                <Button Style="{StaticResource GhostButton}" Click="SvUnblockAll_Click" Content="{c:L sv.unblockAll}"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,20,0"><TextBlock Text="{c:L sv.title}" Style="{StaticResource H1}"/><TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,0" Text="{c:L sv.sub}"/></StackPanel>
+                        </DockPanel>
+                        <DockPanel Grid.Row="1" Margin="0,0,0,14">
+                            <TextBlock x:Name="SvSummary" DockPanel.Dock="Right" Style="{StaticResource Meta}" VerticalAlignment="Center" Text=""/>
+                            <Border Style="{StaticResource SegBox}" HorizontalAlignment="Left"><StackPanel x:Name="SvRegions" Orientation="Horizontal"/></Border>
+                        </DockPanel>
+                        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="8,8">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <Grid Margin="14,4,24,8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="150"/><ColumnDefinition Width="60"/><ColumnDefinition Width="80"/><ColumnDefinition Width="120"/><ColumnDefinition Width="56"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="{c:L sv.col.loc}" Style="{StaticResource Meta}" FontSize="12"/>
+                                    <TextBlock Grid.Column="1" Text="{c:L sv.col.region}" Style="{StaticResource Meta}" FontSize="12"/>
+                                    <TextBlock Grid.Column="2" Text="{c:L sv.col.ips}" Style="{StaticResource Meta}" FontSize="12" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="3" Text="{c:L sv.col.ping}" Style="{StaticResource Meta}" FontSize="12" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="4" Text="{c:L sv.col.state}" Style="{StaticResource Meta}" FontSize="12" Margin="20,0,0,0"/>
+                                </Grid>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel x:Name="SvList"/>
+                                </ScrollViewer>
+                                <TextBlock x:Name="SvEmpty" Grid.Row="1" Style="{StaticResource Sub}" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" Text="" Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- ======== AJUSTES ======== -->
+                    <ScrollViewer x:Name="PageSettings" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="36,34,36,28">
+                            <TextBlock Text="{c:L set.title}" Style="{StaticResource H1}"/>
+                            <TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,22" Text="{c:L set.sub}"/>
+
+                            <TextBlock Text="{c:L set.files}" Style="{StaticResource Overline}"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="RegExport_Click" Content="{c:L set.reg.export}" ToolTip="{c:L set.reg.export.tip}"/>
+                                            <Button x:Name="RegDefaultBtn" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="RegDefault_Click" Content="{c:L set.useDefault}"/>
+                                            <Button Style="{StaticResource PrimaryButton}" Click="RegChoose_Click" Content="{c:L set.choose}"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,18,0">
+                                            <TextBlock Text="{c:L set.reg.title}" Style="{StaticResource H2}"/>
+                                            <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{c:L set.reg.sub}"/>
+                                            <TextBlock x:Name="RegState" Margin="0,8,0,0" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="-"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="{c:L set.safety}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <CheckBox x:Name="RpToggle" Style="{StaticResource Toggle}" Click="RpToggle_Click">
+                                        <TextBlock Text="{c:L set.rp.title}" Style="{StaticResource H2}"/>
+                                    </CheckBox>
+                                    <TextBlock Style="{StaticResource Sub}" Margin="0,8,0,0" Text="{c:L set.rp.sub}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="{c:L set.sch}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Sub}" Text="{c:L set.sch.sub}"/>
+                                    <Border Height="1" Background="{DynamicResource Line2}" Margin="0,14"/>
+                                    <DockPanel><Border DockPanel.Dock="Right" Style="{StaticResource SegBox}"><StackPanel x:Name="SchFreqs" Orientation="Horizontal"/></Border><TextBlock Text="{c:L set.sch.freq}" Style="{StaticResource H2}" VerticalAlignment="Center"/></DockPanel>
+                                    <Border Height="1" Background="{DynamicResource Line2}" Margin="0,14"/>
+                                    <DockPanel><Border DockPanel.Dock="Right" Style="{StaticResource SegBox}"><StackPanel x:Name="SchModes" Orientation="Horizontal"/></Border><TextBlock Text="{c:L set.sch.mode}" Style="{StaticResource H2}" VerticalAlignment="Center"/></DockPanel>
+                                    <TextBlock x:Name="SchState" Margin="0,14,0,0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Text="-"/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="{c:L set.look}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <DockPanel><Border DockPanel.Dock="Right" Style="{StaticResource SegBox}"><StackPanel x:Name="SetLangs" Orientation="Horizontal"/></Border><TextBlock Text="{c:L first.lang}" Style="{StaticResource H2}" VerticalAlignment="Center"/></DockPanel>
+                                    <Border Height="1" Background="{DynamicResource Line2}" Margin="0,14"/>
+                                    <DockPanel><StackPanel x:Name="SetColors" DockPanel.Dock="Right" Orientation="Horizontal"/><TextBlock Text="{c:L first.color}" Style="{StaticResource H2}" VerticalAlignment="Center"/></DockPanel>
+                                    <Border Height="1" Background="{DynamicResource Line2}" Margin="0,14"/>
+                                    <DockPanel><Border DockPanel.Dock="Right" Style="{StaticResource SegBox}"><StackPanel x:Name="SetLooks" Orientation="Horizontal"/></Border><TextBlock Text="{c:L first.look}" Style="{StaticResource H2}" VerticalAlignment="Center"/></DockPanel>
+                                </StackPanel>
                             </Border>
                         </StackPanel>
                     </ScrollViewer>
@@ -452,6 +570,12 @@
                             <TextBlock Text="{c:L upd.label}" Style="{StaticResource Overline}" Foreground="{DynamicResource Accent}" Margin="0,0,0,4"/>
                             <TextBlock x:Name="UpdateTitle" Text="-" Style="{StaticResource H2}" FontSize="16"/>
                             <TextBlock x:Name="UpdateSub" Style="{StaticResource Sub}" Margin="0,4,0,10" Text="-"/>
+                            <StackPanel x:Name="UpdateNotesBox" Visibility="Collapsed" Margin="0,0,0,12">
+                                <TextBlock Text="{c:L upd.whatsnew}" Style="{StaticResource Meta}" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,6"/>
+                                <ScrollViewer MaxHeight="170" VerticalScrollBarVisibility="Auto">
+                                    <TextBlock x:Name="UpdateNotesText" FontSize="13" LineHeight="20" TextWrapping="Wrap" Foreground="{DynamicResource Ink}" Text=""/>
+                                </ScrollViewer>
+                            </StackPanel>
                             <ProgressBar x:Name="UpdateBar" Style="{StaticResource ThinBar}" Maximum="1" Margin="0,0,0,10" Visibility="Collapsed"/>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button x:Name="UpdateNotesBtn" Style="{StaticResource GhostButton}" Content="{c:L upd.notes}" Margin="0,0,8,0" Click="UpdateNotes_Click"/>

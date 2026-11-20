@@ -83,6 +83,24 @@ public static partial class Updater
             msiUrl, msiSize, msiSha, exeUrl, exeSize, exeSha);
     }
 
+    /// <summary>
+    /// Novedades para el aviso: el workflow las mete en la release entre
+    /// &lt;!--notes--&gt; y &lt;!--/notes--&gt; (sacadas del changelog del README).
+    /// </summary>
+    public static string WhatsNew(string body, int maxLines = 9)
+    {
+        var m = Regex.Match(body ?? "", @"<!--notes-->(.*?)<!--/notes-->", RegexOptions.Singleline);
+        if (!m.Success) return "";
+        var lines = m.Groups[1].Value.Split('\n')
+            .Select(l => l.Trim())
+            .Where(l => l.Length > 0)
+            .Select(l => Regex.Replace(l, @"\*\*|`", ""))
+            .Select(l => l.StartsWith("- ") ? "•  " + l[2..] : l)
+            .ToList();
+        if (lines.Count > maxLines) lines = [.. lines.Take(maxLines - 1), "…"];
+        return string.Join("\n", lines);
+    }
+
     /// <summary>Instalado con el MSI si el .exe esta en la carpeta que registro el instalador.</summary>
     public static bool IsInstalled()
     {

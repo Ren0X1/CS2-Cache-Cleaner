@@ -4,6 +4,8 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <!-- Solo para el aviso de la bandeja (NotifyIcon) de la limpieza programada -->
+    <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
@@ -13,7 +15,7 @@
     <ApplicationIcon>Assets\rnx.ico</ApplicationIcon>
 
     <!-- Version unica del programa: la lee tambien el workflow de release -->
-    <Version>5.1.0</Version>
+    <Version>5.1.1</Version>
     <Product>RNX Cache Cleaner Pro</Product>
     <Company>RNX Systems</Company>
     <Copyright>Ren0X1</Copyright>
@@ -33,12 +35,18 @@
        a %LOCALAPPDATA%\RNX Cache Cleaner\tools al usarlos -->
   <ItemGroup>
     <EmbeddedResource Include="Assets\nvidiaProfileInspector.exe" LogicalName="tools.nvidiaProfileInspector.exe" />
-    <EmbeddedResource Include="Assets\CS2.nip" LogicalName="tools.CS2.nip" />
+    <EmbeddedResource Include="Assets\RNX_Performance.nip" LogicalName="tools.RNX_Performance.nip" />
+    <EmbeddedResource Include="Assets\RNX_Performance.pow" LogicalName="tools.RNX_Performance.pow" />
+    <EmbeddedResource Include="Assets\RNX_Performance.power.json" LogicalName="power.RNX_Performance.json" />
     <EmbeddedResource Include="Assets\raton.reg" LogicalName="tools.raton.reg" />
     <!-- Cliente OAuth de Google (NO se sube al repo: lo genera el workflow
          desde un secret, o lo pones tu a mano para compilar en local) -->
     <EmbeddedResource Include="Assets\google_client.json" LogicalName="google_client.json" Condition="Exists('Assets\google_client.json')" />
     <Resource Include="Assets\rnx.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Google.Apis.Drive.v3" Version="1.78.0.4327" />

@@ -1,5 +1,6 @@
 # Archivos que Windows necesita con CRLF
-*.reg text eol=crlf
+# .reg exportados por Windows son UTF-16: git NO debe tocar sus saltos de linea
+*.reg -text
 *.iss text eol=crlf
 *.cs  text eol=crlf
 *.xaml text eol=crlf

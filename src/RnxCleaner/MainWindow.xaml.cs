@@ -20,6 +20,7 @@ public partial class MainWindow : Window
     private readonly Settings _settings = Settings.Load();
     private readonly SystemInfo _sys = SystemInfo.Detect();
     private readonly RunMode? _autoMode;
+    private readonly bool _scheduled;
     public bool SnapMode { get; set; }
     private UpdateInfo? _update;
 
@@ -31,9 +32,10 @@ public partial class MainWindow : Window
     private RunMode _mode = RunMode.Todo;
     private List<RunRecord> _history = [];
 
-    public MainWindow(RunMode? autoMode)
+    public MainWindow(RunMode? autoMode, bool scheduled = false)
     {
         _autoMode = autoMode;
+        _scheduled = scheduled;
         // Idioma y tema antes de dibujar nada
         Loc.Set(_settings.Language);
         InitializeComponent();
@@ -54,7 +56,7 @@ public partial class MainWindow : Window
         RefreshTexts();
 
         Loc.Changed += RefreshTexts;
-        ThemeManager.Changed += () => { RefreshThemeButton(); DrawHomeChart(); DrawHistoryChart(); BuildFirstRun(); };
+        ThemeManager.Changed += () => { RefreshThemeButton(); DrawHomeChart(); DrawHistoryChart(); BuildFirstRun(); if (PageSettings.Visibility == Visibility.Visible) RenderSettings(); };
 
         StateChanged += (_, _) =>
         {
@@ -69,7 +71,12 @@ public partial class MainWindow : Window
             await RefreshDriveAsync();
             if (_autoMode is null && !SnapMode && _settings.FirstRunDone) _ = CheckUpdatesAsync(silent: true);
             if (_autoMode is { } m)
+            {
+                // Programada: no se limpia nada con CS2 abierto
+                if (_scheduled && SystemInfo.IsRunning("cs2")) { Logger.Info(T("lg.sch.skipCs2")); Close(); return; }
+                if (_scheduled) Logger.Info(T("lg.sch.start"));
                 await RunAsync(RunPlan.For(m, _settings, _sys, interactive: false), auto: true);
+            }
         };
     }
 
@@ -86,6 +93,8 @@ public partial class MainWindow : Window
         UpdateHome();
         BuildFirstRun();
         if (PageHistory.Visibility == Visibility.Visible) RefreshHistory();
+        if (PageServers.Visibility == Visibility.Visible) RenderServers();
+        if (PageSettings.Visibility == Visibility.Visible) RenderSettings();
         _ = RefreshDriveAsync();
     }
 
@@ -130,6 +139,7 @@ public partial class MainWindow : Window
         if (plan.Nvidia) list.Add((T("mod.nvidia"), true));
         if (plan.Shader) list.Add((T("mod.shader"), true));
         if (plan.Mouse) list.Add((T("mod.mouse"), true));
+        if (plan.Power) list.Add((T("mod.power"), true));
         return list;
     }
 
@@ -255,6 +265,8 @@ public partial class MainWindow : Window
             RadioButton r when r == NavCustom => PageCustom,
             RadioButton r when r == NavCs2 => PageCs2,
             RadioButton r when r == NavBackup => PageBackup,
+            RadioButton r when r == NavServers => PageServers,
+            RadioButton r when r == NavSettings => PageSettings,
             RadioButton r when r == NavLog => PageLog,
             RadioButton r when r == NavHistory => PageHistory,
             _ => PageHome
@@ -262,12 +274,15 @@ public partial class MainWindow : Window
         if (sender == NavLog) LogBox.Text = Logger.ReadAll();
         if (sender == NavHistory) RefreshHistory();
         if (sender == NavHome) UpdateHome();
+        if (sender == NavServers) _ = LoadServersAsync();
+        if (sender == NavSettings) RenderSettings();
+        if (sender == NavCs2) _ = RefreshCs2StateAsync();
     }
 
     private void ShowPage(FrameworkElement page)
     {
         if (PageHome is null) return;
-        foreach (var p in new FrameworkElement[] { PageHome, PageCustom, PageCs2, PageBackup, PageLog, PageHistory, PageRun })
+        foreach (var p in new FrameworkElement[] { PageHome, PageCustom, PageCs2, PageServers, PageBackup, PageSettings, PageLog, PageHistory, PageRun })
             p.Visibility = p == page ? Visibility.Visible : Visibility.Collapsed;
         page.Opacity = 0;
         page.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160)));
@@ -452,6 +467,8 @@ public partial class MainWindow : Window
         await RunAsync(p);
     }
 
+    private async void Power_Click(object s, RoutedEventArgs e) => await RunAsync(RunPlan.For(RunMode.Power, _settings, _sys, true));
+
     private void OpenInspector_Click(object s, RoutedEventArgs e)
     {
         try { Cs2Modules.OpenNvidiaInspector(); }
@@ -597,10 +614,19 @@ public partial class MainWindow : Window
         DoneBtn.Visibility = Visibility.Visible;
         Nav.IsEnabled = true;
         _running = false;
+        _ = RefreshCs2StateAsync();
         _runCts.Dispose();
         _runCts = null;
 
         // Lanzado con /todo, /rapida...: se cierra solo al terminar
+        if (auto && _scheduled)
+        {
+            await Notifier.ShowAsync("RNX Cache Cleaner", err > 0
+                ? T("notify.errors", err)
+                : T("notify.done", plan.Name, Sys.FormatBytes(freed), sw.Elapsed.ToString(@"mm\:ss")));
+            Close();
+            return;
+        }
         if (auto) { await AutoCloseAsync(); return; }
 
         // Tras una limpieza desde la ventana, ofrecer reiniciar
@@ -758,6 +784,342 @@ public partial class MainWindow : Window
     }
 
     // ===================================================================
+    //  Servidores de Valve (bloqueo por firewall)
+    // ===================================================================
+    private List<ValvePop> _pops = [];
+    private Dictionary<string, string> _blocked = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, long?> _pings = new(StringComparer.OrdinalIgnoreCase);
+    private string _svRegion = "all";
+    private bool _svFromCache, _svLoading;
+
+    private async Task LoadServersAsync()
+    {
+        if (_svLoading) return;
+        _svLoading = true;
+        SvEmpty.Text = T("sv.loading");
+        SvEmpty.Visibility = _pops.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+            (_pops, _svFromCache) = await ServerBlocker.LoadAsync(cts.Token);
+            if (!_svFromCache) await Task.Run(() => ServerBlocker.SyncChangedIps(_pops));
+            ReadFirewallState();
+            RenderServers();
+            _ = PingServersAsync();
+        }
+        catch (Exception ex)
+        {
+            SvEmpty.Text = T("sv.fail", ex.Message);
+            SvEmpty.Visibility = Visibility.Visible;
+        }
+        finally { _svLoading = false; }
+    }
+
+    /// <summary>El estado sale siempre de las reglas que hay en el firewall.</summary>
+    private void ReadFirewallState()
+    {
+        try { _blocked = ServerBlocker.BlockedRules(); }
+        catch (Exception ex) { ShowToast(T("sv.toast.fail", ex.Message)); }
+    }
+
+    private async Task PingServersAsync()
+    {
+        await Parallel.ForEachAsync(_pops.ToList(), new ParallelOptions { MaxDegreeOfParallelism = 8 }, async (p, _) =>
+        {
+            var ms = _blocked.ContainsKey(p.Code) ? null : await ServerBlocker.PingAsync(p);
+            lock (_pings) _pings[p.Code] = ms;
+        });
+        if (PageServers.Visibility == Visibility.Visible) RenderServers();
+    }
+
+    private void RenderServers()
+    {
+        // Filtro por region
+        SvRegions.Children.Clear();
+        foreach (var r in new[] { "all" }.Concat(ServerBlocker.Regions.Where(r => _pops.Any(p => p.Region == r))))
+        {
+            var rb = new RadioButton { Style = (Style)FindResource("SegItem"), Content = T("region." + r), IsChecked = r == _svRegion, GroupName = "svreg" };
+            var reg = r;
+            rb.Click += (_, _) => { _svRegion = reg; RenderServers(); };
+            SvRegions.Children.Add(rb);
+        }
+
+        var shown = _pops.Where(p => _svRegion == "all" || p.Region == _svRegion).ToList();
+        int blocked = _pops.Count(p => _blocked.ContainsKey(p.Code));
+        SvSummary.Text = T("sv.summary", blocked, _pops.Count) + (_svFromCache ? " · " + T("sv.cache") : "");
+        SvEmpty.Visibility = _pops.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (_pops.Count == 0 && !_svLoading) SvEmpty.Text = T("sv.none");
+
+        SvList.Children.Clear();
+        foreach (var p in shown)
+        {
+            bool isBlocked = _blocked.ContainsKey(p.Code);
+            var g = new Grid { Margin = new Thickness(14, 0, 14, 0), MinHeight = 44 };
+            foreach (var w in new[] { new GridLength(1, GridUnitType.Star), new GridLength(150), new GridLength(60), new GridLength(80), new GridLength(120), new GridLength(56) })
+                g.ColumnDefinitions.Add(new ColumnDefinition { Width = w });
+
+            var name = new TextBlock { VerticalAlignment = VerticalAlignment.Center, FontSize = 13.5, TextTrimming = TextTrimming.CharacterEllipsis };
+            name.Inlines.Add(new System.Windows.Documents.Run(p.Name) { FontWeight = FontWeights.SemiBold });
+            var code = new System.Windows.Documents.Run("  " + p.Code) { FontSize = 12 };
+            code.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty, "Faint");
+            name.Inlines.Add(code);
+            g.Children.Add(name);
+
+            AddCell(g, 1, T("region." + p.Region), "Muted", HorizontalAlignment.Left);
+            AddCell(g, 2, p.Ips.Count.ToString(Culture), "Muted", HorizontalAlignment.Right);
+            long? ms; bool has; lock (_pings) has = _pings.TryGetValue(p.Code, out ms);
+            AddCell(g, 3, isBlocked || (has && ms is null) ? "-" : has ? $"{ms} ms" : "…", "Ink", HorizontalAlignment.Right);
+
+            var pill = new Border { CornerRadius = new CornerRadius(999), Padding = new Thickness(10, 2, 10, 3), HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(20, 0, 0, 0) };
+            pill.SetResourceReference(Border.BackgroundProperty, isBlocked ? "Tint" : "PillG");
+            var pt = new TextBlock { Text = isBlocked ? T("sv.blocked") : T("sv.allowed"), FontSize = 12, FontWeight = FontWeights.SemiBold };
+            pt.SetResourceReference(TextBlock.ForegroundProperty, isBlocked ? "TintInk" : "PillGInk");
+            pill.Child = pt;
+            Grid.SetColumn(pill, 4);
+            g.Children.Add(pill);
+
+            var tg = new CheckBox { Style = (Style)FindResource("Toggle"), IsChecked = isBlocked, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Right, ToolTip = isBlocked ? T("sv.tip.unblock") : T("sv.tip.block") };
+            var pop = p;
+            tg.Click += (_, _) => ToggleServer(pop, tg.IsChecked == true);
+            Grid.SetColumn(tg, 5);
+            g.Children.Add(tg);
+
+            var row = new Border { Child = g, BorderThickness = new Thickness(0, 1, 0, 0) };
+            row.SetResourceReference(Border.BorderBrushProperty, "Line2");
+            SvList.Children.Add(row);
+        }
+    }
+
+    private static void AddCell(Grid g, int col, string text, string brush, HorizontalAlignment align)
+    {
+        var t = new TextBlock { Text = text, FontSize = 13, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = align };
+        t.SetResourceReference(TextBlock.ForegroundProperty, brush);
+        Grid.SetColumn(t, col);
+        g.Children.Add(t);
+    }
+
+    private void ToggleServer(ValvePop p, bool block)
+    {
+        try
+        {
+            if (block) ServerBlocker.Block(p); else ServerBlocker.Unblock(p.Code, p.Name);
+            ShowToast(T(block ? "sv.toast.blocked" : "sv.toast.unblocked", p.Name));
+        }
+        catch (Exception ex) { ShowToast(T("sv.toast.fail", ex.Message)); }
+        ReadFirewallState();
+        if (!block) lock (_pings) _pings.Remove(p.Code);
+        RenderServers();
+        if (!block) _ = PingServersAsync();
+    }
+
+    private async void SvRefresh_Click(object s, RoutedEventArgs e) { lock (_pings) _pings.Clear(); await LoadServersAsync(); }
+
+    private async void SvUnblockAll_Click(object s, RoutedEventArgs e)
+    {
+        if (_blocked.Count == 0) { ShowToast(T("sv.toast.none")); return; }
+        if (!await Confirm(T("sv.title").ToUpper(Culture), T("sv.dlg.t"), T("sv.dlg.x", _blocked.Count), T("sv.unblockAll"), T("dlg.cancel")))
+            return;
+        try { ShowToast(T("sv.toast.unblockedAll", ServerBlocker.UnblockAll())); }
+        catch (Exception ex) { ShowToast(T("sv.toast.fail", ex.Message)); }
+        ReadFirewallState();
+        lock (_pings) _pings.Clear();
+        RenderServers();
+        _ = PingServersAsync();
+    }
+
+    // ===================================================================
+    //  Ajustes: archivos propios (.nip / .reg) y apariencia
+    // ===================================================================
+    // ===================================================================
+    //  Estado de los modulos de CS2 y deshacer
+    // ===================================================================
+    private async Task RefreshCs2StateAsync()
+    {
+        var st = await Cs2Status.ReadAsync(_settings);
+
+        void Set(TextBlock tb, string text, string brush, string? tip = null)
+        {
+            tb.Text = text;
+            tb.ToolTip = tip ?? text;
+            tb.SetResourceReference(TextBlock.ForegroundProperty, brush);
+        }
+
+        if (st.PowerName is null) Set(StPower, "-", "Muted");
+        else if (st.PowerIsRnx) Set(StPower, T("st.power.rnx"), "Accent");
+        else Set(StPower, T("st.power.other", st.PowerName), "Ink");
+
+        var source = st.MouseSource.Length > 0 ? st.MouseSource : T("st.mouse.defaultName");
+        if (st.MouseMatches is null) Set(StMouse, "-", "Muted");
+        else if (st.MouseMatches == true) Set(StMouse, st.MouseSource.Length > 0 ? T("st.mouse.custom", source) : T("st.mouse.default"), "Accent");
+        else Set(StMouse, T("st.mouse.differs", source), "Ink");
+
+        if (st.ShaderPath is null || st.ShaderBytes == 0) Set(StShader, T("st.shader.none"), "Muted", st.ShaderPath);
+        else Set(StShader, Sys.FormatBytes(st.ShaderBytes), "Ink", st.ShaderPath);
+
+        if (!_sys.IsNvidia) Set(StNvidia, T("st.nv.noGpu"), "Muted");
+        else if (_settings.NvidiaApplied is { } when) Set(StNvidia, T("st.nv.applied", when.ToString("g", Culture)), "Accent");
+        else Set(StNvidia, T("st.nv.never"), "Muted");
+
+        var parts = new List<string>();
+        if (Undo.HasMouse) parts.Add(T("undo.part.mouse"));
+        if (Undo.SavedPower() is { } p) parts.Add(T("undo.part.power", p.Name));
+        UndoSub.Text = parts.Count > 0 ? T("cs2.undo.saved", string.Join(" · ", parts)) : T("cs2.undo.none");
+        UndoBtn.IsEnabled = parts.Count > 0 && !_running;
+    }
+
+    private async void Undo_Click(object s, RoutedEventArgs e)
+    {
+        if (_running) return;
+        UndoBtn.IsEnabled = false;
+        bool ok = await Undo.RestoreAsync();
+        ShowToast(ok ? T("toast.undo.ok") : T("toast.undo.fail"));
+        await RefreshCs2StateAsync();
+    }
+
+    // ===================================================================
+    //  Ajustes: punto de restauracion y limpieza programada
+    // ===================================================================
+    private void RpToggle_Click(object s, RoutedEventArgs e)
+    {
+        _settings.RestorePoint = RpToggle.IsChecked == true;
+        _settings.Save();
+    }
+
+    private void RenderSchedule()
+    {
+        SchFreqs.Children.Clear();
+        foreach (var f in Scheduler.Frequencies)
+        {
+            var rb = new RadioButton { Style = (Style)FindResource("SegItem"), Content = T("sch." + f), IsChecked = f == _settings.ScheduleFreq, GroupName = "schfreq" };
+            var freq = f;
+            rb.Click += (_, _) => ApplySchedule(freq, _settings.ScheduleMode);
+            SchFreqs.Children.Add(rb);
+        }
+        SchModes.Children.Clear();
+        foreach (var m in Scheduler.Modes)
+        {
+            var rb = new RadioButton { Style = (Style)FindResource("SegItem"), Content = T("plan." + m), IsChecked = m == _settings.ScheduleMode, GroupName = "schmode" };
+            var mode = m;
+            rb.Click += (_, _) => ApplySchedule(_settings.ScheduleFreq, mode);
+            SchModes.Children.Add(rb);
+        }
+        SchModes.IsEnabled = _settings.ScheduleFreq != "off";
+        SchModes.Opacity = SchModes.IsEnabled ? 1 : 0.5;
+
+        var info = Scheduler.Query();
+        string text;
+        if (_settings.ScheduleFreq == "off" || !info.Exists) text = T("sch.offState");
+        else
+        {
+            text = _settings.ScheduleFreq == "logon" ? T("sch.nextLogon")
+                 : info.Next is { } n ? T("sch.next", n.ToString("g", Culture)) : T("sch.on");
+            if (info.Last is { } l) text += T("sch.last", l.ToString("g", Culture));
+        }
+        SchState.Text = text;
+        SchState.SetResourceReference(TextBlock.ForegroundProperty, _settings.ScheduleFreq != "off" && !info.Exists ? "Warn" : _settings.ScheduleFreq == "off" ? "Muted" : "Accent");
+    }
+
+    private void ApplySchedule(string freq, string mode)
+    {
+        try
+        {
+            Scheduler.Apply(freq, mode);
+            _settings.ScheduleFreq = freq;
+            _settings.ScheduleMode = mode;
+            _settings.Save();
+            if (freq != "off") ShowToast(T("toast.sch.ok"));
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(T("toast.sch.fail", ex.Message));
+            ShowToast(T("toast.sch.fail", ex.Message));
+        }
+        RenderSchedule();
+    }
+
+    private void ShowUpdateNotes(string notes)
+    {
+        UpdateNotesText.Text = notes;
+        UpdateNotesBox.Visibility = notes.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void RenderSettings()
+    {
+        bool customReg = !string.IsNullOrWhiteSpace(_settings.RegPath);
+        RegState.Text = customReg ? T("set.custom", Path.GetFileName(_settings.RegPath)) : T("set.reg.default");
+        RegState.ToolTip = customReg ? _settings.RegPath : null;
+        RegState.SetResourceReference(TextBlock.ForegroundProperty, customReg && !File.Exists(_settings.RegPath) ? "Warn" : customReg ? "Accent" : "Ink");
+        RegDefaultBtn.IsEnabled = customReg;
+        RpToggle.IsChecked = _settings.RestorePoint;
+        RenderSchedule();
+
+        SetLangs.Children.Clear();
+        foreach (var k in Langs)
+        {
+            var rb = new RadioButton { Style = (Style)FindResource("SegItem"), Content = k == "zh" ? "中文" : k.ToUpperInvariant(), IsChecked = k == Lang, GroupName = "setlang", ToolTip = In(k, "lang.native") };
+            var lang = k;
+            rb.Click += (_, _) => SetLanguage(lang);
+            SetLangs.Children.Add(rb);
+        }
+        SetColors.Children.Clear();
+        foreach (var p in ThemeManager.Palettes)
+        {
+            var rb = new RadioButton { Style = (Style)FindResource("SwatchPick"), Background = new SolidColorBrush(ThemeManager.Swatch(p, ThemeManager.IsDark)),
+                                       IsChecked = p == ThemeManager.Palette, GroupName = "setpal", ToolTip = T("pal." + p), Margin = new Thickness(6, 0, 0, 0) };
+            var pal = p;
+            rb.Click += (_, _) => SetPalette(pal);
+            SetColors.Children.Add(rb);
+        }
+        SetLooks.Children.Clear();
+        foreach (var m in ThemeManager.Modes)
+        {
+            var rb = new RadioButton { Style = (Style)FindResource("SegItem"), Content = T("theme." + m), IsChecked = m == ThemeManager.Mode, GroupName = "setlook" };
+            var mode = m;
+            rb.Click += (_, _) => SetThemeMode(mode);
+            SetLooks.Children.Add(rb);
+        }
+    }
+
+    private string? PickFile(string filter, string? current)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = filter, CheckFileExists = true };
+        var dir = string.IsNullOrWhiteSpace(current) ? null : Path.GetDirectoryName(current);
+        if (dir is not null && Directory.Exists(dir)) dlg.InitialDirectory = dir;
+        return dlg.ShowDialog(this) == true ? dlg.FileName : null;
+    }
+
+    private void RegChoose_Click(object s, RoutedEventArgs e)
+    {
+        var f = PickFile(T("set.reg.filter") + " (*.reg)|*.reg", _settings.RegPath);
+        if (f is null) return;
+        _settings.RegPath = f; _settings.Save();
+        ShowToast(T("toast.set.custom", Path.GetFileName(f)));
+        RenderSettings();
+    }
+
+    private async void RegExport_Click(object s, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.SaveFileDialog
+        {
+            Filter = T("set.reg.filter") + " (*.reg)|*.reg",
+            FileName = T("set.reg.exportName") + ".reg",
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            OverwritePrompt = true,
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        if (await Cs2Modules.ExportMouseAsync(dlg.FileName))
+        {
+            // Lo exportado pasa a ser el .reg que usa la app
+            _settings.RegPath = dlg.FileName; _settings.Save();
+            ShowToast(T("toast.set.exported", Path.GetFileName(dlg.FileName)));
+        }
+        else ShowToast(T("toast.set.exportFail"));
+        RenderSettings();
+    }
+
+    private void RegDefault_Click(object s, RoutedEventArgs e) { _settings.RegPath = ""; _settings.Save(); ShowToast(T("toast.set.default")); RenderSettings(); }
+
+    // ===================================================================
     //  Backup / Google Drive
     // ===================================================================
     private async void BackupToggle_Click(object sender, RoutedEventArgs e)
@@ -875,7 +1237,6 @@ public partial class MainWindow : Window
     // ===================================================================
     //  Accesos directos
     // ===================================================================
-    private void ShortcutTodo_Click(object s, RoutedEventArgs e) => CreateShortcut(T("sc.name.todo"), "/todo");
     private void ShortcutNoBackup_Click(object s, RoutedEventArgs e) => CreateShortcut(T("sc.name.nobackup"), "/nobackup");
 
     private void CreateShortcut(string name, string args)
@@ -1024,6 +1385,7 @@ public partial class MainWindow : Window
             }
             UpdateTitle.Text = T("upd.title", _update.Version);
             UpdateSub.Text = T("upd.sub", Updater.Current);
+            ShowUpdateNotes(Updater.WhatsNew(_update.Notes));
             UpdateBar.Visibility = Visibility.Collapsed;
             UpdateNowBtn.IsEnabled = UpdateLaterBtn.IsEnabled = true;
             UpdateBanner.Visibility = Visibility.Visible;
@@ -1084,12 +1446,15 @@ public partial class MainWindow : Window
             case "home": _history = Demo(); DrawHomeChart(); break;
             case "custom": NavCustom.IsChecked = true; break;
             case "cs2": NavCs2.IsChecked = true; break;
+            case "settings": NavSettings.IsChecked = true; break;
+            case "servers": NavServers.IsChecked = true; await Task.Delay(6000); break;
             case "backup": NavBackup.IsChecked = true; break;
             case "log": NavLog.IsChecked = true; break;
             case "first": ShowFirstRun(); break;
             case "history": NavHistory.IsChecked = true; RefreshHistory(Demo()); break;
             case "update":
-                UpdateTitle.Text = T("upd.title", "5.1.0"); UpdateSub.Text = T("upd.sub", Updater.Current);
+                UpdateTitle.Text = T("upd.title", "5.1.1"); UpdateSub.Text = T("upd.sub", Updater.Current);
+                ShowUpdateNotes(Updater.WhatsNew(File.Exists("notes_demo.md") ? File.ReadAllText("notes_demo.md") : ""));
                 UpdateBanner.Visibility = Visibility.Visible; break;
             case "run":
                 _steps.Clear();

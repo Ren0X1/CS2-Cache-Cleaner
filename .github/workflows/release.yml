@@ -106,35 +106,53 @@ jobs:
           git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
           git push origin "${{ steps.version.outputs.tag }}"
 
+      # Novedades = la primera entrada del changelog del README. Van entre
+      # <!--notes--> y <!--/notes--> para que el aviso de actualizacion las lea.
+      - name: Texto de la release
+        shell: bash
+        run: |
+          NOTES=$(awk '/^### v[0-9]/{n++; next} n==1' README.md | sed '/^[[:space:]]*$/d')
+          V="${{ steps.version.outputs.version }}"
+          T="${{ steps.version.outputs.tag }}"
+          {
+            echo "## RNX Cache Cleaner Pro $T"
+            echo
+            echo "### Novedades"
+            echo "<!--notes-->"
+            echo "$NOTES"
+            echo "<!--/notes-->"
+            echo
+            echo "### Descarga"
+            echo "- **\`RNX_Cache_Cleaner_$V.msi\`** - instalador (recomendado): menu Inicio, escritorio, desinstalador y autoactualizacion."
+            echo "- **\`RNX_Cache_Cleaner.exe\`** - version portable: un solo archivo, sin instalar."
+            echo
+            echo "No hace falta instalar .NET. El programa pide permisos de administrador al abrirse y avisa solo cuando hay una version nueva (boton Actualizar; la configuracion se conserva)."
+            echo
+            echo "### Modos desde la linea de comandos"
+            echo '```bat'
+            echo 'RNX_Cache_Cleaner.exe            :: interfaz grafica'
+            echo 'RNX_Cache_Cleaner.exe /rapida    :: limpieza rapida'
+            echo 'RNX_Cache_Cleaner.exe /completa  :: limpieza completa + TRIM + perfil NVIDIA'
+            echo 'RNX_Cache_Cleaner.exe /todo      :: completa + shadercache + raton + NVIDIA + plan de energia'
+            echo 'RNX_Cache_Cleaner.exe /nobackup  :: lo mismo que /todo pero sin backup'
+            echo 'RNX_Cache_Cleaner.exe /shader    :: solo shadercache'
+            echo 'RNX_Cache_Cleaner.exe /raton     :: solo configuracion del raton'
+            echo 'RNX_Cache_Cleaner.exe /nvidia    :: solo perfil NVIDIA RNX Performance'
+            echo 'RNX_Cache_Cleaner.exe /energia   :: solo plan de energia RNX Performance'
+            echo 'RNX_Cache_Cleaner.exe /backup    :: solo backup de Steam a Google Drive'
+            echo '```'
+            echo
+            echo "---"
+            echo "**Commit:** ${{ github.sha }}"
+          } > release_body.md
+          cat release_body.md
+
       - name: Crear release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: RNX Cache Cleaner Pro ${{ steps.version.outputs.tag }}
-          body: |
-            ## RNX Cache Cleaner Pro ${{ steps.version.outputs.tag }}
-
-            ### Descarga
-            - **`RNX_Cache_Cleaner_${{ steps.version.outputs.version }}.msi`** - instalador (recomendado): menu Inicio, escritorio, desinstalador y autoactualizacion.
-            - **`RNX_Cache_Cleaner.exe`** - version portable: un solo archivo, sin instalar.
-
-            No hace falta instalar .NET. El programa pide permisos de administrador al abrirse y avisa solo cuando hay una version nueva (boton Actualizar; la configuracion se conserva).
-
-            ### Modos desde la linea de comandos / accesos directos
-            ```bat
-            RNX_Cache_Cleaner.exe            :: interfaz grafica
-            RNX_Cache_Cleaner.exe /rapida    :: limpieza rapida
-            RNX_Cache_Cleaner.exe /completa  :: limpieza completa + TRIM + perfil NVIDIA
-            RNX_Cache_Cleaner.exe /todo      :: completa + shadercache + raton + NVIDIA
-            RNX_Cache_Cleaner.exe /nobackup  :: lo mismo que /todo pero sin backup
-            RNX_Cache_Cleaner.exe /shader    :: solo shadercache
-            RNX_Cache_Cleaner.exe /raton     :: solo raton.reg
-            RNX_Cache_Cleaner.exe /nvidia    :: solo perfil NVIDIA CS2
-            RNX_Cache_Cleaner.exe /backup    :: solo backup de Steam a Google Drive
-            ```
-
-            ---
-            **Commit:** ${{ github.sha }}
+          body_path: release_body.md
           generate_release_notes: true
           prerelease: ${{ github.event.inputs.prerelease == 'true' }}
           files: |
