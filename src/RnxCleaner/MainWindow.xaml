@@ -1,653 +1,511 @@
 <Window x:Class="RnxCleaner.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="RNX Cache Cleaner Pro"
-        Width="1200" Height="800" MinWidth="1000" MinHeight="680"
+        xmlns:c="clr-namespace:RnxCleaner.Core"
+        Title="RNX Cache Cleaner"
+        Width="1240" Height="800" MinWidth="1060" MinHeight="700"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource Bg}"
-        FontFamily="{StaticResource Mono}"
-        Foreground="{StaticResource Text}"
+        Background="{DynamicResource Frame}"
+        FontFamily="{StaticResource UiFont}"
+        Foreground="{DynamicResource Ink}"
         Icon="Assets/rnx.ico"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Display">
 
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="46" ResizeBorderThickness="6" CornerRadius="0" GlassFrameThickness="0" UseAeroCaptionButtons="False"/>
+        <WindowChrome CaptionHeight="34" ResizeBorderThickness="6" CornerRadius="0" GlassFrameThickness="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
-    <Border BorderBrush="{StaticResource LineBright}" BorderThickness="1" Background="{StaticResource Bg}">
+    <Border x:Name="Root" Background="{DynamicResource Frame}">
         <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="46"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="26"/>
-            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="250"/>
+                <ColumnDefinition Width="240"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Fondo: rejilla tenue -->
-            <Rectangle Grid.RowSpan="3" Grid.ColumnSpan="2" Fill="{StaticResource Grid}" IsHitTestVisible="False"/>
-
-            <!-- ================= CABECERA ================= -->
-            <Border Grid.ColumnSpan="2" BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Background="#080C0A">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="250"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="18,0,0,0">
-                        <Path Data="{StaticResource LogoGeometry}" Fill="{StaticResource Hud}" Stretch="Uniform" Width="24" Height="24" Margin="0,0,10,0"/>
-                        <TextBlock FontFamily="{StaticResource Display}" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource Text}" VerticalAlignment="Center">
-                            <Run Text="RNX" Foreground="{StaticResource Hud}"/><Run Text=" Cache Cleaner"/>
-                        </TextBlock>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2" Orientation="Horizontal">
-                        <StackPanel VerticalAlignment="Center" Margin="0,0,18,0">
-                            <TextBlock x:Name="ZuluClock" Text="00:00" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource Muted}" HorizontalAlignment="Right"/>
-                            <TextBlock x:Name="VersionText" Text="v5.0" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Right"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" WindowChrome.IsHitTestVisibleInChrome="True" VerticalAlignment="Top" Margin="0,6,0,0">
-                            <Button Content="&#xE921;" Style="{StaticResource ChromeButton}" Click="Min_Click"/>
-                            <Button x:Name="MaxBtn" Content="&#xE922;" Style="{StaticResource ChromeButton}" Click="Max_Click"/>
-                            <Button Content="&#xE8BB;" Style="{StaticResource CloseButton}" Click="Close_Click"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <!-- ================= BARRA LATERAL (MFD) ================= -->
-            <Border Grid.Row="1" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0" Background="#C0080C0A">
-                <Grid Margin="14,20,14,14">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Text="MENU" Style="{StaticResource Overline}" Margin="14,0,0,10"/>
-                    <StackPanel Grid.Row="1" x:Name="Nav">
-                        <RadioButton x:Name="NavHome" Content="Limpieza" Tag="&#xE80F;" Style="{StaticResource NavButton}" GroupName="nav" IsChecked="True" Checked="Nav_Checked"/>
-                        <RadioButton x:Name="NavCustom" Content="Personalizada" Tag="&#xE9D5;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
-                        <RadioButton x:Name="NavCs2" Content="Módulos CS2" Tag="&#xE7FC;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
-                        <RadioButton x:Name="NavBackup" Content="Backup" Tag="&#xE753;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
-                        <RadioButton x:Name="NavHistory" Content="Historial" Tag="&#xE9D2;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
-                        <RadioButton x:Name="NavLog" Content="Registro" Tag="&#xE9F9;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
-                    </StackPanel>
-
-                    <!-- Estado del sistema -->
-                    <ContentControl Grid.Row="2" Style="{StaticResource HudPanel}" Padding="14,12">
-                        <StackPanel>
-                            <TextBlock Text="EQUIPO" Style="{StaticResource Overline}" Margin="0,0,0,8"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="58"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
-                                </Grid.RowDefinitions>
-                                <TextBlock Text="OS" Foreground="{StaticResource Faint}" FontSize="11" Margin="0,2"/>
-                                <TextBlock x:Name="SysWin" Grid.Column="1" Text="WINDOWS" FontSize="11" Foreground="{StaticResource Text}" Margin="0,2" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Grid.Row="1" Text="Usuario" Foreground="{StaticResource Faint}" FontSize="11" Margin="0,2"/>
-                                <TextBlock x:Name="SysUser" Grid.Row="1" Grid.Column="1" Text="-" FontSize="11" Foreground="{StaticResource Text}" Margin="0,2" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Grid.Row="2" Text="GPU" Foreground="{StaticResource Faint}" FontSize="11" Margin="0,2"/>
-                                <TextBlock x:Name="SysGpu" Grid.Row="2" Grid.Column="1" Text="-" FontSize="11" Foreground="{StaticResource Hud}" Margin="0,2" TextTrimming="CharacterEllipsis"/>
-                                <TextBlock Grid.Row="3" Text="Disco" Foreground="{StaticResource Faint}" FontSize="11" Margin="0,2"/>
-                                <TextBlock x:Name="SysDisk" Grid.Row="3" Grid.Column="1" Text="-" FontSize="11" Foreground="{StaticResource Text}" Margin="0,2"/>
-                                <TextBlock Grid.Row="4" Text="Drive" Foreground="{StaticResource Faint}" FontSize="11" Margin="0,2"/>
-                                <TextBlock x:Name="SysLink" Grid.Row="4" Grid.Column="1" Text="Sin conectar" FontSize="11" Foreground="{StaticResource Faint}" Margin="0,2"/>
-                            </Grid>
-                        </StackPanel>
-                    </ContentControl>
-                </Grid>
-            </Border>
-
-            <!-- ================= CONTENIDO ================= -->
-            <Grid Grid.Row="1" Grid.Column="1">
-
-                <!-- Marca de agua del logo -->
-                <Path Data="{StaticResource LogoGeometry}" Fill="{StaticResource Hud}" Stretch="Uniform" Width="300" Height="300"
-                      HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,30,24" Opacity="0.035" IsHitTestVisible="False"/>
-
-                <!-- ======== PAGINA: LIMPIEZA ======== -->
-                <ScrollViewer x:Name="PageHome" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="36,26,36,30">
-                        <Grid>
-                            <StackPanel>
-                                                                <TextBlock Text="Limpieza" Style="{StaticResource H1}"/>
-                                <TextBlock Style="{StaticResource Sub}" Margin="0,6,0,0" MaxWidth="560" HorizontalAlignment="Left"
-                                           Text="Elige un modo. Se ejecuta con permisos de administrador y cada paso queda en el registro."/>
-                            </StackPanel>
-                        </Grid>
-
-                        <UniformGrid Columns="3" Margin="-6,24,-6,0">
-                            <!-- STA 1 : RAPIDA -->
-                            <Button Style="{StaticResource StationButton}" Margin="6" Height="220" Click="Quick_Click">
-                                <DockPanel>
-                                    <DockPanel DockPanel.Dock="Top" Height="24">
-                                        <TextBlock DockPanel.Dock="Right" Text="&#xE945;" Style="{StaticResource Icon}" FontSize="20" Foreground="{StaticResource Hud}"/>
-                                        <TextBlock Text="01" FontSize="11" Foreground="{StaticResource Faint}"/>
-                                    </DockPanel>
-                                    <TextBlock DockPanel.Dock="Top" Text="Rápida" FontFamily="{StaticResource Display}" FontSize="30" FontWeight="SemiBold" Foreground="{StaticResource Text}" Margin="0,16,0,6"/>
-                                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource Sub}" Text="Temp, Prefetch, recientes, cache GPU, DNS y eventos."/>
-                                    <DockPanel DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
-                                        <TextBlock DockPanel.Dock="Right" Text="/rapida" FontSize="11" Foreground="{StaticResource Faint}"/>
-                                        <TextBlock Text="7 zonas" FontSize="11" Foreground="{StaticResource Muted}"/>
-                                    </DockPanel>
-                                </DockPanel>
-                            </Button>
-                            <!-- STA 2 : COMPLETA -->
-                            <Button Style="{StaticResource StationButton}" Margin="6" Height="220" Click="Full_Click">
-                                <DockPanel>
-                                    <DockPanel DockPanel.Dock="Top" Height="24">
-                                        <TextBlock DockPanel.Dock="Right" Text="&#xE74D;" Style="{StaticResource Icon}" FontSize="20" Foreground="{StaticResource Hud}"/>
-                                        <TextBlock Text="02" FontSize="11" Foreground="{StaticResource Faint}"/>
-                                    </DockPanel>
-                                    <TextBlock DockPanel.Dock="Top" Text="Completa" FontFamily="{StaticResource Display}" FontSize="30" FontWeight="SemiBold" Foreground="{StaticResource Text}" Margin="0,16,0,6"/>
-                                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource Sub}" Text="Lo anterior + Windows Update, miniaturas, papelera, TRIM del SSD y perfil NVIDIA."/>
-                                    <DockPanel DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
-                                        <TextBlock DockPanel.Dock="Right" Text="/completa" FontSize="11" Foreground="{StaticResource Faint}"/>
-                                        <TextBlock Text="17 zonas + NVIDIA" FontSize="11" Foreground="{StaticResource Muted}"/>
-                                    </DockPanel>
-                                </DockPanel>
-                            </Button>
-                            <!-- STA 3 : TODO -->
-                            <Button Style="{StaticResource StationButton}" Margin="6" Height="220" Click="Todo_Click">
-                                <DockPanel>
-                                    <DockPanel DockPanel.Dock="Top" Height="24">
-                                        <Border DockPanel.Dock="Right" Background="{StaticResource HudFillStrong}" BorderBrush="{StaticResource Hud}" BorderThickness="1" Padding="6,1" VerticalAlignment="Center">
-                                            <TextBlock Text="Recomendado" FontSize="10" FontWeight="Bold" Foreground="{StaticResource Hud}"/>
-                                        </Border>
-                                        <TextBlock Text="03" FontSize="11" Foreground="{StaticResource Faint}"/>
-                                    </DockPanel>
-                                    <TextBlock DockPanel.Dock="Top" Text="Todo" FontFamily="{StaticResource Display}" FontSize="30" FontWeight="SemiBold" Foreground="{StaticResource Hud}" Margin="0,16,0,6"/>
-                                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource Sub}" Text="Completa + shadercache de CS2 + configuración del ratón + perfil NVIDIA, sin preguntas."/>
-                                    <DockPanel DockPanel.Dock="Bottom" VerticalAlignment="Bottom">
-                                        <TextBlock DockPanel.Dock="Right" Text="/todo" FontSize="11" Foreground="{StaticResource Faint}"/>
-                                        <TextBlock Text="Completa + módulos CS2" FontSize="11" Foreground="{StaticResource Muted}"/>
-                                    </DockPanel>
-                                </DockPanel>
-                            </Button>
-                        </UniformGrid>
-
-                        <!-- Backup: interruptor ON/OFF -->
-                        <ContentControl Style="{StaticResource HudPanel}" Margin="0,18,0,0">
-                            <CheckBox x:Name="HomeBackupToggle" Style="{StaticResource ArmSwitch}" Click="BackupToggle_Click">
-                                <StackPanel>
-                                    <TextBlock Text="Backup de Steam en Google Drive" Style="{StaticResource H2}"/>
-                                    <TextBlock x:Name="HomeBackupStatus" Style="{StaticResource Sub}" Margin="0,4,0,0"
-                                               Text="Antes de limpiar guarda la config de todos tus juegos (userdata) y la sube a tu Drive."/>
-                                </StackPanel>
-                            </CheckBox>
-                        </ContentControl>
-
-                        <!-- Accesos directos -->
-                        <ContentControl Style="{StaticResource HudPanel}" Margin="0,12,0,0">
-                            <DockPanel>
-                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="ShortcutNoBackup_Click" Content="Acceso /nobackup" ToolTip="Crea 'RNX - Limpiar sin backup' en el escritorio"/>
-                                    <Button Style="{StaticResource PrimaryButton}" Click="ShortcutTodo_Click" Content="Acceso /todo" ToolTip="Crea 'RNX - TODO' en el escritorio"/>
-                                </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="Accesos directos" Style="{StaticResource H2}"/>
-                                    <TextBlock Style="{StaticResource Sub}" Margin="0,4,18,0" Text="Crea un acceso en el escritorio que ejecuta un modo directamente y se cierra al terminar."/>
-                                </StackPanel>
-                            </DockPanel>
-                        </ContentControl>
-                    </StackPanel>
-                </ScrollViewer>
-
-                <!-- ======== PAGINA: PERSONALIZADA ======== -->
-                <Grid x:Name="PageCustom" Visibility="Collapsed" Margin="36,26,36,24">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+            <!-- ================= BARRA LATERAL ================= -->
+            <Grid Margin="12,14,12,12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <StackPanel Orientation="Horizontal" Margin="10,2,0,16">
+                    <Path Data="{StaticResource LogoGeometry}" Fill="{DynamicResource Accent}" Stretch="Uniform" Width="26" Height="26" Margin="0,0,10,0"/>
+                    <TextBlock Text="RNX Cache Cleaner" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Border Grid.Row="1" Background="{DynamicResource Scope}" CornerRadius="8" Padding="10,8" Margin="4,0,4,16">
                     <StackPanel>
-                                                <TextBlock Text="Limpieza personalizada" Style="{StaticResource H1}"/>
-                        <TextBlock Style="{StaticResource Sub}" Margin="0,6,0,14" Text="Marca lo que quieras limpiar. La selección se recuerda para la próxima vez."/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                            <Button Style="{StaticResource GhostButton}" Content="Como rápida" Margin="0,0,8,0" Click="SelQuick_Click"/>
-                            <Button Style="{StaticResource GhostButton}" Content="Como completa" Margin="0,0,8,0" Click="SelFull_Click"/>
-                            <Button Style="{StaticResource GhostButton}" Content="Todas" Margin="0,0,8,0" Click="SelAll_Click"/>
-                            <Button Style="{StaticResource GhostButton}" Content="Ninguna" Click="SelNone_Click"/>
-                        </StackPanel>
+                        <TextBlock x:Name="SysPc" Text="PC" FontWeight="SemiBold" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="SysSpec" Text="Windows" FontSize="12.5" Foreground="{DynamicResource Muted}" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                        <StackPanel>
-                            <TextBlock Text="SISTEMA" Style="{StaticResource Overline}"/>
-                            <ItemsControl x:Name="CustomList">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                            </ItemsControl>
-                            <TextBlock Text="MODULOS CS2" Style="{StaticResource Overline}" Margin="0,12,0,10"/>
-                            <UniformGrid Columns="3">
-                                <CheckBox x:Name="CustomShader" Style="{StaticResource CheckCard}" Click="CustomItem_Click">
-                                    <StackPanel><TextBlock Text="Shadercache CS2" FontWeight="SemiBold" Foreground="{StaticResource Text}"/><TextBlock Text="Borra los shaders compilados" Style="{StaticResource Sub}" FontSize="11"/></StackPanel>
-                                </CheckBox>
-                                <CheckBox x:Name="CustomMouse" Style="{StaticResource CheckCard}" Click="CustomItem_Click">
-                                    <StackPanel><TextBlock Text="Configuración del ratón" FontWeight="SemiBold" Foreground="{StaticResource Text}"/><TextBlock Text="Importa raton.reg" Style="{StaticResource Sub}" FontSize="11"/></StackPanel>
-                                </CheckBox>
-                                <CheckBox x:Name="CustomNvidia" Style="{StaticResource CheckCard}" Click="CustomItem_Click">
-                                    <StackPanel><TextBlock Text="Perfil NVIDIA CS2" FontWeight="SemiBold" Foreground="{StaticResource Text}"/><TextBlock Text="Importa CS2.nip" Style="{StaticResource Sub}" FontSize="11"/></StackPanel>
-                                </CheckBox>
-                            </UniformGrid>
-                        </StackPanel>
-                    </ScrollViewer>
-                    <ContentControl Grid.Row="2" Style="{StaticResource HudPanel}" Padding="18,12" Margin="0,12,8,0">
-                        <DockPanel>
-                            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Padding="22,10" Click="RunCustom_Click" Content="Ejecutar selección"/>
-                            <TextBlock x:Name="CustomCount" VerticalAlignment="Center" Foreground="{StaticResource Muted}" Text="0 seleccionadas"/>
-                        </DockPanel>
-                    </ContentControl>
-                </Grid>
-
-                <!-- ======== PAGINA: MODULOS CS2 ======== -->
-                <ScrollViewer x:Name="PageCs2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="36,26,36,30">
-                                                <TextBlock Text="Módulos CS2" Style="{StaticResource H1}"/>
-                        <TextBlock Style="{StaticResource Sub}" Margin="0,6,0,22" Text="Cada módulo por separado. El modo Todo ejecuta los tres automáticamente."/>
-
-                        <ContentControl Style="{StaticResource HudPanel}">
-                            <StackPanel>
-                                <DockPanel>
-                                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Click="Shader_Click" Content="Borrar shadercache" VerticalAlignment="Top"/>
-                                    <StackPanel>
-                                        <TextBlock Text="Shadercache" Style="{StaticResource H2}"/>
-                                        <TextBlock Style="{StaticResource Sub}" Margin="0,4,18,0" Text="Shaders compilados de CS2. Steam los regenera al abrir el juego. La ruta se detecta sola en todas tus bibliotecas de Steam. Mejor con Steam cerrado."/>
-                                    </StackPanel>
-                                </DockPanel>
-                                <Grid Margin="0,14,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="Ruta" Foreground="{StaticResource Faint}" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <TextBox x:Name="ShaderPathBox" Grid.Column="1" LostFocus="ShaderPath_LostFocus"/>
-                                    <Button Grid.Column="2" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="ShaderBrowse_Click" Content="..." ToolTip="Elegir carpeta"/>
-                                    <Button Grid.Column="3" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="ShaderDefault_Click" Content="Detectar" ToolTip="Buscar la shadercache de CS2 en todas las bibliotecas de Steam"/>
-                                </Grid>
-                            </StackPanel>
-                        </ContentControl>
-
-                        <ContentControl Style="{StaticResource HudPanel}" Margin="0,12,0,0">
-                            <DockPanel>
-                                <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Click="Mouse_Click" Content="Aplicar raton.reg"/>
-                                <StackPanel>
-                                    <TextBlock Text="Configuración del ratón" Style="{StaticResource H2}"/>
-                                    <TextBlock Style="{StaticResource Sub}" Margin="0,4,18,0" Text="Importa raton.reg (aceleración del puntero desactivada y ajustes del ratón). Viene dentro del programa."/>
-                                </StackPanel>
-                            </DockPanel>
-                        </ContentControl>
-
-                        <ContentControl Style="{StaticResource HudPanel}" Margin="0,12,0,0">
-                            <DockPanel>
-                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="OpenInspector_Click" Content="Abrir Inspector"/>
-                                    <Button x:Name="NvidiaBtn" Style="{StaticResource PrimaryButton}" Click="Nvidia_Click" Content="Importar perfil"/>
-                                </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="Perfil NVIDIA CS2" Style="{StaticResource H2}"/>
-                                    <TextBlock x:Name="NvidiaSub" Style="{StaticResource Sub}" Margin="0,4,18,0" Text="Importa CS2.nip con NVIDIA Profile Inspector en modo silencioso. Los dos vienen dentro del programa."/>
-                                </StackPanel>
-                            </DockPanel>
-                        </ContentControl>
-                    </StackPanel>
-                </ScrollViewer>
-
-                <!-- ======== PAGINA: BACKUP ======== -->
-                <ScrollViewer x:Name="PageBackup" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="36,26,36,30">
-                                                <TextBlock Text="Backup en Google Drive" Style="{StaticResource H1}"/>
-                        <TextBlock Style="{StaticResource Sub}" Margin="0,6,0,22"
-                                   Text="Guarda la carpeta userdata de Steam (la config de todos tus juegos) en un ZIP por cuenta y la sube a una carpeta de tu Drive. Solo se resube lo que cambia; Drive conserva las versiones anteriores."/>
-
-                        <ContentControl Style="{StaticResource HudPanel}">
-                            <StackPanel>
-                                <CheckBox x:Name="BackupToggle" Style="{StaticResource ArmSwitch}" Click="BackupToggle_Click">
-                                    <StackPanel>
-                                        <TextBlock Text="Backup antes de cada limpieza" Style="{StaticResource H2}"/>
-                                        <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="Vale para el menú y para /todo, /rapida, /completa... (/nobackup nunca lo hace)."/>
-                                    </StackPanel>
-                                </CheckBox>
-                                <Rectangle Height="1" Fill="{StaticResource Line}" Margin="0,16"/>
-                                <DockPanel>
-                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                        <Button x:Name="DriveConnectBtn" Style="{StaticResource PrimaryButton}" Click="DriveConnect_Click" Content="Iniciar sesión con Google"/>
-                                        <Button x:Name="DriveDisconnectBtn" Style="{StaticResource GhostButton}" Content="Desconectar" Click="DriveDisconnect_Click" Visibility="Collapsed"/>
-                                    </StackPanel>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Rectangle x:Name="DriveDot" Width="10" Height="10" Fill="{StaticResource Faint}" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                                        <StackPanel>
-                                            <TextBlock x:Name="DriveAccount" Text="Sin conectar" FontWeight="SemiBold" Foreground="{StaticResource Text}"/>
-                                            <TextBlock x:Name="DriveAccountSub" Style="{StaticResource Sub}" Margin="0,2,18,0" Text="Se abrirá el navegador para autorizar el acceso (solo a los archivos que crea este programa)."/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </DockPanel>
-                            </StackPanel>
-                        </ContentControl>
-
-                        <ContentControl Style="{StaticResource HudPanel}" Margin="0,12,0,0">
-                            <StackPanel>
-                                <TextBlock Text="AJUSTES" Style="{StaticResource Overline}"/>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="16"/>
-                                        <ColumnDefinition Width="180"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="Carpeta en Drive" Foreground="{StaticResource Faint}" FontSize="11" Margin="0,0,0,6"/>
-                                        <TextBox x:Name="DriveFolderBox" LostFocus="BackupSettings_LostFocus"/>
-                                    </StackPanel>
-                                    <StackPanel Grid.Column="2">
-                                        <TextBlock Text="Máx. por archivo (MB)" Foreground="{StaticResource Faint}" FontSize="11" Margin="0,0,0,6"/>
-                                        <TextBox x:Name="MaxMbBox" LostFocus="BackupSettings_LostFocus"/>
-                                    </StackPanel>
-                                </Grid>
-                                <TextBlock Text="Carpetas de userdata excluidas (separadas por comas)" Foreground="{StaticResource Faint}" FontSize="11" Margin="0,14,0,6"/>
-                                <TextBox x:Name="ExcludeBox" LostFocus="BackupSettings_LostFocus"/>
-                                <TextBlock Style="{StaticResource Sub}" FontSize="11" Margin="0,6,0,0" Text="760 = capturas · gamerecordings = clips · el resto son cachés que Steam regenera."/>
-                            </StackPanel>
-                        </ContentControl>
-
-                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                            <Button Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" Click="BackupNow_Click" Content="Hacer backup ahora"/>
-                            <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="OpenBackups_Click" Content="Copias locales"/>
-                            <Button Style="{StaticResource GhostButton}" Click="OpenDrive_Click" Content="Abrir Google Drive"/>
-                        </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
-
-                <!-- ======== PAGINA: HISTORIAL ======== -->
-                <Grid x:Name="PageHistory" Visibility="Collapsed" Margin="36,26,36,24">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="230"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <DockPanel Margin="0,0,0,16">
-                        <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="Borrar historial" VerticalAlignment="Bottom" Click="HistoryClear_Click"/>
-                        <StackPanel>
-                            <TextBlock Text="Historial" Style="{StaticResource H1}"/>
-                            <TextBlock Style="{StaticResource Sub}" Margin="0,6,0,0" Text="Espacio liberado en cada limpieza. Se guarda solo en este PC."/>
-                        </StackPanel>
-                    </DockPanel>
-
-                    <!-- Cifras -->
-                    <UniformGrid Grid.Row="1" Columns="4" Margin="-6,0,-6,12">
-                        <ContentControl Style="{StaticResource HudPanel}" Margin="6" Padding="16,12">
-                            <StackPanel><TextBlock Text="LIMPIEZAS" Style="{StaticResource Overline}" Margin="0,0,0,4"/><TextBlock x:Name="HistCount" Text="0" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource Text}"/></StackPanel>
-                        </ContentControl>
-                        <ContentControl Style="{StaticResource HudPanel}" Margin="6" Padding="16,12">
-                            <StackPanel><TextBlock Text="TOTAL LIBERADO" Style="{StaticResource Overline}" Margin="0,0,0,4"/><TextBlock x:Name="HistTotal" Text="0 MB" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource Hud}"/></StackPanel>
-                        </ContentControl>
-                        <ContentControl Style="{StaticResource HudPanel}" Margin="6" Padding="16,12">
-                            <StackPanel><TextBlock Text="MEDIA POR LIMPIEZA" Style="{StaticResource Overline}" Margin="0,0,0,4"/><TextBlock x:Name="HistAvg" Text="0 MB" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource Text}"/></StackPanel>
-                        </ContentControl>
-                        <ContentControl Style="{StaticResource HudPanel}" Margin="6" Padding="16,12">
-                            <StackPanel><TextBlock Text="ÚLTIMA" Style="{StaticResource Overline}" Margin="0,0,0,4"/><TextBlock x:Name="HistLast" Text="--" FontSize="24" FontWeight="SemiBold" Foreground="{StaticResource Text}"/></StackPanel>
-                        </ContentControl>
-                    </UniformGrid>
-
-                    <!-- Grafico -->
-                    <ContentControl Grid.Row="2" Style="{StaticResource HudPanel}" Padding="16,12">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <TextBlock x:Name="HistChartTitle" Text="ESPACIO LIBERADO · ÚLTIMAS 30 EJECUCIONES" Style="{StaticResource Overline}" Margin="0,0,0,6"/>
-                            <Canvas x:Name="HistChart" Grid.Row="1" ClipToBounds="False" SizeChanged="HistChart_SizeChanged" Background="Transparent"/>
-                            <TextBlock x:Name="HistEmpty" Grid.Row="1" Text="Todavía no hay limpiezas registradas." Style="{StaticResource Sub}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
-                        </Grid>
-                    </ContentControl>
-
-                    <!-- Tabla -->
-                    <ContentControl Grid.Row="3" Style="{StaticResource HudPanel}" Margin="0,12,0,0" Padding="6">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <Grid Margin="10,6,18,6">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="150"/><ColumnDefinition Width="*"/><ColumnDefinition Width="110"/><ColumnDefinition Width="80"/><ColumnDefinition Width="150"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="FECHA" Style="{StaticResource Overline}" Margin="0"/>
-                                <TextBlock Grid.Column="1" Text="MODO" Style="{StaticResource Overline}" Margin="0"/>
-                                <TextBlock Grid.Column="2" Text="LIBERADO" Style="{StaticResource Overline}" Margin="0" HorizontalAlignment="Right"/>
-                                <TextBlock Grid.Column="3" Text="TIEMPO" Style="{StaticResource Overline}" Margin="0" HorizontalAlignment="Right"/>
-                                <TextBlock Grid.Column="4" Text="RESULTADO" Style="{StaticResource Overline}" Margin="16,0,0,0"/>
-                            </Grid>
-                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                                <ItemsControl x:Name="HistTable">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Padding="10,5" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="150"/><ColumnDefinition Width="*"/><ColumnDefinition Width="110"/><ColumnDefinition Width="80"/><ColumnDefinition Width="150"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{Binding Date}" Foreground="{StaticResource Muted}" FontSize="12"/>
-                                                    <TextBlock Grid.Column="1" Text="{Binding Mode}" Foreground="{StaticResource Text}" FontSize="12"/>
-                                                    <TextBlock Grid.Column="2" Text="{Binding Freed}" Foreground="{StaticResource Text}" FontSize="12" HorizontalAlignment="Right"/>
-                                                    <TextBlock Grid.Column="3" Text="{Binding Time}" Foreground="{StaticResource Muted}" FontSize="12" HorizontalAlignment="Right"/>
-                                                    <TextBlock Grid.Column="4" Text="{Binding Result}" Foreground="{Binding ResultBrush}" FontSize="12" Margin="16,0,0,0"/>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </Grid>
-                    </ContentControl>
-                </Grid>
-
-                <!-- ======== PAGINA: LOG ======== -->
-                <Grid x:Name="PageLog" Visibility="Collapsed" Margin="36,26,36,24">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <DockPanel Margin="0,0,0,14">
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom">
-                            <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="LogRefresh_Click" Content="Actualizar"/>
-                            <Button Style="{StaticResource GhostButton}" Click="OpenDataFolder_Click" Content="Carpeta de datos"/>
-                        </StackPanel>
-                        <StackPanel>
-                                                        <TextBlock Text="Registro" Style="{StaticResource H1}"/>
-                            <TextBlock Style="{StaticResource Sub}" Margin="0,6,0,0" Text="Detalle de la última ejecución."/>
-                        </StackPanel>
-                    </DockPanel>
-                    <ContentControl Grid.Row="1" Style="{StaticResource HudPanel}" Padding="6">
-                        <TextBox x:Name="LogBox" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontSize="12"
-                                 Foreground="{StaticResource Muted}" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"/>
-                    </ContentControl>
-                </Grid>
-
-                <!-- ======== PANTALLA DE PROGRESO ======== -->
-                <Grid x:Name="PageRun" Visibility="Collapsed" Margin="36,26,36,24">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <StackPanel>
-                        <TextBlock x:Name="RunOverline" Text="EN CURSO" Style="{StaticResource Overline}"/>
-                        <DockPanel>
-                            <TextBlock x:Name="RunPercent" DockPanel.Dock="Right" Text="0%" FontSize="30" FontWeight="SemiBold" Foreground="{StaticResource Hud}"/>
-                            <TextBlock x:Name="RunTitle" Text="LIMPIEZA" Style="{StaticResource H1}"/>
-                        </DockPanel>
-                        <ProgressBar x:Name="RunBar" Margin="0,12,0,4" Maximum="1" Height="12"/>
-                        <!-- Escala bajo la barra -->
-                        <Grid Margin="0,0,0,18">
-                            <TextBlock Text="0" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Left"/>
-                            <TextBlock Text="50" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Center"/>
-                            <TextBlock Text="100" FontSize="10" Foreground="{StaticResource Faint}" HorizontalAlignment="Right"/>
-                        </Grid>
-                    </StackPanel>
-
-                    <Grid Grid.Row="1">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="14"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <ContentControl Style="{StaticResource HudPanel}" Padding="6">
-                            <ScrollViewer x:Name="StepsScroll" VerticalScrollBarVisibility="Auto">
-                                <ItemsControl x:Name="StepsList">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border x:Name="row" Padding="10,7" BorderThickness="1" BorderBrush="Transparent">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="62"/>
-                                                        <ColumnDefinition Width="*"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="{Binding Glyph}" Foreground="{Binding Brush}" FontSize="12" FontWeight="Bold"/>
-                                                    <StackPanel Grid.Column="1">
-                                                        <TextBlock Text="{Binding Title}" Foreground="{Binding TitleBrush}" FontSize="12.5"/>
-                                                        <ProgressBar Value="{Binding Progress}" Maximum="1" Margin="0,5,0,2">
-                                                            <ProgressBar.Style>
-                                                                <Style TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                                    <Style.Triggers>
-                                                                        <MultiDataTrigger>
-                                                                            <MultiDataTrigger.Conditions>
-                                                                                <Condition Binding="{Binding HasProgress}" Value="True"/>
-                                                                                <Condition Binding="{Binding IsRunning}" Value="True"/>
-                                                                            </MultiDataTrigger.Conditions>
-                                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                                        </MultiDataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </ProgressBar.Style>
-                                                        </ProgressBar>
-                                                        <TextBlock Text="{Binding Detail}" Foreground="{StaticResource Faint}" FontSize="11">
-                                                            <TextBlock.Style>
-                                                                <Style TargetType="TextBlock">
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding Detail}" Value="">
-                                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </TextBlock.Style>
-                                                        </TextBlock>
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Border>
-                                            <DataTemplate.Triggers>
-                                                <DataTrigger Binding="{Binding IsRunning}" Value="True">
-                                                    <Setter TargetName="row" Property="Background" Value="{StaticResource HudFill}"/>
-                                                    <Setter TargetName="row" Property="BorderBrush" Value="{StaticResource LineBright}"/>
-                                                    <DataTrigger.EnterActions>
-                                                        <BeginStoryboard x:Name="blink">
-                                                            <Storyboard>
-                                                                <DoubleAnimation Storyboard.TargetName="row" Storyboard.TargetProperty="Opacity" From="1" To="0.55" Duration="0:0:0.5" AutoReverse="True" RepeatBehavior="Forever"/>
-                                                            </Storyboard>
-                                                        </BeginStoryboard>
-                                                    </DataTrigger.EnterActions>
-                                                    <DataTrigger.ExitActions>
-                                                        <StopStoryboard BeginStoryboardName="blink"/>
-                                                    </DataTrigger.ExitActions>
-                                                </DataTrigger>
-                                            </DataTemplate.Triggers>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
-                        </ContentControl>
-                        <ContentControl Grid.Column="2" Style="{StaticResource HudPanel}" Padding="6">
-                            <ScrollViewer x:Name="LiveScroll" VerticalScrollBarVisibility="Auto">
-                                <ItemsControl x:Name="LiveLog" Margin="8,6" FontSize="11"/>
-                            </ScrollViewer>
-                        </ContentControl>
-                    </Grid>
-
-                    <ContentControl Grid.Row="2" Style="{StaticResource HudPanel}" Margin="0,14,0,0" Padding="20,12">
-                        <DockPanel>
-                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                <Button x:Name="KeepOpenBtn" Style="{StaticResource GhostButton}" Content="Mantener abierto" Margin="0,0,8,0" Click="KeepOpen_Click" Visibility="Collapsed"/>
-                                <Button x:Name="CancelBtn" Style="{StaticResource GhostButton}" Content="Cancelar" Click="Cancel_Click"/>
-                                <Button x:Name="DoneBtn" Style="{StaticResource PrimaryButton}" Content="Volver" Click="Done_Click" Visibility="Collapsed"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                <StackPanel Margin="0,0,34,0">
-                                    <TextBlock Text="ESPACIO LIBERADO" Style="{StaticResource Overline}" Margin="0,0,0,2"/>
-                                    <TextBlock x:Name="RunFreed" Text="---" FontSize="20" FontWeight="Bold" Foreground="{StaticResource Hud}"/>
-                                </StackPanel>
-                                <StackPanel Margin="0,0,34,0">
-                                    <TextBlock Text="TIEMPO" Style="{StaticResource Overline}" Margin="0,0,0,2"/>
-                                    <TextBlock x:Name="RunTime" Text="00:00" FontSize="20" FontWeight="Bold" Foreground="{StaticResource Text}"/>
-                                </StackPanel>
-                                <StackPanel>
-                                    <TextBlock Text="ESTADO" Style="{StaticResource Overline}" Margin="0,0,0,2"/>
-                                    <TextBlock x:Name="RunState" Text="En curso" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="0,4,0,0"/>
-                                </StackPanel>
-                            </StackPanel>
-                        </DockPanel>
-                    </ContentControl>
-                </Grid>
-
-                <!-- ======== AVISO DE ACTUALIZACION ======== -->
-                <ContentControl x:Name="UpdateBanner" Style="{StaticResource HudPanel}" Width="410" HorizontalAlignment="Right" VerticalAlignment="Top"
-                                Margin="0,16,24,0" Padding="18,14" Visibility="Collapsed" Panel.ZIndex="10" Background="#0A0F0D">
-                    <StackPanel>
-                        <TextBlock Text="ACTUALIZACIÓN" Style="{StaticResource Overline}" Foreground="{StaticResource Hud}" Margin="0,0,0,6"/>
-                        <TextBlock x:Name="UpdateTitle" Text="Nueva versión disponible" Style="{StaticResource H2}"/>
-                        <TextBlock x:Name="UpdateSub" Style="{StaticResource Sub}" Margin="0,4,0,10" Text="Tu configuración se mantiene."/>
-                        <ProgressBar x:Name="UpdateBar" Style="{StaticResource ThinBar}" Maximum="1" Margin="0,0,0,10" Visibility="Collapsed"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button x:Name="UpdateNotesBtn" Style="{StaticResource GhostButton}" Content="Ver cambios" Margin="0,0,8,0" Click="UpdateNotes_Click"/>
-                            <Button x:Name="UpdateLaterBtn" Style="{StaticResource GhostButton}" Content="Ahora no" Margin="0,0,8,0" Click="UpdateLater_Click"/>
-                            <Button x:Name="UpdateNowBtn" Style="{StaticResource PrimaryButton}" Content="Actualizar" Click="UpdateNow_Click"/>
-                        </StackPanel>
-                    </StackPanel>
-                </ContentControl>
-
-                <!-- ======== TOAST ======== -->
-                <Border x:Name="Toast" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,24" Padding="18,10"
-                        Background="#0A0F0D" BorderBrush="{StaticResource LineBright}" BorderThickness="1" Opacity="0" IsHitTestVisible="False" Effect="{StaticResource GlowSoft}">
-                    <TextBlock x:Name="ToastText" Text="" FontSize="12.5" Foreground="{StaticResource Hud}"/>
                 </Border>
+                <StackPanel Grid.Row="2" x:Name="Nav" Margin="4,0">
+                    <RadioButton x:Name="NavHome" Content="{c:L nav.home}" Tag="&#xE80F;" Style="{StaticResource NavButton}" GroupName="nav" IsChecked="True" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavCustom" Content="{c:L nav.custom}" Tag="&#xE9D5;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavCs2" Content="{c:L nav.cs2}" Tag="&#xE7FC;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavBackup" Content="{c:L nav.backup}" Tag="&#xE753;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavHistory" Content="{c:L nav.history}" Tag="&#xE9D2;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavLog" Content="{c:L nav.log}" Tag="&#xE9F9;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                </StackPanel>
+                <StackPanel Grid.Row="4" Margin="4,0">
+                    <Button x:Name="CheckUpdatesBtn" Style="{StaticResource LinkButton}" Content="{c:L app.updates}" Click="CheckUpdates_Click" Margin="6,0,0,8" HorizontalAlignment="Left"/>
+                    <DockPanel>
+                        <TextBlock x:Name="VersionText" Text="v5.1" FontSize="12" Foreground="{DynamicResource Faint}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <Button x:Name="LangBtn" Style="{StaticResource FootButton}" Click="LangBtn_Click" ToolTip="{c:L tip.lang}">
+                                <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE774;" Style="{StaticResource Icon}" Margin="0,0,6,0"/><TextBlock x:Name="LangCode" Text="EN" VerticalAlignment="Center"/></StackPanel>
+                            </Button>
+                            <Button x:Name="ColorBtn" Style="{StaticResource FootButton}" Click="ColorBtn_Click" ToolTip="{c:L tip.color}">
+                                <Ellipse Width="12" Height="12" Fill="{DynamicResource Accent}"/>
+                            </Button>
+                            <Button x:Name="ThemeBtn" Style="{StaticResource FootButton}" Click="ThemeBtn_Click" ToolTip="{c:L tip.theme}">
+                                <StackPanel Orientation="Horizontal"><TextBlock x:Name="ThemeIcon" Text="&#xE793;" Style="{StaticResource Icon}" Margin="0,0,6,0"/><TextBlock x:Name="ThemeLabel" Text="System" VerticalAlignment="Center"/></StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </DockPanel>
+                </StackPanel>
+
+                <!-- Menus de idioma y color -->
+                <Popup x:Name="LangPopup" PlacementTarget="{Binding ElementName=LangBtn}" Placement="Top" StaysOpen="False" AllowsTransparency="True" VerticalOffset="-6">
+                    <Border Background="{DynamicResource Sheet}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="10" Padding="6" MinWidth="210">
+                        <StackPanel x:Name="LangList"/>
+                    </Border>
+                </Popup>
+                <Popup x:Name="ColorPopup" PlacementTarget="{Binding ElementName=ColorBtn}" Placement="Top" StaysOpen="False" AllowsTransparency="True" VerticalOffset="-6">
+                    <Border Background="{DynamicResource Sheet}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="10" Padding="6" MinWidth="190">
+                        <StackPanel x:Name="ColorList"/>
+                    </Border>
+                </Popup>
             </Grid>
 
-            <!-- ================= BARRA INFERIOR ================= -->
-            <Border Grid.Row="2" Grid.ColumnSpan="2" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Background="#080C0A">
-                <DockPanel Margin="16,0">
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button x:Name="CheckUpdatesBtn" Style="{StaticResource LinkButton}" Content="Buscar actualizaciones" Click="CheckUpdates_Click" Margin="0,0,18,0"/>
-                        <TextBlock x:Name="FooterRight" Text="Administrador" FontSize="10.5" Foreground="{StaticResource Faint}"/>
+            <!-- ================= HOJA ================= -->
+            <Border Grid.Column="1" Background="{DynamicResource Sheet}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="14" Margin="0,8,8,8">
+                <Grid>
+                    <!-- ======== LIMPIEZA ======== -->
+                    <Grid x:Name="PageHome" Margin="36,34,36,28">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top" WindowChrome.IsHitTestVisibleInChrome="True">
+                                <Border Style="{StaticResource SegBox}" Margin="0,0,10,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="ModeQuick" Content="{c:L mode.quick}" Style="{StaticResource SegItem}" GroupName="mode" Checked="Mode_Checked"/>
+                                        <RadioButton x:Name="ModeFull" Content="{c:L mode.full}" Style="{StaticResource SegItem}" GroupName="mode" Checked="Mode_Checked"/>
+                                        <RadioButton x:Name="ModeTodo" Content="{c:L mode.todo}" Style="{StaticResource SegItem}" GroupName="mode" Checked="Mode_Checked"/>
+                                    </StackPanel>
+                                </Border>
+                                <Button x:Name="CleanBtn" Style="{StaticResource PrimaryButton}" Content="{c:L home.clean}" Click="CleanNow_Click"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,20,0">
+                                <TextBlock Text="{c:L home.title}" Style="{StaticResource H1}"/>
+                                <TextBlock x:Name="HomeSub" Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,0" Text="..."/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <Grid Grid.Row="1" Margin="0,24,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <DockPanel><TextBlock x:Name="HomeDiskTotal" DockPanel.Dock="Right" Style="{StaticResource Meta}" Text="-"/><TextBlock Text="{c:L home.disk}" Style="{StaticResource H2}"/></DockPanel>
+                                    <TextBlock Margin="0,8,0,0"><Run x:Name="HomeDiskFree" Text="-" FontSize="34" FontWeight="Bold" FontFamily="{StaticResource Display}"/><Run Text=" "/><Run Text="{c:L home.free}" FontSize="15" Foreground="{DynamicResource Muted}"/></TextBlock>
+                                    <ProgressBar x:Name="HomeDiskBar" Maximum="1" Margin="0,12,0,8"/>
+                                    <DockPanel><TextBlock x:Name="HomeDiskHint" DockPanel.Dock="Right" Style="{StaticResource Meta}" FontSize="12" Text=""/><TextBlock x:Name="HomeDiskUsed" Style="{StaticResource Meta}" FontSize="12" Text="-"/></DockPanel>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="2" Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <CheckBox x:Name="HomeBackupToggle" Style="{StaticResource Toggle}" Click="BackupToggle_Click">
+                                        <TextBlock Text="{c:L home.backup}" Style="{StaticResource H2}"/>
+                                    </CheckBox>
+                                    <TextBlock x:Name="HomeBackupStatus" Style="{StaticResource Sub}" Margin="0,10,0,0" Text="-"/>
+                                    <Button Style="{StaticResource LinkButton}" FontSize="13" Content="{c:L home.backupSettings}" Click="GoBackup_Click" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid Grid.Row="2" Margin="0,20,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="1.3*"/><ColumnDefinition Width="20"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource Card}">
+                                <Grid>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                    <DockPanel><TextBlock x:Name="HomeStepsMeta" DockPanel.Dock="Right" Style="{StaticResource Meta}" Text="-"/><TextBlock x:Name="HomeStepsTitle" Style="{StaticResource H2}" Text="-"/></DockPanel>
+                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                                        <ItemsControl x:Name="HomeSteps">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="2" VerticalAlignment="Top"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Border>
+                            <Border Grid.Column="2" Style="{StaticResource Card}">
+                                <Grid>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                    <DockPanel><TextBlock x:Name="HomeFreedMeta" DockPanel.Dock="Right" Style="{StaticResource Meta}" Text=""/><TextBlock Text="{c:L home.freed}" Style="{StaticResource H2}"/></DockPanel>
+                                    <Canvas x:Name="HomeChart" Grid.Row="1" Margin="0,14,0,0" Background="Transparent" SizeChanged="HomeChart_SizeChanged"/>
+                                    <TextBlock x:Name="HomeChartEmpty" Grid.Row="1" Text="{c:L hist.empty}" Style="{StaticResource Sub}" HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center" Visibility="Collapsed"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+
+                    <!-- ======== PERSONALIZADA ======== -->
+                    <Grid x:Name="PageCustom" Visibility="Collapsed" Margin="36,34,36,28">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{c:L custom.title}" Style="{StaticResource H1}"/>
+                            <TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,16" Text="{c:L custom.sub}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                                <Button Style="{StaticResource GhostButton}" Content="{c:L custom.asQuick}" Margin="0,0,8,0" Click="SelQuick_Click"/>
+                                <Button Style="{StaticResource GhostButton}" Content="{c:L custom.asFull}" Margin="0,0,8,0" Click="SelFull_Click"/>
+                                <Button Style="{StaticResource GhostButton}" Content="{c:L custom.all}" Margin="0,0,8,0" Click="SelAll_Click"/>
+                                <Button Style="{StaticResource GhostButton}" Content="{c:L custom.none}" Click="SelNone_Click"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="{c:L custom.system}" Style="{StaticResource Overline}"/>
+                                <ItemsControl x:Name="CustomList"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel></ItemsControl>
+                                <TextBlock Text="{c:L custom.cs2}" Style="{StaticResource Overline}" Margin="0,12,0,8"/>
+                                <UniformGrid Columns="3">
+                                    <CheckBox x:Name="CustomShader" Style="{StaticResource CheckCard}" Click="CustomItem_Click">
+                                        <StackPanel><TextBlock Text="{c:L mod.shader}" FontWeight="SemiBold"/><TextBlock Text="{c:L mod.shader.d}" Style="{StaticResource Sub}" FontSize="12"/></StackPanel>
+                                    </CheckBox>
+                                    <CheckBox x:Name="CustomMouse" Style="{StaticResource CheckCard}" Click="CustomItem_Click">
+                                        <StackPanel><TextBlock Text="{c:L mod.mouse}" FontWeight="SemiBold"/><TextBlock Text="{c:L mod.mouse.d}" Style="{StaticResource Sub}" FontSize="12"/></StackPanel>
+                                    </CheckBox>
+                                    <CheckBox x:Name="CustomNvidia" Style="{StaticResource CheckCard}" Click="CustomItem_Click">
+                                        <StackPanel><TextBlock Text="{c:L mod.nvidia}" FontWeight="SemiBold"/><TextBlock Text="{c:L mod.nvidia.d}" Style="{StaticResource Sub}" FontSize="12"/></StackPanel>
+                                    </CheckBox>
+                                </UniformGrid>
+                            </StackPanel>
+                        </ScrollViewer>
+                        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="20,12" Margin="0,12,8,0">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="{c:L custom.run}" Click="RunCustom_Click"/>
+                                <TextBlock x:Name="CustomCount" VerticalAlignment="Center" Style="{StaticResource Meta}" Text="0"/>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- ======== MODULOS CS2 ======== -->
+                    <ScrollViewer x:Name="PageCs2" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="36,34,36,28">
+                            <TextBlock Text="{c:L cs2.title}" Style="{StaticResource H1}"/>
+                            <TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,22" Text="{c:L cs2.sub}"/>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="{c:L cs2.shader.btn}" Click="Shader_Click" VerticalAlignment="Top"/>
+                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L mod.shader}" Style="{StaticResource H2}"/><TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{c:L cs2.shader.sub}"/></StackPanel>
+                                    </DockPanel>
+                                    <Grid Margin="0,14,0,0">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                        <TextBox x:Name="ShaderPathBox" LostFocus="ShaderPath_LostFocus"/>
+                                        <Button Grid.Column="1" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="ShaderBrowse_Click" ToolTip="{c:L cs2.browse}"><TextBlock Text="&#xE838;" Style="{StaticResource Icon}"/></Button>
+                                        <Button Grid.Column="2" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="ShaderDefault_Click" Content="{c:L cs2.detect}"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Click="Mouse_Click" Content="{c:L cs2.mouse.btn}"/>
+                                    <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L mod.mouse}" Style="{StaticResource H2}"/><TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{c:L cs2.mouse.sub}"/></StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="OpenInspector_Click" Content="{c:L cs2.nv.open}"/>
+                                        <Button x:Name="NvidiaBtn" Style="{StaticResource PrimaryButton}" Click="Nvidia_Click" Content="{c:L cs2.nv.btn}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L mod.nvidia}" Style="{StaticResource H2}"/><TextBlock x:Name="NvidiaSub" Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{c:L cs2.nv.sub}"/></StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="ShortcutNoBackup_Click" Content="{c:L sc.nobackup}"/>
+                                        <Button Style="{StaticResource GhostButton}" Click="ShortcutTodo_Click" Content="{c:L sc.todo}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L sc.title}" Style="{StaticResource H2}"/><TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{c:L sc.sub}"/></StackPanel>
+                                </DockPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ======== BACKUP ======== -->
+                    <ScrollViewer x:Name="PageBackup" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="36,34,36,28">
+                            <TextBlock Text="{c:L bk.title}" Style="{StaticResource H1}"/>
+                            <TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,22" Text="{c:L bk.sub}"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <CheckBox x:Name="BackupToggle" Style="{StaticResource Toggle}" Click="BackupToggle_Click">
+                                        <StackPanel><TextBlock Text="{c:L bk.toggle}" Style="{StaticResource H2}"/><TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{c:L bk.toggle.sub}"/></StackPanel>
+                                    </CheckBox>
+                                    <Border Height="1" Background="{DynamicResource Line2}" Margin="0,16"/>
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button x:Name="DriveConnectBtn" Style="{StaticResource PrimaryButton}" Click="DriveConnect_Click" Content="{c:L bk.connect}"/>
+                                            <Button x:Name="DriveDisconnectBtn" Style="{StaticResource GhostButton}" Content="{c:L bk.disconnect}" Click="DriveDisconnect_Click" Visibility="Collapsed"/>
+                                        </StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse x:Name="DriveDot" Width="10" Height="10" Fill="{DynamicResource Faint}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                            <StackPanel>
+                                                <TextBlock x:Name="DriveAccount" Text="-" FontWeight="SemiBold"/>
+                                                <TextBlock x:Name="DriveAccountSub" Style="{StaticResource Sub}" Margin="0,2,18,0" Text="-"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="{c:L bk.settings}" Style="{StaticResource Overline}"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="200"/></Grid.ColumnDefinitions>
+                                        <StackPanel><TextBlock Text="{c:L bk.folder}" Style="{StaticResource Meta}" Margin="0,0,0,6"/><TextBox x:Name="DriveFolderBox" LostFocus="BackupSettings_LostFocus"/></StackPanel>
+                                        <StackPanel Grid.Column="2"><TextBlock Text="{c:L bk.maxmb}" Style="{StaticResource Meta}" Margin="0,0,0,6"/><TextBox x:Name="MaxMbBox" LostFocus="BackupSettings_LostFocus"/></StackPanel>
+                                    </Grid>
+                                    <TextBlock Text="{c:L bk.exclude}" Style="{StaticResource Meta}" Margin="0,14,0,6"/>
+                                    <TextBox x:Name="ExcludeBox" LostFocus="BackupSettings_LostFocus"/>
+                                    <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,6,0,0" Text="{c:L bk.exclude.hint}"/>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                <Button Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" Click="BackupNow_Click" Content="{c:L bk.now}"/>
+                                <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="OpenBackups_Click" Content="{c:L bk.local}"/>
+                                <Button Style="{StaticResource GhostButton}" Click="OpenDrive_Click" Content="{c:L bk.open}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ======== HISTORIAL ======== -->
+                    <Grid x:Name="PageHistory" Visibility="Collapsed" Margin="36,34,36,28">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="220"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <DockPanel Margin="0,0,0,18">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="{c:L hist.clear}" VerticalAlignment="Bottom" Click="HistoryClear_Click"/>
+                            <StackPanel><TextBlock Text="{c:L hist.title}" Style="{StaticResource H1}"/><TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,0" Text="{c:L hist.sub}"/></StackPanel>
+                        </DockPanel>
+                        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="0" Margin="0,0,0,14">
+                            <UniformGrid Columns="4">
+                                <StackPanel Margin="22,14"><TextBlock Text="{c:L hist.count}" Style="{StaticResource Meta}"/><TextBlock x:Name="HistCount" Text="0" FontSize="24" FontWeight="Bold" FontFamily="{StaticResource Display}"/></StackPanel>
+                                <Border BorderBrush="{DynamicResource Line}" BorderThickness="1,0,0,0"><StackPanel Margin="22,14"><TextBlock Text="{c:L hist.total}" Style="{StaticResource Meta}"/><TextBlock x:Name="HistTotal" Text="0" FontSize="24" FontWeight="Bold" FontFamily="{StaticResource Display}" Foreground="{DynamicResource Accent}"/></StackPanel></Border>
+                                <Border BorderBrush="{DynamicResource Line}" BorderThickness="1,0,0,0"><StackPanel Margin="22,14"><TextBlock Text="{c:L hist.avg}" Style="{StaticResource Meta}"/><TextBlock x:Name="HistAvg" Text="0" FontSize="24" FontWeight="Bold" FontFamily="{StaticResource Display}"/></StackPanel></Border>
+                                <Border BorderBrush="{DynamicResource Line}" BorderThickness="1,0,0,0"><StackPanel Margin="22,14"><TextBlock Text="{c:L hist.last}" Style="{StaticResource Meta}"/><TextBlock x:Name="HistLast" Text="-" FontSize="24" FontWeight="Bold" FontFamily="{StaticResource Display}"/></StackPanel></Border>
+                            </UniformGrid>
+                        </Border>
+                        <Border Grid.Row="2" Style="{StaticResource Card}">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <TextBlock Text="{c:L hist.chart}" Style="{StaticResource H2}"/>
+                                <Canvas x:Name="HistChart" Grid.Row="1" Margin="0,10,0,0" Background="Transparent" SizeChanged="HistChart_SizeChanged"/>
+                                <TextBlock x:Name="HistEmpty" Grid.Row="1" Text="{c:L hist.empty}" Style="{StaticResource Sub}" HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed"/>
+                            </Grid>
+                        </Border>
+                        <Border Grid.Row="3" Style="{StaticResource Card}" Margin="0,14,0,0" Padding="8,8">
+                            <Grid>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                <Grid Margin="12,4,22,6">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/><ColumnDefinition Width="110"/><ColumnDefinition Width="80"/><ColumnDefinition Width="170"/></Grid.ColumnDefinitions>
+                                    <TextBlock Text="{c:L hist.col.date}" Style="{StaticResource Meta}" FontSize="12"/>
+                                    <TextBlock Grid.Column="1" Text="{c:L hist.col.mode}" Style="{StaticResource Meta}" FontSize="12"/>
+                                    <TextBlock Grid.Column="2" Text="{c:L hist.col.freed}" Style="{StaticResource Meta}" FontSize="12" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="3" Text="{c:L hist.col.time}" Style="{StaticResource Meta}" FontSize="12" HorizontalAlignment="Right"/>
+                                    <TextBlock Grid.Column="4" Text="{c:L hist.col.result}" Style="{StaticResource Meta}" FontSize="12" Margin="18,0,0,0"/>
+                                </Grid>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="HistTable">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Padding="12,7" BorderBrush="{DynamicResource Line2}" BorderThickness="0,1,0,0">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="160"/><ColumnDefinition Width="*"/><ColumnDefinition Width="110"/><ColumnDefinition Width="80"/><ColumnDefinition Width="170"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Date}" Foreground="{DynamicResource Muted}" FontSize="13"/>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Mode}" FontSize="13" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Grid.Column="2" Text="{Binding Freed}" FontSize="13" HorizontalAlignment="Right"/>
+                                                        <TextBlock Grid.Column="3" Text="{Binding Time}" Foreground="{DynamicResource Muted}" FontSize="13" HorizontalAlignment="Right"/>
+                                                        <TextBlock Grid.Column="4" Text="{Binding Result}" Foreground="{Binding ResultBrush}" FontSize="13" Margin="18,0,0,0"/>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- ======== REGISTRO ======== -->
+                    <Grid x:Name="PageLog" Visibility="Collapsed" Margin="36,34,36,28">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <DockPanel Margin="0,0,0,16">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="LogRefresh_Click" Content="{c:L log.refresh}"/>
+                                <Button Style="{StaticResource GhostButton}" Click="OpenDataFolder_Click" Content="{c:L log.folder}"/>
+                            </StackPanel>
+                            <StackPanel><TextBlock Text="{c:L log.title}" Style="{StaticResource H1}"/><TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,0" Text="{c:L log.sub}"/></StackPanel>
+                        </DockPanel>
+                        <Border Grid.Row="1" Style="{StaticResource Card}" Padding="6">
+                            <TextBox x:Name="LogBox" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontFamily="{StaticResource Mono}" FontSize="12"
+                                     Foreground="{DynamicResource Muted}" TextWrapping="NoWrap" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" VerticalContentAlignment="Top"/>
+                        </Border>
+                    </Grid>
+
+                    <!-- ======== PROGRESO ======== -->
+                    <Grid x:Name="PageRun" Visibility="Collapsed" Margin="36,34,36,28">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <StackPanel>
+                            <TextBlock x:Name="RunOverline" Text="-" Style="{StaticResource Overline}"/>
+                            <DockPanel>
+                                <TextBlock x:Name="RunPercent" DockPanel.Dock="Right" Text="0%" FontSize="30" FontWeight="Bold" FontFamily="{StaticResource Display}" Foreground="{DynamicResource Accent}"/>
+                                <TextBlock x:Name="RunTitle" Text="-" Style="{StaticResource H1}"/>
+                            </DockPanel>
+                            <ProgressBar x:Name="RunBar" Margin="0,12,0,20" Maximum="1"/>
+                        </StackPanel>
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource Card}" Padding="6">
+                                <ScrollViewer x:Name="StepsScroll" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="StepsList">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border x:Name="row" Padding="12,8" CornerRadius="8">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="30"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Glyph}" Foreground="{Binding Brush}" FontFamily="{StaticResource Icons}" FontSize="14" VerticalAlignment="Top" Margin="0,2,0,0"/>
+                                                        <StackPanel Grid.Column="1">
+                                                            <TextBlock Text="{Binding Title}" Foreground="{Binding TitleBrush}" FontSize="13.5"/>
+                                                            <ProgressBar Value="{Binding Progress}" Maximum="1" Margin="0,6,0,2">
+                                                                <ProgressBar.Style>
+                                                                    <Style TargetType="ProgressBar" BasedOn="{StaticResource ThinBar}">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        <Style.Triggers>
+                                                                            <MultiDataTrigger>
+                                                                                <MultiDataTrigger.Conditions>
+                                                                                    <Condition Binding="{Binding HasProgress}" Value="True"/>
+                                                                                    <Condition Binding="{Binding IsRunning}" Value="True"/>
+                                                                                </MultiDataTrigger.Conditions>
+                                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                            </MultiDataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </ProgressBar.Style>
+                                                            </ProgressBar>
+                                                            <TextBlock Text="{Binding Detail}" Foreground="{DynamicResource Faint}" FontSize="12">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock"><Style.Triggers><DataTrigger Binding="{Binding Detail}" Value=""><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                                <DataTemplate.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                        <Setter TargetName="row" Property="Background" Value="{DynamicResource Tint}"/>
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
+                            <Border Grid.Column="2" Style="{StaticResource Card}" Padding="6">
+                                <ScrollViewer x:Name="LiveScroll" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl x:Name="LiveLog" Margin="10,8" FontFamily="{StaticResource Mono}" FontSize="12"/>
+                                </ScrollViewer>
+                            </Border>
+                        </Grid>
+                        <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,16,0,0" Padding="22,12">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button x:Name="KeepOpenBtn" Style="{StaticResource GhostButton}" Content="{c:L run.keepOpen}" Margin="0,0,8,0" Click="KeepOpen_Click" Visibility="Collapsed"/>
+                                    <Button x:Name="CancelBtn" Style="{StaticResource GhostButton}" Content="{c:L run.cancel}" Click="Cancel_Click"/>
+                                    <Button x:Name="DoneBtn" Style="{StaticResource PrimaryButton}" Content="{c:L run.back}" Click="Done_Click" Visibility="Collapsed"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <StackPanel Margin="0,0,36,0"><TextBlock Text="{c:L run.freed}" Style="{StaticResource Meta}" FontSize="12"/><TextBlock x:Name="RunFreed" Text="-" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource Accent}"/></StackPanel>
+                                    <StackPanel Margin="0,0,36,0"><TextBlock Text="{c:L run.time}" Style="{StaticResource Meta}" FontSize="12"/><TextBlock x:Name="RunTime" Text="00:00" FontSize="20" FontWeight="Bold"/></StackPanel>
+                                    <StackPanel><TextBlock Text="{c:L run.state}" Style="{StaticResource Meta}" FontSize="12"/><TextBlock x:Name="RunState" Text="-" FontSize="15" FontWeight="SemiBold" Margin="0,3,0,0"/></StackPanel>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- Botones de ventana -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,6,0" WindowChrome.IsHitTestVisibleInChrome="True" Panel.ZIndex="20">
+                        <Button Content="&#xE921;" Style="{StaticResource ChromeButton}" Click="Min_Click"/>
+                        <Button x:Name="MaxBtn" Content="&#xE922;" Style="{StaticResource ChromeButton}" Click="Max_Click"/>
+                        <Button Content="&#xE8BB;" Style="{StaticResource CloseButton}" Click="Close_Click"/>
                     </StackPanel>
-                    <TextBlock x:Name="FooterLeft" Text="Listo" FontSize="10.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
-                </DockPanel>
+
+                    <!-- Aviso de actualizacion -->
+                    <Border x:Name="UpdateBanner" Width="420" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,44,24,0" Padding="20,16" Visibility="Collapsed" Panel.ZIndex="15"
+                            Background="{DynamicResource Sheet}" BorderBrush="{DynamicResource Accent}" BorderThickness="1" CornerRadius="12">
+                        <StackPanel>
+                            <TextBlock Text="{c:L upd.label}" Style="{StaticResource Overline}" Foreground="{DynamicResource Accent}" Margin="0,0,0,4"/>
+                            <TextBlock x:Name="UpdateTitle" Text="-" Style="{StaticResource H2}" FontSize="16"/>
+                            <TextBlock x:Name="UpdateSub" Style="{StaticResource Sub}" Margin="0,4,0,10" Text="-"/>
+                            <ProgressBar x:Name="UpdateBar" Style="{StaticResource ThinBar}" Maximum="1" Margin="0,0,0,10" Visibility="Collapsed"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="UpdateNotesBtn" Style="{StaticResource GhostButton}" Content="{c:L upd.notes}" Margin="0,0,8,0" Click="UpdateNotes_Click"/>
+                                <Button x:Name="UpdateLaterBtn" Style="{StaticResource GhostButton}" Content="{c:L upd.later}" Margin="0,0,8,0" Click="UpdateLater_Click"/>
+                                <Button x:Name="UpdateNowBtn" Style="{StaticResource PrimaryButton}" Content="{c:L upd.now}" Click="UpdateNow_Click"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Toast -->
+                    <Border x:Name="Toast" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,26" Padding="18,10" Panel.ZIndex="16"
+                            Background="{DynamicResource Ink}" CornerRadius="10" Opacity="0" IsHitTestVisible="False">
+                        <TextBlock x:Name="ToastText" Text="" FontSize="13" Foreground="{DynamicResource Sheet}"/>
+                    </Border>
+                </Grid>
             </Border>
 
             <!-- ======== DIALOGO ======== -->
-            <Grid x:Name="Dialog" Grid.RowSpan="3" Grid.ColumnSpan="2" Background="#D0040605" Visibility="Collapsed">
-                <ContentControl Style="{StaticResource HudPanel}" Width="480" VerticalAlignment="Center" Padding="28,22">
+            <Grid x:Name="Dialog" Grid.ColumnSpan="2" Background="{DynamicResource Shade}" Visibility="Collapsed" Panel.ZIndex="30">
+                <Border Width="480" VerticalAlignment="Center" Padding="28,24" Background="{DynamicResource Sheet}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="14">
                     <StackPanel>
-                        <TextBlock x:Name="DialogOverline" Text="AVISO" Style="{StaticResource Overline}" Foreground="{StaticResource Amber}"/>
-                        <TextBlock x:Name="DialogTitle" Text="TITULO" Style="{StaticResource H2}" FontSize="20"/>
-                        <TextBlock x:Name="DialogText" Text="Texto" Style="{StaticResource Sub}" FontSize="12.5" Margin="0,10,0,22"/>
+                        <TextBlock x:Name="DialogOverline" Text="-" Style="{StaticResource Overline}" Foreground="{DynamicResource Warn}"/>
+                        <TextBlock x:Name="DialogTitle" Text="-" Style="{StaticResource H2}" FontSize="19" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="DialogText" Text="-" Style="{StaticResource Sub}" Margin="0,10,0,22"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button x:Name="DialogNo" Style="{StaticResource GhostButton}" Content="Cancelar" Margin="0,0,8,0" Click="DialogNo_Click"/>
-                            <Button x:Name="DialogYes" Style="{StaticResource PrimaryButton}" Content="Aceptar" Click="DialogYes_Click"/>
+                            <Button x:Name="DialogNo" Style="{StaticResource GhostButton}" Content="-" Margin="0,0,8,0" Click="DialogNo_Click"/>
+                            <Button x:Name="DialogYes" Style="{StaticResource PrimaryButton}" Content="-" Click="DialogYes_Click"/>
                         </StackPanel>
                     </StackPanel>
-                </ContentControl>
+                </Border>
+            </Grid>
+
+            <!-- ======== PRIMER ARRANQUE: idioma, color y apariencia ======== -->
+            <Grid x:Name="FirstRun" Grid.ColumnSpan="2" Background="{DynamicResource Frame}" Visibility="Collapsed" Panel.ZIndex="40">
+                <Border Width="640" VerticalAlignment="Center" Padding="36,32,36,30" Background="{DynamicResource Sheet}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="16" WindowChrome.IsHitTestVisibleInChrome="True">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,4">
+                            <Path DockPanel.Dock="Left" Data="{StaticResource LogoGeometry}" Fill="{DynamicResource Accent}" Stretch="Uniform" Width="44" Height="44" Margin="0,2,18,0" VerticalAlignment="Top"/>
+                            <StackPanel>
+                                <TextBlock x:Name="FrTitle" Text="-" Style="{StaticResource H1}"/>
+                                <TextBlock x:Name="FrSub" Text="-" Style="{StaticResource Sub}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <TextBlock x:Name="FrLangLbl" Text="-" FontWeight="Bold" FontSize="13" Margin="0,20,0,8"/>
+                        <UniformGrid x:Name="FrLangs" Columns="2"/>
+                        <TextBlock Margin="0,20,0,8" FontSize="13"><Run x:Name="FrColorLbl" Text="-" FontWeight="Bold"/><Run Text="  "/><Run x:Name="FrColorName" Text="-" Foreground="{DynamicResource Muted}"/></TextBlock>
+                        <StackPanel x:Name="FrColors" Orientation="Horizontal"/>
+                        <TextBlock x:Name="FrLookLbl" Text="-" FontWeight="Bold" FontSize="13" Margin="0,20,0,8"/>
+                        <Border Style="{StaticResource SegBox}">
+                            <UniformGrid x:Name="FrLooks" Columns="3"/>
+                        </Border>
+                        <Button x:Name="FrContinue" Style="{StaticResource PrimaryButton}" Content="-" Height="46" Margin="0,26,0,0" HorizontalContentAlignment="Center" Click="FirstRunContinue_Click"/>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Grid>
     </Border>

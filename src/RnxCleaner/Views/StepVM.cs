@@ -31,12 +31,12 @@ public sealed class StepVM(RunStep step) : INotifyPropertyChanged
 
     public string Glyph => Status switch
     {
-        StepStatus.Pending => "[ -- ]",
-        StepStatus.Running => "[ >> ]",
-        StepStatus.Ok => "[ OK ]",
-        StepStatus.Warn => "[WARN]",
-        StepStatus.Error => "[FAIL]",
-        StepStatus.Skipped => "[SKIP]",
+        StepStatus.Pending => "\uEA3A",
+        StepStatus.Running => "\uE895",
+        StepStatus.Ok => "\uE73E",
+        StepStatus.Warn => "\uE7BA",
+        StepStatus.Error => "\uE711",
+        StepStatus.Skipped => "\uE738",
         _ => ""
     };
 
@@ -44,14 +44,14 @@ public sealed class StepVM(RunStep step) : INotifyPropertyChanged
 
     public Brush Brush => Status switch
     {
-        StepStatus.Running => B("Hud"),
-        StepStatus.Ok => B("Hud"),
-        StepStatus.Warn => B("Amber"),
-        StepStatus.Error => B("Red"),
+        StepStatus.Running => B("Accent"),
+        StepStatus.Ok => B("Accent"),
+        StepStatus.Warn => B("Warn"),
+        StepStatus.Error => B("Error"),
         _ => B("Faint"),
     };
 
-    public Brush TitleBrush => Status is StepStatus.Pending or StepStatus.Skipped ? B("Muted") : B("Text");
+    public Brush TitleBrush => Status is StepStatus.Pending or StepStatus.Skipped ? B("Muted") : B("Ink");
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void On([CallerMemberName] string? n = null) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));

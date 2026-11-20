@@ -9,6 +9,8 @@ using Google.Apis.Upload;
 using Google.Apis.Util.Store;
 using DriveFile = Google.Apis.Drive.v3.Data.File;
 
+using static RnxCleaner.Core.Loc;
+
 namespace RnxCleaner.Core;
 
 /// <summary>
@@ -86,19 +88,19 @@ public static class DriveSync
     public static async Task<bool> UploadAsync(Settings settings, IReadOnlyList<BackupZip> zips, bool interactive,
                                                IProgress<double>? progress, CancellationToken ct)
     {
-        if (!IsConfigured) { Logger.Warn("DRIVE: esta version no trae Google Drive configurado, subida omitida"); return false; }
-        if (zips.Count == 0) { Logger.Detail("DRIVE: no hay ZIP que subir"); return true; }
+        if (!IsConfigured) { Logger.Warn(T("lg.dr.noBuild")); return false; }
+        if (zips.Count == 0) { Logger.Detail(T("lg.dr.noZip")); return true; }
 
         var cred = await AuthorizeAsync(interactive, ct);
         if (cred is null)
         {
-            Logger.Warn("DRIVE: no has iniciado sesion con Google. Abre el programa y marca la casilla de backup para conectarlo");
+            Logger.Warn(T("lg.dr.noLogin"));
             return false;
         }
 
         using var svc = Service(cred);
         var rootId = await EnsureFolderAsync(svc, settings.DriveFolder, "root", ct);
-        Logger.Detail($"DRIVE: carpeta \"{settings.DriveFolder}\"");
+        Logger.Detail(T("lg.dr.folder", settings.DriveFolder));
 
         await MigrateLooseZipsAsync(svc, rootId, ct);
 
@@ -112,7 +114,7 @@ public static class DriveSync
 
         if (latest is not null && zips.All(z => Same(latestFiles.FirstOrDefault(f => f.Name == z.SteamId + ".zip"), z)))
         {
-            Logger.Detail($"DRIVE: todo al dia, la copia del {latest.Name} ya es la actual");
+            Logger.Detail(T("lg.dr.upToDate", latest.Name));
             progress?.Report(1);
             return true;
         }
@@ -121,7 +123,7 @@ public static class DriveSync
         var today = DateTime.Now.ToString("yyyy-MM-dd");
         var todayId = latest?.Name == today ? latest.Id : await EnsureFolderAsync(svc, today, rootId, ct);
         var todayFiles = todayId == latest?.Id ? latestFiles : await ListZipsAsync(svc, todayId, ct);
-        Logger.Detail($"DRIVE: copia del dia {today}");
+        Logger.Detail(T("lg.dr.day", today));
 
         long total = zips.Sum(z => z.Size), done = 0;
         bool ok = true;
@@ -135,7 +137,7 @@ public static class DriveSync
 
             if (Same(inToday, z))
             {
-                Logger.Detail($"DRIVE: {today}/{name} ya esta al dia");
+                Logger.Detail(T("lg.dr.fileOk", today + "/" + name));
             }
             else if (inToday is null && todayId != latest?.Id && Same(inLatest, z))
             {
@@ -143,7 +145,7 @@ public static class DriveSync
                 var copy = svc.Files.Copy(new DriveFile { Name = name, Parents = [todayId], AppProperties = props }, inLatest!.Id);
                 copy.Fields = "id";
                 await copy.ExecuteAsync(ct);
-                Logger.Detail($"DRIVE: {name} sin cambios, copiado a {today} dentro de Drive");
+                Logger.Detail(T("lg.dr.copied", name, today));
             }
             else
             {
@@ -169,12 +171,12 @@ public static class DriveSync
                 {
                     settings.DriveUploaded[z.SteamId] = z.Hash;
                     settings.Save();
-                    Logger.Ok($"DRIVE: {today}/{name} subido ({Sys.FormatBytes(z.Size)})");
+                    Logger.Ok(T("lg.dr.uploaded", today + "/" + name, Sys.FormatBytes(z.Size)));
                 }
                 else
                 {
                     ok = false;
-                    Logger.Error($"DRIVE: fallo subiendo {today}/{name}: {result.Exception?.Message}");
+                    Logger.Error(T("lg.dr.upFail", today + "/" + name, result.Exception?.Message));
                 }
             }
             done += z.Size;
@@ -200,9 +202,9 @@ public static class DriveSync
             try
             {
                 await svc.Files.Update(new DriveFile { Trashed = true }, old.Id).ExecuteAsync(ct);
-                Logger.Detail($"DRIVE: copia antigua del {old.Name} enviada a la papelera de Drive");
+                Logger.Detail(T("lg.dr.trashed", old.Name));
             }
-            catch (Exception ex) { Logger.Warn($"DRIVE: no se pudo retirar la copia del {old.Name}: {ex.Message}"); }
+            catch (Exception ex) { Logger.Warn(T("lg.dr.trashFail", old.Name, ex.Message)); }
         }
     }
 
@@ -227,7 +229,7 @@ public static class DriveSync
             upd.AddParents = dayId;
             upd.RemoveParents = rootId;
             await upd.ExecuteAsync(ct);
-            Logger.Detail($"DRIVE: {f.Name} movido a la carpeta {day}");
+            Logger.Detail(T("lg.dr.moved", f.Name, day));
         }
     }
 
@@ -273,21 +275,21 @@ public static class DriveSync
     /// tambien correria elevado. Pasandoselo a explorer.exe se abre con el
     /// usuario normal, en el navegador que ya tengas abierto.
     /// </summary>
-    private sealed class BrowserReceiver() : LocalServerCodeReceiver(ClosePage)
+    private sealed class BrowserReceiver() : LocalServerCodeReceiver(ClosePage())
     {
-        private const string ClosePage =
+        private static string ClosePage() =>
             "<html><head><meta charset='utf-8'><title>RNX Cache Cleaner</title></head>" +
             "<body style='background:#070a09;color:#dce4df;font-family:Segoe UI,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0'>" +
             "<div style='text-align:center;border:1px solid #2f5240;padding:40px 56px'>" +
-            "<h1 style='color:#5fd68a;margin:0 0 8px;font-weight:600'>Google Drive conectado</h1>" +
-            "<p style='color:#8c9a92'>RNX Cache Cleaner ya puede subir tus backups.<br>Puedes cerrar esta pesta&ntilde;a.</p></div></body></html>";
+            "<h1 style='color:#b86e00;margin:0 0 8px;font-weight:600'>" + T("web.title") + "</h1>" +
+            "<p style='color:#8c9a92'>" + T("web.sub") + "</p></div></body></html>";
 
         protected override bool OpenBrowser(string url)
         {
             // OJO: no pasar la URL por explorer.exe: la recorta y Google responde
             // "Missing required parameter: redirect_uri". ShellExecute directo:
             // si el navegador ya esta abierto, la pestana se abre en el de siempre.
-            Logger.Detail($"DRIVE: abriendo el navegador para iniciar sesion ({url.Length} caracteres, redirect_uri {(url.Contains("redirect_uri=") ? "OK" : "FALTA")})");
+            Logger.Detail(T("lg.dr.browser", url.Contains("redirect_uri=") ? "OK" : "MISSING"));
             try
             {
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
@@ -295,7 +297,7 @@ public static class DriveSync
             }
             catch (Exception ex)
             {
-                Logger.Warn("DRIVE: no se pudo abrir el navegador: " + ex.Message);
+                Logger.Warn(T("lg.dr.browserFail", ex.Message));
                 return base.OpenBrowser(url);
             }
         }

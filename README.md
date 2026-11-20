@@ -36,6 +36,12 @@ While a cleanup runs you see every step with its status (`[ OK ]`, `[WARN]`, `[F
 
 ---
 
+## 🌍 Languages, colors and appearance
+
+On first launch you choose your **language** (English by default, Spanish, Russian, German, French or Chinese), your **color** (Amber by default, Cobalt, Signal orange, Raspberry, Ocean or Graphite) and the **appearance**: Light, Dark or **System**, which follows Windows' light/dark mode live. All three can be changed later from the buttons at the bottom of the sidebar. Everything is translated, including the log.
+
+---
+
 ## 🤖 Command-line modes / shortcuts
 
 The same modes as the old `.bat` still work as arguments. With an argument the app runs straight away, shows the progress and closes by itself when done:
@@ -154,7 +160,15 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 
 ## 📜 Changelog
 
-### v5.0 (current)
+### v5.1 (current)
+- 🎨 **New interface**: framed-sheet layout, light and dark themes and six color palettes (Amber by default), following Windows' theme automatically
+- 🌍 **Six languages**: English (default), Spanish, Russian, German, French and Chinese, for the whole app and the log
+- 🚀 **First-launch setup**: pick language, color and appearance before you start
+- 🏠 New home screen: mode selector, disk usage, backup status, what the chosen mode does and the space freed lately
+- 🐛 Fixed: cleaning the user Temp folder deleted the app's own runtime files in `%TEMP%\.net`, so it crashed on exit
+- 🎯 New amber icon
+
+### v5.0
 - 🆕 **Rewritten as a Windows app** (C# / .NET 10 / WPF): graphical interface, single self-contained `.exe`
 - 🆕 **MSI installer** (per-user) with Start menu and desktop shortcuts
 - 🆕 **Automatic updates** from GitHub Releases, keeping your settings

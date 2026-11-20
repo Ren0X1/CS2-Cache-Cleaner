@@ -8,6 +8,8 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Win32;
 
+using static RnxCleaner.Core.Loc;
+
 namespace RnxCleaner.Core;
 
 public sealed record UpdateInfo(Version Version, string Tag, string PageUrl, string Notes,
@@ -107,7 +109,7 @@ public static partial class Updater
         {
             var msi = Path.Combine(dir, $"RNX_Cache_Cleaner_{u.Version}.msi");
             await DownloadAsync(u.MsiUrl, msi, u.MsiSize, u.MsiSha256, progress, ct);
-            Logger.Info($"UPDATE: instalando {u.Tag} con el MSI");
+            Logger.Info(T("lg.upd.msi", u.Tag));
             // Pequena espera para que este proceso se cierre antes de que msiexec sustituya el .exe
             StartHidden($"/c ping -n 3 127.0.0.1 >nul & msiexec /i \"{msi}\" /passive /norestart");
             return;
@@ -130,7 +132,7 @@ public static partial class Updater
             ":ok\r\n" +
             $"start \"\" \"{current}\"\r\n" +
             "del \"%~f0\"\r\n", Encoding.ASCII);
-        Logger.Info($"UPDATE: sustituyendo el .exe portable por {u.Tag}");
+        Logger.Info(T("lg.upd.exe", u.Tag));
         StartHidden($"/c \"{script}\"");
     }
 

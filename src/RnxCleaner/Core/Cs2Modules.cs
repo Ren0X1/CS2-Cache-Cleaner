@@ -1,5 +1,7 @@
 using System.IO;
 
+using static RnxCleaner.Core.Loc;
+
 namespace RnxCleaner.Core;
 
 /// <summary>Modulos de CS2: shadercache, raton.reg y perfil NVIDIA (.nip).</summary>
@@ -59,7 +61,7 @@ public static class Cs2Modules
         var found = FindShaderCache();
         if (found is not null && !string.Equals(found, custom, StringComparison.OrdinalIgnoreCase))
         {
-            Logger.Detail("Shadercache detectada automaticamente: " + found);
+            Logger.Detail(T("lg.sh.detected", found));
             s.ShaderPath = found;
             s.Save();
         }
@@ -72,9 +74,7 @@ public static class Cs2Modules
         if (path is null)
         {
             var lib = Cs2Library();
-            Logger.Info(lib is null
-                ? "Shadercache: no se ha encontrado CS2 en ninguna biblioteca de Steam, nada que borrar"
-                : "Shadercache: ya esta limpia, nada que borrar (CS2 la regenera al abrir el juego)");
+            Logger.Info(lib is null ? T("lg.sh.noCs2") : T("lg.sh.clean"));
             return Task.FromResult(StepStatus.Skipped);
         }
         try { Directory.Delete(path, recursive: true); }
@@ -86,20 +86,20 @@ public static class Cs2Modules
         }
         if (!Directory.Exists(path))
         {
-            Logger.Ok("Shadercache eliminada: " + path);
+            Logger.Ok(T("lg.sh.deleted", path));
             return Task.FromResult(StepStatus.Ok);
         }
-        Logger.Error("No se pudo borrar la shadercache del todo (Steam abierto?)");
+        Logger.Error(T("lg.sh.fail"));
         return Task.FromResult(StepStatus.Warn);
     }
 
     public static async Task<bool> ImportMouseAsync(CancellationToken ct = default)
     {
         var reg = AppPaths.ExtractTool("raton.reg");
-        if (reg is null) { Logger.Error("raton.reg no viene dentro del programa"); return false; }
+        if (reg is null) { Logger.Error(T("lg.mouse.missing")); return false; }
         var code = await Sys.RunAsync(Path.Combine(Environment.SystemDirectory, "reg.exe"), $"import \"{reg}\"", 60, ct);
-        if (code == 0) { Logger.Ok("Config raton aplicada"); return true; }
-        Logger.Error($"Importando raton.reg (codigo {code})");
+        if (code == 0) { Logger.Ok(T("lg.mouse.ok")); return true; }
+        Logger.Error(T("lg.mouse.fail", code));
         return false;
     }
 
@@ -109,12 +109,12 @@ public static class Cs2Modules
         var nip = AppPaths.ExtractTool("CS2.nip");
         if (exe is null || nip is null)
         {
-            Logger.Error("NVIDIA: faltan nvidiaProfileInspector.exe o CS2.nip dentro del programa");
+            Logger.Error(T("lg.nv.missing"));
             return false;
         }
         var code = await Sys.RunAsync(exe, $"-silentImport \"{nip}\"", 120, ct);
-        if (code == 0) { Logger.Ok("NVIDIA: perfil CS2 importado"); return true; }
-        Logger.Error($"NVIDIA: fallo importando el perfil CS2 (codigo {code})");
+        if (code == 0) { Logger.Ok(T("lg.nv.ok")); return true; }
+        Logger.Error(T("lg.nv.fail", code));
         return false;
     }
 

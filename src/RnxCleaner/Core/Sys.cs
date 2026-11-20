@@ -51,7 +51,8 @@ public static class Sys
         RunAsync(Path.Combine(Environment.SystemDirectory, "cmd.exe"), "/c " + command, timeoutSec, ct);
 
     /// <summary>Equivalente a "robocopy vacio destino /MIR": borra todo lo de dentro, deja la carpeta.</summary>
-    public static void EmptyDirectory(string dir)
+    /// <param name="keep">Nombres de carpetas del primer nivel que no se tocan.</param>
+    public static void EmptyDirectory(string dir, params string[] keep)
     {
         if (!Directory.Exists(dir)) return;
         var info = new DirectoryInfo(dir);
@@ -60,6 +61,7 @@ public static class Sys
         catch { return; }
         foreach (var it in items)
         {
+            if (it is DirectoryInfo && keep.Contains(it.Name, StringComparer.OrdinalIgnoreCase)) continue;
             try
             {
                 if (it is DirectoryInfo d)
@@ -125,10 +127,15 @@ public static class Sys
         try { SHEmptyRecycleBin(IntPtr.Zero, null, NoConfirmation | NoProgressUi | NoSound); } catch { }
     }
 
-    public static string FormatBytes(long bytes)
+    /// <summary>"1,4 GB", "61,9 MB"... con las unidades y los separadores del idioma actual.</summary>
+    public static string FormatBytes(long bytes, int decimals = -1)
     {
         double b = Math.Abs(bytes);
-        string s = b >= 1L << 30 ? $"{b / (1L << 30):0.##} GB" : b >= 1 << 20 ? $"{b / (1 << 20):0.#} MB" : $"{b / 1024:0} KB";
+        var c = Loc.Culture;
+        string s;
+        if (b >= 1L << 30) s = (b / (1L << 30)).ToString(decimals < 0 ? "0.#" : "F" + decimals, c) + " " + Loc.T("u.gb");
+        else if (b >= 1 << 20) s = (b / (1 << 20)).ToString(decimals < 0 ? "0.#" : "F" + decimals, c) + " " + Loc.T("u.mb");
+        else s = (b / 1024).ToString("0", c) + " " + Loc.T("u.kb");
         return bytes < 0 ? "-" + s : s;
     }
 }

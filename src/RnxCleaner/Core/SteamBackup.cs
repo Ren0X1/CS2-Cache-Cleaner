@@ -3,6 +3,8 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 
+using static RnxCleaner.Core.Loc;
+
 namespace RnxCleaner.Core;
 
 public sealed record BackupZip(string SteamId, string Path, string Hash, long Size);
@@ -19,13 +21,13 @@ public static class SteamBackup
     {
         var result = new List<BackupZip>();
         var steam = SystemInfo.SteamPath();
-        if (steam is null) { Logger.Warn("BACKUP: no se encontro la instalacion de Steam, omitido"); return result; }
+        if (steam is null) { Logger.Warn(T("lg.bk.noSteam")); return result; }
         var userdata = Path.Combine(steam, "userdata");
-        if (!Directory.Exists(userdata)) { Logger.Warn("BACKUP: no existe " + userdata + ", omitido"); return result; }
+        if (!Directory.Exists(userdata)) { Logger.Warn(T("lg.bk.noUserdata", userdata)); return result; }
 
         Directory.CreateDirectory(AppPaths.Backups);
-        Logger.Detail("BACKUP: origen  " + userdata);
-        Logger.Detail("BACKUP: destino " + AppPaths.Backups);
+        Logger.Detail(T("lg.bk.src", userdata));
+        Logger.Detail(T("lg.bk.dst", AppPaths.Backups));
 
         long maxBytes = (long)s.BackupMaxMB * 1024 * 1024;
         var exclude = new HashSet<string>(s.BackupExclude, StringComparer.OrdinalIgnoreCase);
@@ -49,10 +51,10 @@ public static class SteamBackup
                 .ToList();
 
             foreach (var big in files.Where(f => f.Length > maxBytes))
-                Logger.Warn($"BACKUP: omitido por tamano ({big.Length / 1048576.0:0.0} MB > {s.BackupMaxMB} MB): {big.FullName}");
+                Logger.Warn(T("lg.bk.tooBig", Sys.FormatBytes(big.Length), s.BackupMaxMB, big.FullName));
             files = files.Where(f => f.Length <= maxBytes).OrderBy(f => f.FullName, StringComparer.Ordinal).ToList();
 
-            if (files.Count == 0) { Logger.Warn($"BACKUP: SteamID {sid} no tiene nada que guardar"); n++; continue; }
+            if (files.Count == 0) { Logger.Warn(T("lg.bk.empty", sid)); n++; continue; }
 
             var hash = ContentHash(files, acc.Length);
             var zip = Path.Combine(AppPaths.Backups, sid + ".zip");
@@ -60,7 +62,7 @@ public static class SteamBackup
 
             if (previous.TryGetValue(sid, out var old) && old == hash && File.Exists(zip))
             {
-                Logger.Detail($"BACKUP: SteamID {sid} sin cambios, ZIP intacto");
+                Logger.Detail(T("lg.bk.same", sid));
                 lines.Add($"{sid}|{hash}|{files.Count}|{sum}");
                 result.Add(new BackupZip(sid, zip, hash, new FileInfo(zip).Length));
                 n++; progress?.Report((double)n / accounts.Count);
@@ -91,22 +93,22 @@ public static class SteamBackup
             catch (OperationCanceledException) { try { File.Delete(tmp); } catch { } throw; }
             catch (Exception ex)
             {
-                Logger.Error($"BACKUP: comprimiendo {sid} -> {ex.Message}");
+                Logger.Error(T("lg.bk.zipFail", sid, ex.Message));
                 try { File.Delete(tmp); } catch { }
                 n++; continue;
             }
 
-            if (locked > 0) Logger.Warn($"BACKUP: {sid} -> {locked} archivo(s) en uso omitidos (Steam abierto?)");
+            if (locked > 0) Logger.Warn(T("lg.bk.locked", sid, locked));
             var size = new FileInfo(zip).Length;
             lines.Add($"{sid}|{hash}|{files.Count}|{sum}");
             result.Add(new BackupZip(sid, zip, hash, size));
-            Logger.Ok($"BACKUP: {sid}.zip {state} - {files.Count} archivos, {Sys.FormatBytes(size)}");
+            Logger.Ok(T(state == "creado" ? "lg.bk.created" : "lg.bk.updated", sid + ".zip", files.Count, Sys.FormatBytes(size)));
             n++; progress?.Report((double)n / accounts.Count);
         }
 
         if (lines.Count > 0) File.WriteAllLines(indexPath, lines.Order(), Encoding.UTF8);
-        if (accounts.Count == 0) Logger.Warn("BACKUP: no se encontro ninguna cuenta en userdata");
-        else Logger.Ok($"BACKUP: OK - {accounts.Count} cuenta(s), {Sys.FormatBytes(result.Sum(r => r.Size))}");
+        if (accounts.Count == 0) Logger.Warn(T("lg.bk.noAccounts"));
+        else Logger.Ok(T("lg.bk.done", accounts.Count, Sys.FormatBytes(result.Sum(r => r.Size))));
         return result;
     }
 

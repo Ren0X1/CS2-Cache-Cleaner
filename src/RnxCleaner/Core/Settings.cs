@@ -1,6 +1,8 @@
 using System.IO;
 using System.Text.Json;
 
+using static RnxCleaner.Core.Loc;
+
 namespace RnxCleaner.Core;
 
 /// <summary>Ajustes persistentes (sustituyen a las variables del .bat y a shadercache.txt).</summary>
@@ -15,6 +17,17 @@ public sealed class Settings
     public string DriveFolder { get; set; } = "RNX Cache Cleaner Backups";
 
     public string ShaderPath { get; set; } = DefaultShaderPath;
+
+    /// <summary>Idioma (en, es, ru, de, fr, zh), color y apariencia (system, light, dark).</summary>
+    public string Language { get; set; } = "en";
+    public string Palette { get; set; } = "ambar";
+    public string ThemeMode { get; set; } = "system";
+
+    /// <summary>false hasta que el usuario pasa la pantalla de primer arranque.</summary>
+    public bool FirstRunDone { get; set; }
+
+    /// <summary>Ultimo modo elegido en la pantalla de inicio: quick, full o todo.</summary>
+    public string LastMode { get; set; } = "todo";
 
     /// <summary>Archivos mas grandes que esto se quedan fuera del ZIP.</summary>
     public int BackupMaxMB { get; set; } = 500;
@@ -50,6 +63,6 @@ public sealed class Settings
             File.WriteAllText(tmp, JsonSerializer.Serialize(this, Json));
             File.Move(tmp, AppPaths.Settings, overwrite: true);
         }
-        catch (Exception ex) { Logger.Warn("No se pudieron guardar los ajustes: " + ex.Message); }
+        catch (Exception ex) { Logger.Warn(T("lg.settingsFail", ex.Message)); }
     }
 }

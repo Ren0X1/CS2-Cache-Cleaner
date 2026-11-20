@@ -1,6 +1,8 @@
 using System.IO;
 using System.Text.Json;
 
+using static RnxCleaner.Core.Loc;
+
 namespace RnxCleaner.Core;
 
 /// <summary>Una ejecucion terminada (para el historial).</summary>
@@ -39,7 +41,7 @@ public static class History
             File.WriteAllText(tmp, JsonSerializer.Serialize(all, Json));
             File.Move(tmp, FilePath, overwrite: true);
         }
-        catch (Exception ex) { Logger.Warn("No se pudo guardar el historial: " + ex.Message); }
+        catch (Exception ex) { Logger.Warn(T("lg.histFail", ex.Message)); }
     }
 
     public static void Clear()

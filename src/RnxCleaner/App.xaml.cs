@@ -30,7 +30,8 @@ public partial class App : Application
             var sw = new MainWindow(null) { SnapMode = true, ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -20000, Top = -20000 };
             MainWindow = sw;
             sw.Show();
-            _ = sw.SnapshotAsync(e.Args[snap + 1], snap + 2 < e.Args.Length ? e.Args[snap + 2] : "home");
+            string? Arg(int k) => snap + k < e.Args.Length ? e.Args[snap + k] : null;
+            _ = sw.SnapshotAsync(e.Args[snap + 1], Arg(2) ?? "home", Arg(3), Arg(4), Arg(5));
             return;
         }
 

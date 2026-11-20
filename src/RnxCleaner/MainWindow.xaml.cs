@@ -3,12 +3,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using Path = System.IO.Path;
 using System.Windows.Threading;
 using RnxCleaner.Core;
 using RnxCleaner.Views;
+using Path = System.IO.Path;
+using Shape = System.Windows.Shapes.Shape;
+using static RnxCleaner.Core.Loc;
 
 namespace RnxCleaner;
 
@@ -25,80 +28,168 @@ public partial class MainWindow : Window
     private CancellationTokenSource? _runCts;
     private bool _running;
     private bool _keepOpen;
-
-    private readonly DispatcherTimer _hudTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+    private RunMode _mode = RunMode.Todo;
+    private List<RunRecord> _history = [];
 
     public MainWindow(RunMode? autoMode)
     {
         _autoMode = autoMode;
+        // Idioma y tema antes de dibujar nada
+        Loc.Set(_settings.Language);
         InitializeComponent();
+        ThemeManager.Apply(_settings.Palette, _settings.ThemeMode);
 
         StepsList.ItemsSource = _steps;
         VersionText.Text = $"v{Updater.Current}";
-        Title = $"RNX Cache Cleaner Pro v{AppPaths.Version}";
+        Title = "RNX Cache Cleaner";
+        _mode = _settings.LastMode switch { "quick" => RunMode.Quick, "full" => RunMode.Full, _ => RunMode.Todo };
 
-        FillSystemInfo();
-        BuildCustomList();
+        SysPc.Text = Environment.MachineName;
+        SysSpec.Text = $"{_sys.Windows} · {_sys.GpuName.Replace("NVIDIA GeForce ", "")}";
+        SysSpec.ToolTip = _sys.GpuName;
+        if (!_sys.IsNvidia) { NvidiaBtn.IsEnabled = false; CustomNvidia.IsEnabled = false; }
+
         LoadSettingsIntoUi();
-        StartHud();
+        (_mode switch { RunMode.Quick => ModeQuick, RunMode.Full => ModeFull, _ => ModeTodo }).IsChecked = true;
+        RefreshTexts();
+
+        Loc.Changed += RefreshTexts;
+        ThemeManager.Changed += () => { RefreshThemeButton(); DrawHomeChart(); DrawHistoryChart(); BuildFirstRun(); };
 
         StateChanged += (_, _) =>
         {
             // Con WindowChrome, al maximizar Windows recorta ~7px por cada lado
-            ((Border)Content).Margin = WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
+            Root.Margin = WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
             MaxBtn.Content = WindowState == WindowState.Maximized ? "" : "";
         };
 
         Loaded += async (_, _) =>
         {
+            if (!_settings.FirstRunDone && _autoMode is null && !SnapMode) ShowFirstRun();
             await RefreshDriveAsync();
-            if (_autoMode is null && !SnapMode) _ = CheckUpdatesAsync(silent: true);
+            if (_autoMode is null && !SnapMode && _settings.FirstRunDone) _ = CheckUpdatesAsync(silent: true);
             if (_autoMode is { } m)
                 await RunAsync(RunPlan.For(m, _settings, _sys, interactive: false), auto: true);
         };
     }
 
     // ===================================================================
-    //  Arranque de la interfaz
+    //  Textos que pone el codigo (se rehacen al cambiar de idioma)
     // ===================================================================
-    private void FillSystemInfo()
+    private void RefreshTexts()
     {
-        SysWin.Text = _sys.Windows;
-        SysUser.Text = _sys.User;
-        SysGpu.Text = _sys.GpuName.Replace("NVIDIA GeForce ", "");
-        SysGpu.ToolTip = _sys.GpuName;
-        UpdateDisk();
-
-        if (!_sys.IsNvidia)
-        {
-            NvidiaBtn.IsEnabled = false;
-            NvidiaSub.Text = "No se ha detectado una GPU NVIDIA en este equipo: este módulo solo funciona con tarjetas NVIDIA.";
-            CustomNvidia.IsEnabled = false;
-        }
+        LangCode.Text = Lang.ToUpperInvariant() == "ZH" ? "中文" : Lang.ToUpperInvariant();
+        RefreshThemeButton();
+        if (!_sys.IsNvidia) NvidiaSub.Text = T("cs2.nv.none");
+        else NvidiaSub.SetBinding(TextBlock.TextProperty, new System.Windows.Data.Binding("[cs2.nv.sub]") { Source = Loc.I });
+        BuildCustomList();
+        UpdateHome();
+        BuildFirstRun();
+        if (PageHistory.Visibility == Visibility.Visible) RefreshHistory();
+        _ = RefreshDriveAsync();
     }
 
-    private void UpdateDisk() => SysDisk.Text = "C: " + Sys.FormatBytes(SystemInfo.FreeBytesC()) + " libres";
-
-    private void BuildCustomList()
+    private void RefreshThemeButton()
     {
-        int i = 1;
-        foreach (var item in CleanupCatalog.All)
-        {
-            var title = new TextBlock { Text = item.Title, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("Text") };
-            var desc = new TextBlock { Text = item.Description, Style = (Style)FindResource("Sub"), FontSize = 11 };
-            var panel = new StackPanel();
-            panel.Children.Add(title);
-            panel.Children.Add(desc);
-            if (item.Risky)
-                panel.Children.Add(new TextBlock { Text = "Precaución", Foreground = (Brush)FindResource("Amber"), FontSize = 10, Margin = new Thickness(0, 3, 0, 0) });
-
-            var cb = new CheckBox { Style = (Style)FindResource("CheckCard"), Content = panel, Tag = item.Id };
-            cb.Click += CustomItem_Click;
-            _customBoxes.Add(cb);
-        }
-        CustomList.ItemsSource = _customBoxes;
+        ThemeLabel.Text = T("theme." + ThemeManager.Mode);
+        ThemeIcon.Text = ThemeManager.Mode switch { "light" => "", "dark" => "", _ => "" };
     }
 
+    // ===================================================================
+    //  Pantalla de inicio
+    // ===================================================================
+    private void UpdateHome()
+    {
+        // Disco
+        long free = SystemInfo.FreeBytesC(), total = SystemInfo.TotalBytesC();
+        HomeDiskFree.Text = Sys.FormatBytes(free, 0);
+        HomeDiskTotal.Text = Sys.FormatBytes(total, 0);
+        HomeDiskBar.Value = total > 0 ? (double)(total - free) / total : 0;
+        HomeDiskUsed.Text = T("home.disk.used", Sys.FormatBytes(total - free, 0));
+        HomeDiskHint.Text = T("home.disk.hint");
+
+        // Frase de estado: ultima limpieza + backup
+        _history = History.Load();
+        var last = _history.LastOrDefault(h => !h.Cancelled);
+        var s = last is null ? T("home.sub.none") : T("home.sub.last", Ago(last.When), ModeName(last.Mode), Sys.FormatBytes(Math.Max(0, last.FreedBytes)));
+        HomeSub.Text = s + " · " + (_settings.BackupToDrive ? T("home.sub.backup.on") : T("home.sub.backup.off"));
+
+        // Que hace el modo elegido
+        var names = ModeSteps(_mode);
+        HomeStepsTitle.Text = T("home.steps", T(_mode switch { RunMode.Quick => "mode.quick", RunMode.Full => "mode.full", _ => "mode.todo" }));
+        HomeStepsMeta.Text = T("home.steps.meta", names.Count);
+        HomeSteps.ItemsSource = names.Select(n => StepChip(n.name, n.cs2)).ToList();
+
+        DrawHomeChart();
+    }
+
+    private List<(string name, bool cs2)> ModeSteps(RunMode m)
+    {
+        var plan = RunPlan.For(m, _settings, _sys, true);
+        var list = plan.Cleanup.Select(c => (c.Title, false)).ToList();
+        if (plan.Nvidia) list.Add((T("mod.nvidia"), true));
+        if (plan.Shader) list.Add((T("mod.shader"), true));
+        if (plan.Mouse) list.Add((T("mod.mouse"), true));
+        return list;
+    }
+
+    private static FrameworkElement StepChip(string name, bool cs2)
+    {
+        var dot = new System.Windows.Shapes.Ellipse { Width = 7, Height = 7, Margin = new Thickness(0, 0, 9, 0), VerticalAlignment = VerticalAlignment.Center };
+        dot.SetResourceReference(Shape.FillProperty, cs2 ? "Ink" : "Accent");
+        var sp = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 4, 12, 4) };
+        sp.Children.Add(dot);
+        sp.Children.Add(new TextBlock { Text = name, FontSize = 13, TextTrimming = TextTrimming.CharacterEllipsis });
+        return sp;
+    }
+
+    private void Mode_Checked(object s, RoutedEventArgs e)
+    {
+        if (!IsInitialized) return;
+        _mode = s == ModeQuick ? RunMode.Quick : s == ModeFull ? RunMode.Full : RunMode.Todo;
+        _settings.LastMode = _mode switch { RunMode.Quick => "quick", RunMode.Full => "full", _ => "todo" };
+        _settings.Save();
+        if (HomeSteps is not null) UpdateHome();
+    }
+
+    private async void CleanNow_Click(object s, RoutedEventArgs e) => await RunAsync(RunPlan.For(_mode, _settings, _sys, true));
+    private void GoBackup_Click(object s, RoutedEventArgs e) => NavBackup.IsChecked = true;
+    private void HomeChart_SizeChanged(object s, SizeChangedEventArgs e) => DrawHomeChart();
+
+    private void DrawHomeChart()
+    {
+        if (HomeChart is null) return;
+        var data = _history.Where(h => !h.Cancelled).TakeLast(10).ToList();
+        HomeChartEmpty.Visibility = data.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        HomeFreedMeta.Text = data.Count == 0 ? "" : Sys.FormatBytes(data.Sum(d => Math.Max(0, d.FreedBytes)));
+        DrawBars(HomeChart, data, 10);
+    }
+
+    /// <summary>"hace 3 dias", "hace 2 h"... en el idioma actual.</summary>
+    private static string Ago(DateTime when)
+    {
+        var d = DateTime.Now - when;
+        if (d.TotalMinutes < 2) return T("ago.now");
+        if (d.TotalHours < 1) return T("ago.min", (int)d.TotalMinutes);
+        if (d.TotalDays < 1) return T("ago.h", (int)d.TotalHours);
+        return T("ago.d", (int)d.TotalDays);
+    }
+
+    /// <summary>Los registros guardan la clave del modo; los de la 5.0 guardaban el nombre.</summary>
+    private static string ModeName(string key)
+    {
+        key = key switch
+        {
+            "TODO" => "todo", "TODO sin backup" => "nobackup", "Limpieza rápida" => "quick", "Limpieza completa" => "full",
+            "Limpieza personalizada" => "custom", "Shadercache" => "shader", "Configuración del ratón" => "mouse",
+            "Perfil NVIDIA CS2" => "nvidia", "Backup Steam" => "backup", _ => key
+        };
+        return Strings.Table.ContainsKey("plan." + key) ? T("plan." + key) : key;
+    }
+
+    // ===================================================================
+    //  Ajustes en la interfaz
+    // ===================================================================
     private void LoadSettingsIntoUi()
     {
         HomeBackupToggle.IsChecked = BackupToggle.IsChecked = _settings.BackupToDrive;
@@ -106,39 +197,49 @@ public partial class MainWindow : Window
         DriveFolderBox.Text = _settings.DriveFolder;
         MaxMbBox.Text = _settings.BackupMaxMB.ToString();
         ExcludeBox.Text = string.Join(",", _settings.BackupExclude);
+    }
 
-        var sel = _settings.CustomSelection.Count == 0
-            ? CleanupCatalog.Quick.Select(q => q.Id).ToHashSet()
-            : _settings.CustomSelection.ToHashSet();
-        foreach (var cb in _customBoxes) cb.IsChecked = sel.Contains((string)cb.Tag);
-        CustomShader.IsChecked = sel.Contains("mod:shader");
-        CustomMouse.IsChecked = sel.Contains("mod:mouse");
-        CustomNvidia.IsChecked = _sys.IsNvidia && sel.Contains("mod:nvidia");
+    private void BuildCustomList()
+    {
+        var sel = _customBoxes.Count > 0
+            ? _customBoxes.Where(c => c.IsChecked == true).Select(c => (string)c.Tag).ToHashSet()
+            : (_settings.CustomSelection.Count == 0 ? CleanupCatalog.Quick.Select(q => q.Id).ToHashSet() : _settings.CustomSelection.ToHashSet());
+        if (_customBoxes.Count == 0)
+        {
+            CustomShader.IsChecked = sel.Contains("mod:shader");
+            CustomMouse.IsChecked = sel.Contains("mod:mouse");
+            CustomNvidia.IsChecked = _sys.IsNvidia && sel.Contains("mod:nvidia");
+        }
+        _customBoxes.Clear();
+        foreach (var item in CleanupCatalog.All)
+        {
+            var panel = new StackPanel();
+            panel.Children.Add(new TextBlock { Text = item.Title, FontWeight = FontWeights.SemiBold });
+            panel.Children.Add(new TextBlock { Text = item.Description, Style = (Style)FindResource("Sub"), FontSize = 12 });
+            if (item.Risky)
+            {
+                var w = new TextBlock { Text = T("custom.caution"), FontSize = 11, Margin = new Thickness(0, 3, 0, 0) };
+                w.SetResourceReference(TextBlock.ForegroundProperty, "Warn");
+                panel.Children.Add(w);
+            }
+            var cb = new CheckBox { Style = (Style)FindResource("CheckCard"), Content = panel, Tag = item.Id, IsChecked = sel.Contains(item.Id) };
+            cb.Click += CustomItem_Click;
+            _customBoxes.Add(cb);
+        }
+        CustomList.ItemsSource = null;
+        CustomList.ItemsSource = _customBoxes;
         UpdateCustomCount();
     }
 
     // ===================================================================
-    //  Elementos "vivos" del HUD: cinta de rumbo, reloj Zulu, reticula
-    // ===================================================================
-    private void StartHud()
-    {
-        _hudTimer.Tick += (_, _) =>
-        {
-            ZuluClock.Text = DateTime.Now.ToString("HH:mm");
-        };
-        _hudTimer.Start();
-
-    }
-
-    // ===================================================================
-    //  Barra de titulo y navegacion
+    //  Barra de titulo, navegacion, idioma, color y tema
     // ===================================================================
     private void Min_Click(object s, RoutedEventArgs e) => WindowState = WindowState.Minimized;
     private void Max_Click(object s, RoutedEventArgs e) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
     private async void Close_Click(object s, RoutedEventArgs e)
     {
-        if (_running && !await Confirm("AVISO", "Hay una limpieza en marcha", "Si cierras ahora se cancela lo que quede pendiente.", "Cerrar igualmente", "Seguir"))
+        if (_running && !await Confirm(T("dlg.warn"), T("dlg.running.t"), T("dlg.running.x"), T("dlg.running.yes"), T("dlg.running.no")))
             return;
         _runCts?.Cancel();
         Close();
@@ -146,7 +247,8 @@ public partial class MainWindow : Window
 
     private void Nav_Checked(object sender, RoutedEventArgs e)
     {
-        if (!IsLoaded && sender != NavHome) return;
+        // Durante InitializeComponent "Limpieza" se marca antes de que existan las paginas
+        if (!IsLoaded) return;
         if (_running) return;
         ShowPage(sender switch
         {
@@ -159,6 +261,7 @@ public partial class MainWindow : Window
         });
         if (sender == NavLog) LogBox.Text = Logger.ReadAll();
         if (sender == NavHistory) RefreshHistory();
+        if (sender == NavHome) UpdateHome();
     }
 
     private void ShowPage(FrameworkElement page)
@@ -167,23 +270,152 @@ public partial class MainWindow : Window
         foreach (var p in new FrameworkElement[] { PageHome, PageCustom, PageCs2, PageBackup, PageLog, PageHistory, PageRun })
             p.Visibility = p == page ? Visibility.Visible : Visibility.Collapsed;
         page.Opacity = 0;
-        page.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(180)));
+        page.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160)));
+    }
+
+    private void LangBtn_Click(object s, RoutedEventArgs e)
+    {
+        LangList.Children.Clear();
+        foreach (var k in Langs)
+            LangList.Children.Add(MenuRow(In(k, "lang.native"), k == Lang, null, () => SetLanguage(k), LangPopup));
+        LangPopup.IsOpen = true;
+    }
+
+    private void ColorBtn_Click(object s, RoutedEventArgs e)
+    {
+        ColorList.Children.Clear();
+        foreach (var p in ThemeManager.Palettes)
+            ColorList.Children.Add(MenuRow(T("pal." + p), p == ThemeManager.Palette, ThemeManager.Swatch(p, ThemeManager.IsDark), () => SetPalette(p), ColorPopup));
+        ColorPopup.IsOpen = true;
+    }
+
+    private void ThemeBtn_Click(object s, RoutedEventArgs e)
+    {
+        var i = Array.IndexOf(ThemeManager.Modes, ThemeManager.Mode);
+        SetThemeMode(ThemeManager.Modes[(i + 1) % ThemeManager.Modes.Length]);
+    }
+
+    private Button MenuRow(string text, bool on, Color? swatch, Action act, Popup popup)
+    {
+        var dp = new DockPanel { LastChildFill = true, MinWidth = 170 };
+        var check = new TextBlock { Text = on ? "" : "", FontFamily = (FontFamily)FindResource("Icons"), FontSize = 12, Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        check.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
+        DockPanel.SetDock(check, Dock.Right);
+        dp.Children.Add(check);
+        if (swatch is { } c)
+        {
+            var dot = new System.Windows.Shapes.Ellipse { Width = 14, Height = 14, Fill = new SolidColorBrush(c), Margin = new Thickness(0, 0, 10, 0) };
+            DockPanel.SetDock(dot, Dock.Left);
+            dp.Children.Add(dot);
+        }
+        dp.Children.Add(new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center, FontWeight = on ? FontWeights.SemiBold : FontWeights.Normal });
+        var b = new Button { Style = (Style)FindResource("FootButton"), Content = dp, Height = 34, FontSize = 13.5, HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        b.Click += (_, _) => { popup.IsOpen = false; act(); };
+        return b;
+    }
+
+    private void SetLanguage(string lang)
+    {
+        _settings.Language = lang;
+        _settings.Save();
+        Loc.Set(lang);
+    }
+
+    private void SetPalette(string pal)
+    {
+        _settings.Palette = pal;
+        _settings.Save();
+        ThemeManager.Apply(pal, ThemeManager.Mode);
+    }
+
+    private void SetThemeMode(string mode)
+    {
+        _settings.ThemeMode = mode;
+        _settings.Save();
+        ThemeManager.Apply(ThemeManager.Palette, mode);
     }
 
     // ===================================================================
-    //  Modos
+    //  Primer arranque: idioma, color y apariencia
     // ===================================================================
-    private async void Quick_Click(object s, RoutedEventArgs e) => await RunAsync(RunPlan.For(RunMode.Quick, _settings, _sys, true));
-    private async void Full_Click(object s, RoutedEventArgs e) => await RunAsync(RunPlan.For(RunMode.Full, _settings, _sys, true));
-    private async void Todo_Click(object s, RoutedEventArgs e) => await RunAsync(RunPlan.For(RunMode.Todo, _settings, _sys, true));
+    private void ShowFirstRun()
+    {
+        BuildFirstRun();
+        FirstRun.Visibility = Visibility.Visible;
+    }
 
+    private void BuildFirstRun()
+    {
+        if (FrLangs is null) return;
+        FrTitle.Text = T("first.title");
+        FrSub.Text = T("first.sub");
+        FrLangLbl.Text = T("first.lang");
+        FrColorLbl.Text = T("first.color");
+        FrColorName.Text = T("pal." + ThemeManager.Palette);
+        FrLookLbl.Text = T("first.look");
+        FrContinue.Content = T("first.continue");
+
+        FrLangs.Children.Clear();
+        foreach (var k in Langs)
+        {
+            var row = new DockPanel();
+            var chk = new TextBlock { Text = k == Lang ? "" : "", FontFamily = (FontFamily)FindResource("Icons"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
+            chk.SetResourceReference(TextBlock.ForegroundProperty, "Accent");
+            DockPanel.SetDock(chk, Dock.Right);
+            row.Children.Add(chk);
+            var name = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
+            name.Inlines.Add(new System.Windows.Documents.Run(In(k, "lang.native")) { FontWeight = FontWeights.SemiBold });
+            if (k != "en")
+            {
+                var en = new System.Windows.Documents.Run("  " + In("en", "lang.native." + k)) { FontSize = 12 };
+                en.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty, "Muted");
+                name.Inlines.Add(en);
+            }
+            row.Children.Add(name);
+            var rb = new RadioButton { Style = (Style)FindResource("PickRow"), Content = row, IsChecked = k == Lang, GroupName = "frlang", Margin = new Thickness(0, 0, 6, 6) };
+            var lang = k;
+            rb.Click += (_, _) => SetLanguage(lang);
+            FrLangs.Children.Add(rb);
+        }
+
+        FrColors.Children.Clear();
+        foreach (var p in ThemeManager.Palettes)
+        {
+            var rb = new RadioButton { Style = (Style)FindResource("SwatchPick"), Background = new SolidColorBrush(ThemeManager.Swatch(p, ThemeManager.IsDark)),
+                                       IsChecked = p == ThemeManager.Palette, GroupName = "frpal", ToolTip = T("pal." + p), Margin = new Thickness(0, 0, 10, 0) };
+            var pal = p;
+            rb.Click += (_, _) => SetPalette(pal);
+            FrColors.Children.Add(rb);
+        }
+
+        FrLooks.Children.Clear();
+        foreach (var m in ThemeManager.Modes)
+        {
+            var rb = new RadioButton { Style = (Style)FindResource("SegItem"), Content = T("theme." + m), IsChecked = m == ThemeManager.Mode, GroupName = "frlook" };
+            var mode = m;
+            rb.Click += (_, _) => SetThemeMode(mode);
+            FrLooks.Children.Add(rb);
+        }
+    }
+
+    private void FirstRunContinue_Click(object s, RoutedEventArgs e)
+    {
+        _settings.FirstRunDone = true;
+        _settings.Save();
+        FirstRun.BeginAnimation(OpacityProperty, new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(180)));
+        Dispatcher.BeginInvoke(async () => { await Task.Delay(200); FirstRun.Visibility = Visibility.Collapsed; FirstRun.BeginAnimation(OpacityProperty, null); _ = CheckUpdatesAsync(true); });
+    }
+
+    // ===================================================================
+    //  Modos y modulos
+    // ===================================================================
     private async void RunCustom_Click(object s, RoutedEventArgs e)
     {
         SaveCustomSelection();
         var ids = _customBoxes.Where(c => c.IsChecked == true).Select(c => (string)c.Tag).ToHashSet();
         var plan = new RunPlan
         {
-            Name = "Limpieza personalizada",
+            Key = "custom",
             Cleanup = CleanupCatalog.All.Where(i => ids.Contains(i.Id)).ToList(),
             Shader = CustomShader.IsChecked == true,
             Mouse = CustomMouse.IsChecked == true,
@@ -192,7 +424,7 @@ public partial class MainWindow : Window
         };
         if (plan.Cleanup.Count == 0 && !plan.Shader && !plan.Mouse && !plan.Nvidia)
         {
-            ShowToast("Selecciona al menos una opción");
+            ShowToast(T("toast.selectOne"));
             return;
         }
         await RunAsync(plan);
@@ -223,7 +455,7 @@ public partial class MainWindow : Window
     private void OpenInspector_Click(object s, RoutedEventArgs e)
     {
         try { Cs2Modules.OpenNvidiaInspector(); }
-        catch (Exception ex) { ShowToast("No se pudo abrir el Inspector: " + ex.Message); }
+        catch (Exception ex) { ShowToast(T("toast.inspectorFail", ex.Message)); }
     }
 
     private async void BackupNow_Click(object s, RoutedEventArgs e)
@@ -233,32 +465,28 @@ public partial class MainWindow : Window
     }
 
     // ===================================================================
-    //  Ejecucion de una mision
+    //  Ejecucion
     // ===================================================================
     private async Task RunAsync(RunPlan plan, bool auto = false)
     {
         if (_running) return;
 
-        // Mismo aviso que el .bat: con Steam abierto la shadercache puede no borrarse
+        // Con Steam abierto la shadercache puede no borrarse entera
         if (plan.Shader && plan.Interactive && SystemInfo.IsRunning("steam"))
         {
-            if (!await Confirm("AVISO", "Steam está abierto",
-                    "Conviene cerrar Steam antes de borrar la shadercache o algunos archivos no se podrán eliminar.",
-                    "Continuar igualmente", "Saltar shadercache"))
+            if (!await Confirm(T("dlg.warn"), T("dlg.steam.t"), T("dlg.steam.x"), T("dlg.steam.yes"), T("dlg.steam.no")))
                 plan.Shader = false;
         }
 
         // Backup activado pero sin sesion de Google: mejor resolverlo antes de empezar
         if (plan.Backup && plan.Interactive && DriveSync.IsConfigured && !await DriveSync.HasTokenAsync())
         {
-            if (await Confirm("GOOGLE DRIVE", "Google Drive sin conectar",
-                    "El backup está activado pero aún no has iniciado sesión con Google. Se abrirá el navegador para autorizarlo.",
-                    "Conectar ahora", "Seguir sin subir"))
+            if (await Confirm("GOOGLE DRIVE", T("dlg.drive.t"), T("dlg.drive.x"), T("dlg.drive.yes"), T("dlg.drive.no")))
                 await ConnectDriveAsync();
         }
 
         var stepsDef = Runner.BuildSteps(plan, _settings, _sys);
-        if (stepsDef.Count == 0) { ShowToast("No hay nada que ejecutar"); return; }
+        if (stepsDef.Count == 0) { ShowToast(T("toast.nothing")); return; }
 
         _running = true;
         _keepOpen = false;
@@ -266,8 +494,8 @@ public partial class MainWindow : Window
         var ct = _runCts.Token;
 
         Logger.StartSession(plan.Name);
-        Logger.Info($"=== INICIO {plan.Name.ToUpperInvariant()} ===");
-        if (!plan.Backup && plan.Name.Contains("sin backup")) Logger.Info("MODO /nobackup: backup y subida a Drive omitidos");
+        Logger.Info(T("lg.start", plan.Name.ToUpper(Culture)));
+        if (plan.Key == "nobackup") Logger.Info(T("lg.nobackup"));
 
         _steps.Clear();
         foreach (var st in stepsDef) _steps.Add(new StepVM(st));
@@ -275,17 +503,16 @@ public partial class MainWindow : Window
         Logger.Written += OnLog;
 
         RunTitle.Text = plan.Name;
-        RunOverline.Text = "EN CURSO";
-        RunOverline.Foreground = (Brush)FindResource("Faint");
+        RunOverline.Text = T("run.overline.running");
+        RunOverline.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
         RunBar.Value = 0;
         RunPercent.Text = "0%";
-        RunFreed.Text = "---";
-        RunState.Text = "En curso";
-        RunState.Foreground = (Brush)FindResource("Muted");
+        RunFreed.Text = "-";
+        RunState.Text = T("run.state.running");
+        RunState.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
         CancelBtn.Visibility = Visibility.Visible;
         DoneBtn.Visibility = Visibility.Collapsed;
         KeepOpenBtn.Visibility = Visibility.Collapsed;
-        FooterLeft.Text = "Ejecutando: " + plan.Name;
         Nav.IsEnabled = false;
         ShowPage(PageRun);
 
@@ -301,11 +528,7 @@ public partial class MainWindow : Window
         for (int i = 0; i < _steps.Count; i++)
         {
             var vm = _steps[i];
-            if (ct.IsCancellationRequested)
-            {
-                vm.Status = StepStatus.Skipped;
-                continue;
-            }
+            if (ct.IsCancellationRequested) { vm.Status = StepStatus.Skipped; continue; }
 
             vm.Status = StepStatus.Running;
             int idx = i;
@@ -327,7 +550,7 @@ public partial class MainWindow : Window
             {
                 vm.Status = StepStatus.Skipped;
                 cancelled = true;
-                Logger.Warn("Abortado por el usuario");
+                Logger.Warn(T("lg.cancelled"));
             }
             catch (Exception ex)
             {
@@ -337,10 +560,10 @@ public partial class MainWindow : Window
 
             // El backup escribe ZIPs en C:, eso no cuenta como "liberado"
             long delta = SystemInfo.FreeBytesC() - before;
-            if (!vm.Title.Contains("ackup") && delta > 0)
+            if (!vm.Step.IsBackup && delta > 0)
             {
                 freed += delta;
-                if (delta > 1024 * 1024) vm.Detail = "+" + Sys.FormatBytes(delta) + " liberados";
+                if (delta > 1024 * 1024) vm.Detail = T("run.stepFreed", Sys.FormatBytes(delta));
             }
             switch (vm.Status)
             {
@@ -349,7 +572,6 @@ public partial class MainWindow : Window
                 case StepStatus.Error: err++; break;
             }
             RunFreed.Text = Sys.FormatBytes(freed);
-            UpdateDisk();
         }
 
         sw.Stop();
@@ -359,17 +581,18 @@ public partial class MainWindow : Window
         SetOverall(1);
         cancelled |= ct.IsCancellationRequested;
 
-        History.Add(new RunRecord(DateTime.Now, plan.Name, freed, sw.Elapsed.TotalSeconds, ok, warn, err, cancelled));
+        History.Add(new RunRecord(DateTime.Now, plan.Key, freed, sw.Elapsed.TotalSeconds, ok, warn, err, cancelled));
         Logger.Write(err > 0 ? LogLevel.Warn : LogLevel.Ok,
-            $"=== FIN {plan.Name.ToUpperInvariant()} - liberado {Sys.FormatBytes(freed)} en {sw.Elapsed:mm\\:ss} ({ok} ok, {warn} avisos, {err} errores) ===");
+            T("lg.end", plan.Name.ToUpper(Culture), Sys.FormatBytes(freed), sw.Elapsed.ToString(@"mm\:ss"), ok, warn, err));
 
-        if (cancelled) { RunState.Text = "Cancelada"; RunState.Foreground = (Brush)FindResource("Amber"); RunOverline.Text = "CANCELADA"; }
-        else if (err > 0) { RunState.Text = $"{err} con errores"; RunState.Foreground = (Brush)FindResource("Red"); RunOverline.Text = "TERMINADA CON ERRORES"; }
-        else if (warn > 0) { RunState.Text = $"Completada · {warn} aviso(s)"; RunState.Foreground = (Brush)FindResource("Amber"); RunOverline.Text = "COMPLETADA"; }
-        else { RunState.Text = "Completada"; RunState.Foreground = (Brush)FindResource("Hud"); RunOverline.Text = "COMPLETADA"; }
-        RunOverline.Foreground = RunState.Foreground;
+        string stateKey;
+        if (cancelled) { RunState.Text = T("run.state.cancelled"); stateKey = "Warn"; RunOverline.Text = T("run.overline.cancelled"); }
+        else if (err > 0) { RunState.Text = T("run.state.errors", err); stateKey = "Error"; RunOverline.Text = T("run.overline.errors"); }
+        else if (warn > 0) { RunState.Text = T("run.state.warnings", warn); stateKey = "Warn"; RunOverline.Text = T("run.overline.done"); }
+        else { RunState.Text = T("run.state.done"); stateKey = "Accent"; RunOverline.Text = T("run.overline.done"); }
+        RunState.SetResourceReference(TextBlock.ForegroundProperty, stateKey);
+        RunOverline.SetResourceReference(TextBlock.ForegroundProperty, stateKey);
 
-        FooterLeft.Text = "Listo";
         CancelBtn.Visibility = Visibility.Collapsed;
         DoneBtn.Visibility = Visibility.Visible;
         Nav.IsEnabled = true;
@@ -377,7 +600,7 @@ public partial class MainWindow : Window
         _runCts.Dispose();
         _runCts = null;
 
-        // Lanzado con /todo, /rapida...: como el .bat, se cierra solo al terminar
+        // Lanzado con /todo, /rapida...: se cierra solo al terminar
         if (auto) { await AutoCloseAsync(); return; }
 
         // Tras una limpieza desde la ventana, ofrecer reiniciar
@@ -387,13 +610,10 @@ public partial class MainWindow : Window
 
     private async Task OfferRestartAsync()
     {
-        if (!await Confirm("REINICIO RECOMENDADO", "¿Reiniciar el PC ahora?",
-                "Es recomendable reiniciar para que Windows termine de liberar los archivos que estaban en uso y " +
-                "regenere limpias las cachés (miniaturas, iconos, fuentes y drivers gráficos). Guarda lo que tengas abierto antes.",
-                "Reiniciar ahora", "Más tarde"))
+        if (!await Confirm(T("dlg.restart.o"), T("dlg.restart.t"), T("dlg.restart.x"), T("dlg.restart.yes"), T("dlg.restart.no")))
             return;
-        Logger.Info("Reinicio solicitado por el usuario");
-        await Sys.RunAsync("shutdown.exe", "/r /t 10 /c \"RNX Cache Cleaner: reiniciando para terminar la limpieza\"", 30);
+        Logger.Info(T("lg.restart"));
+        await Sys.RunAsync("shutdown.exe", $"/r /t 10 /c \"{T("restart.comment")}\"", 30);
         Application.Current.Shutdown();
     }
 
@@ -403,11 +623,10 @@ public partial class MainWindow : Window
         for (int s = 6; s > 0; s--)
         {
             if (_keepOpen) { KeepOpenBtn.Visibility = Visibility.Collapsed; return; }
-            FooterRight.Text = $"Se cierra en {s} s";
+            RunOverline.Text = T("run.autoclose", s);
             await Task.Delay(1000);
         }
         if (!_keepOpen) Close();
-        FooterRight.Text = "Administrador";
     }
 
     private void SetOverall(double v)
@@ -425,21 +644,12 @@ public partial class MainWindow : Window
     {
         Dispatcher.BeginInvoke(() =>
         {
-            var brush = (Brush)FindResource(e.Level switch
+            var tb = new TextBlock { Text = $"{e.Time:HH:mm:ss}  {e.Text}", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 1, 0, 1) };
+            tb.SetResourceReference(TextBlock.ForegroundProperty, e.Level switch
             {
-                LogLevel.Error => "Red",
-                LogLevel.Warn => "Amber",
-                LogLevel.Ok => "Hud",
-                LogLevel.Detail => "Faint",
-                _ => "Muted"
+                LogLevel.Error => "Error", LogLevel.Warn => "Warn", LogLevel.Ok => "Accent", LogLevel.Detail => "Faint", _ => "Muted"
             });
-            LiveLog.Items.Add(new TextBlock
-            {
-                Text = $"{e.Time:HH:mm:ss}  {e.Text}",
-                Foreground = brush,
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 1, 0, 1),
-            });
+            LiveLog.Items.Add(tb);
             while (LiveLog.Items.Count > 400) LiveLog.Items.RemoveAt(0);
             LiveScroll.ScrollToEnd();
         });
@@ -449,7 +659,7 @@ public partial class MainWindow : Window
     {
         _runCts?.Cancel();
         CancelBtn.IsEnabled = false;
-        RunState.Text = "Cancelando...";
+        RunState.Text = T("run.state.cancelling");
         Dispatcher.BeginInvoke(() => CancelBtn.IsEnabled = true, DispatcherPriority.Background);
     }
 
@@ -457,13 +667,14 @@ public partial class MainWindow : Window
     {
         _keepOpen = true;
         KeepOpenBtn.Visibility = Visibility.Collapsed;
-        FooterRight.Text = "Administrador";
+        RunOverline.Text = T("run.overline.done");
     }
 
     private void Done_Click(object s, RoutedEventArgs e)
     {
         NavHome.IsChecked = true;
         ShowPage(PageHome);
+        UpdateHome();
     }
 
     // ===================================================================
@@ -497,7 +708,7 @@ public partial class MainWindow : Window
     {
         int n = _customBoxes.Count(c => c.IsChecked == true)
                 + (CustomShader.IsChecked == true ? 1 : 0) + (CustomMouse.IsChecked == true ? 1 : 0) + (CustomNvidia.IsChecked == true ? 1 : 0);
-        CustomCount.Text = $"{n} seleccionadas";
+        CustomCount.Text = T("custom.count", n);
     }
 
     // ===================================================================
@@ -515,7 +726,7 @@ public partial class MainWindow : Window
 
     private void ShaderBrowse_Click(object s, RoutedEventArgs e)
     {
-        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = "Carpeta shadercache de CS2 (steamapps\\shadercache\\730)" };
+        var dlg = new Microsoft.Win32.OpenFolderDialog { Title = T("cs2.browse") };
         var parent = Path.GetDirectoryName(_settings.ShaderPath);
         if (Directory.Exists(parent)) dlg.InitialDirectory = parent;
         if (dlg.ShowDialog(this) == true)
@@ -533,7 +744,7 @@ public partial class MainWindow : Window
         {
             ShaderPathBox.Text = found;
             SaveShaderPath();
-            ShowToast("Shadercache de CS2 encontrada");
+            ShowToast(T("toast.shaderFound"));
             return;
         }
         var lib = Cs2Modules.Cs2Library();
@@ -541,9 +752,9 @@ public partial class MainWindow : Window
         {
             ShaderPathBox.Text = Path.Combine(lib, "steamapps", "shadercache", "730");
             SaveShaderPath();
-            ShowToast("CS2 encontrado; la shadercache ya está limpia (se regenera al abrir el juego)");
+            ShowToast(T("toast.shaderClean"));
         }
-        else ShowToast("No se ha encontrado CS2 en ninguna biblioteca de Steam");
+        else ShowToast(T("toast.noCs2"));
     }
 
     // ===================================================================
@@ -555,12 +766,9 @@ public partial class MainWindow : Window
         _settings.BackupToDrive = on;
         HomeBackupToggle.IsChecked = BackupToggle.IsChecked = on;
         _settings.Save();
+        UpdateHome();
 
-        if (on && !DriveSync.IsConfigured)
-        {
-            ShowToast("Esta compilación no trae Google Drive configurado: el backup se guardará solo en local");
-            return;
-        }
+        if (on && !DriveSync.IsConfigured) { ShowToast(T("toast.noDriveBuild")); return; }
         if (on && !await DriveSync.HasTokenAsync())
             await ConnectDriveAsync();
         await RefreshDriveAsync();
@@ -570,20 +778,20 @@ public partial class MainWindow : Window
 
     private async Task ConnectDriveAsync()
     {
-        if (!DriveSync.IsConfigured) { ShowToast("Esta compilación no trae Google Drive configurado"); return; }
+        if (!DriveSync.IsConfigured) { ShowToast(T("toast.noDriveBuild")); return; }
         DriveConnectBtn.IsEnabled = false;
-        DriveAccount.Text = "Esperando al navegador...";
-        ShowToast("Abriendo el navegador: inicia sesión con Google y acepta");
+        DriveAccount.Text = T("bk.waiting");
+        ShowToast(T("toast.browser"));
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             await DriveSync.AuthorizeAsync(true, cts.Token);
-            ShowToast("Google Drive conectado");
+            ShowToast(T("toast.driveOn"));
         }
         catch (Exception ex)
         {
-            Logger.Warn("DRIVE: no se completo el inicio de sesion: " + ex.Message);
-            ShowToast("No se completó el inicio de sesión");
+            Logger.Warn(T("lg.drive.loginFail", ex.Message));
+            ShowToast(T("toast.loginFail"));
         }
         finally { DriveConnectBtn.IsEnabled = true; }
         await RefreshDriveAsync();
@@ -591,51 +799,37 @@ public partial class MainWindow : Window
 
     private async void DriveDisconnect_Click(object s, RoutedEventArgs e)
     {
-        if (!await Confirm("GOOGLE DRIVE", "Desconectar Google Drive",
-                "Se borra el acceso guardado en este PC. Los backups que ya están en tu Drive no se tocan.", "Desconectar", "Cancelar"))
+        if (!await Confirm("GOOGLE DRIVE", T("dlg.disc.t"), T("dlg.disc.x"), T("dlg.disc.yes"), T("dlg.cancel")))
             return;
         await DriveSync.SignOutAsync();
         await RefreshDriveAsync();
-        ShowToast("Google Drive desconectado");
+        ShowToast(T("toast.driveOff"));
     }
 
     private async Task RefreshDriveAsync()
     {
-        var hud = (Brush)FindResource("Hud");
-        var faint = (Brush)FindResource("Faint");
-        var amber = (Brush)FindResource("Amber");
-
         if (!DriveSync.IsConfigured)
         {
-            DriveAccount.Text = "No disponible";
-            DriveAccountSub.Text = "Esta compilación no trae el cliente de Google (google_client.json). El backup se guarda solo en local.";
-            DriveDot.Fill = amber;
-            DriveConnectBtn.Visibility = Visibility.Collapsed;
-            DriveDisconnectBtn.Visibility = Visibility.Collapsed;
-            SysLink.Text = "No disponible"; SysLink.Foreground = amber;
-            HomeBackupStatus.Text = _settings.BackupToDrive ? "Activado · solo copia local (Drive no disponible en esta compilación)" : "Guarda la config de todos tus juegos (userdata) antes de limpiar.";
+            DriveAccount.Text = T("bk.na");
+            DriveAccountSub.Text = T("bk.na.sub");
+            DriveDot.SetResourceReference(Shape.FillProperty, "Warn");
+            DriveConnectBtn.Visibility = DriveDisconnectBtn.Visibility = Visibility.Collapsed;
+            HomeBackupStatus.Text = T("bk.na.sub");
             return;
         }
-
         if (!await DriveSync.HasTokenAsync())
         {
-            DriveAccount.Text = "Sin conectar";
-            DriveAccountSub.Text = "Se abrirá el navegador para autorizar el acceso (solo a los archivos que crea este programa).";
-            DriveDot.Fill = faint;
+            DriveAccount.Text = T("bk.off");
+            DriveAccountSub.Text = T("bk.off.sub");
+            DriveDot.SetResourceReference(Shape.FillProperty, "Faint");
             DriveConnectBtn.Visibility = Visibility.Visible;
             DriveDisconnectBtn.Visibility = Visibility.Collapsed;
-            SysLink.Text = "Sin conectar"; SysLink.Foreground = faint;
-            HomeBackupStatus.Text = _settings.BackupToDrive
-                ? "Activado · falta iniciar sesión con Google (pestaña Backup)"
-                : "Antes de limpiar guarda la config de todos tus juegos (userdata) y la sube a tu Drive.";
+            HomeBackupStatus.Text = _settings.BackupToDrive ? T("home.bk.needLogin") : T("home.bk.off");
             return;
         }
-
         DriveConnectBtn.Visibility = Visibility.Collapsed;
         DriveDisconnectBtn.Visibility = Visibility.Visible;
-        DriveDot.Fill = hud;
-        DriveDot.Effect = (System.Windows.Media.Effects.Effect)FindResource("Glow");
-        SysLink.Text = "Conectado"; SysLink.Foreground = hud;
+        DriveDot.SetResourceReference(Shape.FillProperty, "Accent");
         string? email = null;
         try
         {
@@ -643,11 +837,11 @@ public partial class MainWindow : Window
             email = await DriveSync.GetAccountEmailAsync(cts.Token);
         }
         catch { }
-        DriveAccount.Text = email is null ? "Conectado" : "Conectado como " + email;
-        DriveAccountSub.Text = $"Los ZIP se guardan en la carpeta \"{_settings.DriveFolder}\" de tu Drive.";
+        DriveAccount.Text = email is null ? T("bk.on") : T("bk.on.as", email);
+        DriveAccountSub.Text = T("bk.on.sub", _settings.DriveFolder);
         HomeBackupStatus.Text = _settings.BackupToDrive
-            ? $"Activado · se sube a \"{_settings.DriveFolder}\"" + (email is null ? "" : $" ({email})")
-            : "Desactivado. Actívalo para guardar la config de tus juegos antes de limpiar.";
+            ? T("home.bk.on", _settings.DriveFolder) + (email is null ? "" : $" · {email}")
+            : T("home.bk.off");
     }
 
     private void SaveBackupSettings()
@@ -662,7 +856,6 @@ public partial class MainWindow : Window
     }
 
     private void BackupSettings_LostFocus(object s, RoutedEventArgs e) => SaveBackupSettings();
-
     private void OpenBackups_Click(object s, RoutedEventArgs e) => OpenUnelevated(AppPaths.Backups);
     private void OpenDrive_Click(object s, RoutedEventArgs e) => OpenUnelevated("https://drive.google.com/drive/my-drive");
     private void OpenDataFolder_Click(object s, RoutedEventArgs e) => OpenUnelevated(AppPaths.Root);
@@ -680,10 +873,10 @@ public partial class MainWindow : Window
     }
 
     // ===================================================================
-    //  Accesos directos en el escritorio
+    //  Accesos directos
     // ===================================================================
-    private void ShortcutTodo_Click(object s, RoutedEventArgs e) => CreateShortcut("RNX - TODO", "/todo");
-    private void ShortcutNoBackup_Click(object s, RoutedEventArgs e) => CreateShortcut("RNX - Limpiar sin backup", "/nobackup");
+    private void ShortcutTodo_Click(object s, RoutedEventArgs e) => CreateShortcut(T("sc.name.todo"), "/todo");
+    private void ShortcutNoBackup_Click(object s, RoutedEventArgs e) => CreateShortcut(T("sc.name.nobackup"), "/nobackup");
 
     private void CreateShortcut(string name, string args)
     {
@@ -700,16 +893,14 @@ public partial class MainWindow : Window
             sc.IconLocation = exe + ",0";
             sc.Description = "RNX Cache Cleaner " + args;
             sc.Save();
-            ShowToast($"Acceso directo \"{name}\" creado en el escritorio");
+            ShowToast(T("toast.scOk", name));
         }
-        catch (Exception ex) { ShowToast("No se pudo crear el acceso directo: " + ex.Message); }
+        catch (Exception ex) { ShowToast(T("toast.scFail", ex.Message)); }
     }
 
     // ===================================================================
     //  Historial
     // ===================================================================
-    private List<RunRecord> _history = [];
-
     private sealed record HistRow(string Date, string Mode, string Freed, string Time, string Result, Brush ResultBrush);
 
     private void RefreshHistory(List<RunRecord>? demo = null)
@@ -717,81 +908,81 @@ public partial class MainWindow : Window
         _history = demo ?? History.Load();
         var real = _history.Where(h => !h.Cancelled).ToList();
         long total = real.Sum(h => Math.Max(0, h.FreedBytes));
-        HistCount.Text = real.Count.ToString();
+        HistCount.Text = real.Count.ToString(Culture);
         HistTotal.Text = Sys.FormatBytes(total);
-        HistAvg.Text = real.Count == 0 ? "0 MB" : Sys.FormatBytes(total / real.Count);
-        HistLast.Text = _history.Count == 0 ? "--" : _history[^1].When.ToString("dd/MM HH:mm");
+        HistAvg.Text = real.Count == 0 ? Sys.FormatBytes(0) : Sys.FormatBytes(total / real.Count);
+        HistLast.Text = _history.Count == 0 ? "-" : _history[^1].When.ToString("g", Culture);
 
         HistTable.ItemsSource = _history.AsEnumerable().Reverse().Select(h => new HistRow(
-            h.When.ToString("dd/MM/yyyy HH:mm"), h.Mode, Sys.FormatBytes(Math.Max(0, h.FreedBytes)),
+            h.When.ToString("g", Culture), ModeName(h.Mode), Sys.FormatBytes(Math.Max(0, h.FreedBytes)),
             TimeSpan.FromSeconds(h.Seconds).ToString(@"mm\:ss"),
-            h.Cancelled ? "Cancelada" : h.Error > 0 ? $"{h.Error} error(es)" : h.Warn > 0 ? $"OK · {h.Warn} aviso(s)" : "OK",
-            (Brush)FindResource(h.Cancelled || h.Warn > 0 ? "Amber" : h.Error > 0 ? "Red" : "Muted"))).ToList();
+            h.Cancelled ? T("hist.r.cancelled") : h.Error > 0 ? T("hist.r.errors", h.Error) : h.Warn > 0 ? T("hist.r.warnings", h.Warn) : T("hist.r.ok"),
+            ThemeManager.Res(h.Cancelled || h.Warn > 0 ? "Warn" : h.Error > 0 ? "Error" : "Muted"))).ToList();
         DrawHistoryChart();
     }
 
     private void HistChart_SizeChanged(object s, SizeChangedEventArgs e) => DrawHistoryChart();
 
-    /// <summary>Barras (una sola serie) con el espacio liberado en las ultimas 30 ejecuciones.</summary>
     private void DrawHistoryChart()
     {
-        var c = HistChart;
-        c.Children.Clear();
+        if (HistChart is null) return;
         var data = _history.TakeLast(30).ToList();
         HistEmpty.Visibility = data.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        DrawBars(HistChart, data, 30);
+    }
+
+    /// <summary>Barras de una serie: espacio liberado por ejecucion; la ultima, en el color de acento.</summary>
+    private void DrawBars(Canvas c, List<RunRecord> data, int slots)
+    {
+        c.Children.Clear();
         if (data.Count == 0 || c.ActualWidth < 50 || c.ActualHeight < 40) return;
 
-        const double axisW = 64, axisH = 18, top = 12;
+        const double axisW = 58, axisH = 18, top = 8;
         double w = c.ActualWidth - axisW, h = c.ActualHeight - axisH - top;
         double maxMb = Math.Max(1, data.Max(d => Math.Max(0, d.FreedBytes)) / 1048576.0);
         double niceMax = NiceCeiling(maxMb);
+        var muted = ThemeManager.Res("Faint");
 
-        var mono = (FontFamily)FindResource("Mono");
-        var muted = (Brush)FindResource("Faint");
-        var grid = (Brush)FindResource("Line");
-        var bar = (Brush)FindResource("Hud");
-
-        // Rejilla recesiva: 0, 1/2, max
         foreach (var f in new[] { 0.0, 0.5, 1.0 })
         {
             double y = top + h - f * h;
-            c.Children.Add(new System.Windows.Shapes.Line { X1 = axisW, X2 = axisW + w, Y1 = y, Y2 = y, Stroke = grid, StrokeThickness = 1 });
-            var lbl = new TextBlock { Text = FormatMb(niceMax * f, niceMax >= 1000), FontFamily = mono, FontSize = 10, Foreground = muted, Width = axisW - 10, TextAlignment = TextAlignment.Right };
+            var line = new System.Windows.Shapes.Line { X1 = axisW, X2 = axisW + w, Y1 = y, Y2 = y, StrokeThickness = 1 };
+            line.SetResourceReference(Shape.StrokeProperty, "Line2");
+            c.Children.Add(line);
+            // Misma unidad en todo el eje: GB si el maximo pasa de 1 GB
+            string tick = f == 0 ? "0" : niceMax >= 1024
+                ? (niceMax * f / 1024).ToString("0.#", Culture) + " " + T("u.gb")
+                : (niceMax * f).ToString("0", Culture) + " " + T("u.mb");
+            var lbl = new TextBlock { Text = tick, FontSize = 10.5, Foreground = muted, Width = axisW - 10, TextAlignment = TextAlignment.Right };
             Canvas.SetLeft(lbl, 0); Canvas.SetTop(lbl, y - 7);
             c.Children.Add(lbl);
         }
 
-        double slot = w / 30;              // ancho fijo por ejecucion: la barra no engorda con pocos datos
-        double bw = Math.Max(4, slot - 2); // 2px de separacion entre barras
+        double slot = w / slots, bw = Math.Max(4, Math.Min(26, slot - 6));
         for (int i = 0; i < data.Count; i++)
         {
             var d = data[i];
             double mb = Math.Max(0, d.FreedBytes) / 1048576.0;
             double bh = Math.Max(d.FreedBytes > 0 ? 2 : 0, mb / niceMax * h);
-            double x = axisW + i * slot + 1;
-
-            var rect = new Border { Width = bw, Height = bh, Background = bar, CornerRadius = new CornerRadius(Math.Min(4, bw / 2), Math.Min(4, bw / 2), 0, 0), Opacity = 0.85 };
-            Canvas.SetLeft(rect, x); Canvas.SetTop(rect, top + h - bh);
+            bool last = i == data.Count - 1;
+            var rect = new Border { Width = bw, Height = bh, CornerRadius = new CornerRadius(Math.Min(4, bw / 2), Math.Min(4, bw / 2), 0, 0) };
+            rect.SetResourceReference(Border.BackgroundProperty, last ? "Accent" : "Bar");
+            Canvas.SetLeft(rect, axisW + i * slot + (slot - bw) / 2); Canvas.SetTop(rect, top + h - bh);
             c.Children.Add(rect);
-
-            // Zona de hover de toda la columna (mayor que la barra)
             var hit = new Border
             {
                 Width = slot, Height = h, Background = Brushes.Transparent,
-                ToolTip = $"{d.When:dd/MM/yyyy HH:mm}\n{d.Mode}\nLiberado: {Sys.FormatBytes(Math.Max(0, d.FreedBytes))}\nDuración: {TimeSpan.FromSeconds(d.Seconds):mm\\:ss}"
+                ToolTip = $"{d.When.ToString("g", Culture)}\n{ModeName(d.Mode)}\n{T("hist.tt.freed", Sys.FormatBytes(Math.Max(0, d.FreedBytes)))}\n{T("hist.tt.time", TimeSpan.FromSeconds(d.Seconds).ToString(@"mm\:ss"))}"
             };
-            hit.MouseEnter += (_, _) => rect.Opacity = 1;
-            hit.MouseLeave += (_, _) => rect.Opacity = 0.85;
             Canvas.SetLeft(hit, axisW + i * slot); Canvas.SetTop(hit, top);
             c.Children.Add(hit);
         }
 
-        // Fechas: primera y ultima ejecucion
         void DateLabel(int i, bool right)
         {
-            var t = new TextBlock { Text = data[i].When.ToString("dd/MM"), FontFamily = mono, FontSize = 10, Foreground = muted };
+            var t = new TextBlock { Text = data[i].When.ToString(Culture.DateTimeFormat.MonthDayPattern, Culture), FontSize = 10.5, Foreground = muted };
             t.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            double x = axisW + i * slot + slot / 2 - (right ? t.DesiredSize.Width : 0);
+            double x = axisW + i * slot + slot / 2 - (right ? t.DesiredSize.Width : t.DesiredSize.Width / 2);
             Canvas.SetLeft(t, Math.Max(axisW, x)); Canvas.SetTop(t, top + h + 3);
             c.Children.Add(t);
         }
@@ -807,14 +998,13 @@ public partial class MainWindow : Window
         return 10 * p;
     }
 
-    private static string FormatMb(double mb, bool gb) => gb ? $"{mb / 1024:0.#} GB" : $"{mb:0} MB";
-
     private async void HistoryClear_Click(object s, RoutedEventArgs e)
     {
-        if (!await Confirm("HISTORIAL", "Borrar el historial", "Se borran las estadísticas de limpiezas guardadas en este PC. No afecta a nada más.", "Borrar", "Cancelar"))
+        if (!await Confirm(T("hist.title").ToUpper(Culture), T("dlg.hist.t"), T("dlg.hist.x"), T("dlg.hist.yes"), T("dlg.cancel")))
             return;
         History.Clear();
         RefreshHistory();
+        UpdateHome();
     }
 
     // ===================================================================
@@ -829,59 +1019,50 @@ public partial class MainWindow : Window
             _update = await Updater.CheckAsync(cts.Token);
             if (_update is null)
             {
-                if (!silent) ShowToast($"Ya tienes la última versión (v{Updater.Current})");
+                if (!silent) ShowToast(T("toast.upToDate", Updater.Current));
                 return;
             }
-            UpdateTitle.Text = $"Versión {_update.Version} disponible";
-            UpdateSub.Text = $"Tienes la {Updater.Current}. Se descarga, se instala y el programa se vuelve a abrir. Tu configuración se mantiene.";
+            UpdateTitle.Text = T("upd.title", _update.Version);
+            UpdateSub.Text = T("upd.sub", Updater.Current);
             UpdateBar.Visibility = Visibility.Collapsed;
             UpdateNowBtn.IsEnabled = UpdateLaterBtn.IsEnabled = true;
             UpdateBanner.Visibility = Visibility.Visible;
             UpdateBanner.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(250)));
-            Logger.Detail($"UPDATE: disponible {_update.Tag} (actual {Updater.Current})");
+            Logger.Detail(T("lg.upd.available", _update.Tag, Updater.Current));
         }
         catch (Exception ex)
         {
-            if (!silent) ShowToast("No se pudo comprobar si hay actualizaciones");
-            Logger.Detail("UPDATE: no se pudo comprobar: " + ex.Message);
+            if (!silent) ShowToast(T("toast.updFail"));
+            Logger.Detail(T("lg.upd.checkFail", ex.Message));
         }
         finally { CheckUpdatesBtn.IsEnabled = true; }
     }
 
     private async void CheckUpdates_Click(object s, RoutedEventArgs e) => await CheckUpdatesAsync(silent: false);
-
     private void UpdateLater_Click(object s, RoutedEventArgs e) => UpdateBanner.Visibility = Visibility.Collapsed;
-
-    private void UpdateNotes_Click(object s, RoutedEventArgs e)
-    {
-        if (_update is not null) OpenUnelevated(_update.PageUrl);
-    }
+    private void UpdateNotes_Click(object s, RoutedEventArgs e) { if (_update is not null) OpenUnelevated(_update.PageUrl); }
 
     private async void UpdateNow_Click(object s, RoutedEventArgs e)
     {
         if (_update is null) return;
-        if (_running) { ShowToast("Espera a que termine la limpieza en curso"); return; }
+        if (_running) { ShowToast(T("toast.waitRun")); return; }
 
         UpdateNowBtn.IsEnabled = UpdateLaterBtn.IsEnabled = false;
         UpdateBar.Visibility = Visibility.Visible;
         UpdateBar.Value = 0;
-        UpdateSub.Text = "Descargando...";
-        var progress = new Progress<double>(p =>
-        {
-            UpdateBar.Value = p;
-            UpdateSub.Text = $"Descargando... {(int)(p * 100)}%";
-        });
+        UpdateSub.Text = T("upd.downloading", 0);
+        var progress = new Progress<double>(p => { UpdateBar.Value = p; UpdateSub.Text = T("upd.downloading", (int)(p * 100)); });
         try
         {
             await Updater.ApplyAsync(_update, progress, CancellationToken.None);
-            UpdateSub.Text = "Instalando. El programa se cerrará y se volverá a abrir.";
+            UpdateSub.Text = T("upd.installing");
             await Task.Delay(800);
             Application.Current.Shutdown();
         }
         catch (Exception ex)
         {
-            Logger.Error("UPDATE: " + ex.Message);
-            UpdateSub.Text = "No se pudo actualizar: " + ex.Message;
+            Logger.Error(T("lg.upd.fail", ex.Message));
+            UpdateSub.Text = T("upd.fail", ex.Message);
             UpdateBar.Visibility = Visibility.Collapsed;
             UpdateNowBtn.IsEnabled = UpdateLaterBtn.IsEnabled = true;
         }
@@ -890,40 +1071,35 @@ public partial class MainWindow : Window
     // ===================================================================
     //  Captura interna (--snap): para revisar el diseno sin tocar la pantalla
     // ===================================================================
-    public async Task SnapshotAsync(string file, string page)
+    public async Task SnapshotAsync(string file, string page, string? lang, string? pal, string? mode)
     {
-        await Task.Delay(1500);
+        if (lang is not null) Loc.Set(lang);
+        if (pal is not null || mode is not null) ThemeManager.Apply(pal ?? ThemeManager.Palette, mode ?? ThemeManager.Mode);
+        await Task.Delay(1200);
+        var rnd = new Random(7);
+        List<RunRecord> Demo() => Enumerable.Range(0, 12).Select(i => new RunRecord(DateTime.Now.AddDays(-12 + i).AddHours(-3), new[] { "todo", "quick", "full" }[i % 3],
+            (long)(rnd.Next(40, 1800) * 1048576L), rnd.Next(30, 140), 20, i % 5 == 0 ? 1 : 0, 0, false)).ToList();
         switch (page)
         {
+            case "home": _history = Demo(); DrawHomeChart(); break;
             case "custom": NavCustom.IsChecked = true; break;
             case "cs2": NavCs2.IsChecked = true; break;
             case "backup": NavBackup.IsChecked = true; break;
             case "log": NavLog.IsChecked = true; break;
-            case "history":
-                NavHistory.IsChecked = true;
-                var rnd = new Random(7);
-                var modes = new[] { "TODO", "Limpieza rápida", "Limpieza completa" };
-                RefreshHistory(Enumerable.Range(0, 18).Select(i => new RunRecord(DateTime.Now.AddDays(-18 + i), modes[i % 3],
-                    (long)(rnd.Next(40, 1600) * 1048576L), rnd.Next(30, 140), 20, i % 5 == 0 ? 1 : 0, 0, false)).ToList());
-                break;
+            case "first": ShowFirstRun(); break;
+            case "history": NavHistory.IsChecked = true; RefreshHistory(Demo()); break;
             case "update":
-                UpdateTitle.Text = "Versión 5.1.0 disponible";
-                UpdateSub.Text = $"Tienes la {Updater.Current}. Se descarga, se instala y el programa se vuelve a abrir. Tu configuración se mantiene.";
-                UpdateBanner.Visibility = Visibility.Visible;
-                break;
+                UpdateTitle.Text = T("upd.title", "5.1.0"); UpdateSub.Text = T("upd.sub", Updater.Current);
+                UpdateBanner.Visibility = Visibility.Visible; break;
             case "run":
                 _steps.Clear();
-                var demo = Runner.BuildSteps(RunPlan.For(RunMode.Todo, _settings, _sys, false), _settings, _sys);
-                foreach (var d in demo) _steps.Add(new StepVM(d));
-                for (int i = 0; i < _steps.Count; i++)
-                    _steps[i].Status = i < 6 ? StepStatus.Ok : i == 6 ? StepStatus.Running : StepStatus.Pending;
-                _steps[3].Status = StepStatus.Warn; _steps[1].Detail = "+1.2 GB liberados";
+                foreach (var d in Runner.BuildSteps(RunPlan.For(RunMode.Todo, _settings, _sys, false), _settings, _sys)) _steps.Add(new StepVM(d));
+                for (int i = 0; i < _steps.Count; i++) _steps[i].Status = i < 6 ? StepStatus.Ok : i == 6 ? StepStatus.Running : StepStatus.Pending;
+                _steps[3].Status = StepStatus.Warn; _steps[1].Detail = T("run.stepFreed", Sys.FormatBytes(1288490188));
                 _steps[6].HasProgress = true; _steps[6].Progress = 0.4;
-                RunTitle.Text = "Todo"; SetOverall(0.37); RunFreed.Text = "1.84 GB"; RunTime.Text = "00:42";
-                foreach (var t in new[] { "Limpiada: Windows Temp", "Cache DNS vaciada", "AVISO Steam abierto" })
-                    LiveLog.Items.Add(new TextBlock { Text = "22:41:0" + LiveLog.Items.Count + "  " + t, Foreground = (Brush)FindResource(t.StartsWith("AVISO") ? "Amber" : "Muted") });
-                ShowPage(PageRun);
-                break;
+                RunTitle.Text = T("plan.todo"); RunOverline.Text = T("run.overline.running"); RunState.Text = T("run.state.running");
+                SetOverall(0.37); RunFreed.Text = Sys.FormatBytes(1975684956); RunTime.Text = "00:42";
+                ShowPage(PageRun); break;
         }
         await Task.Delay(700);
         UpdateLayout();

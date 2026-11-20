@@ -2,6 +2,8 @@ using System.IO;
 using System.Management;
 using Microsoft.Win32;
 
+using static RnxCleaner.Core.Loc;
+
 namespace RnxCleaner.Core;
 
 public sealed class SystemInfo
@@ -47,6 +49,11 @@ public sealed class SystemInfo
             return display is null ? name : $"{name} {display}";
         }
         catch { return "Windows"; }
+    }
+
+    public static long TotalBytesC()
+    {
+        try { return new DriveInfo("C").TotalSize; } catch { return 0; }
     }
 
     public static long FreeBytesC()

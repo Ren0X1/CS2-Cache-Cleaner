@@ -1,16 +1,23 @@
 using System.IO;
 
+using static RnxCleaner.Core.Loc;
+
 namespace RnxCleaner.Core;
 
 /// <summary>Una zona de limpieza (equivale a una subrutina :LIMPIAR_* del .bat).</summary>
 public sealed record CleanupItem(
     string Id,
-    string Title,
-    string Description,
+    string TitleEs,
+    string DescriptionEs,
     bool InQuick,
     bool InFull,
     bool Risky,
-    Func<CancellationToken, Task> Run);
+    Func<CancellationToken, Task> Run)
+{
+    /// <summary>Nombre y descripcion en el idioma actual (Strings.cs: z.id / zd.id).</summary>
+    public string Title => T("z." + Id);
+    public string Description => T("zd." + Id);
+}
 
 /// <summary>
 /// Las 18 zonas de limpieza, en el mismo orden que la limpieza personalizada
@@ -24,19 +31,22 @@ public static class CleanupCatalog
         new("wtemp", "Windows Temp", @"C:\Windows\Temp", true, true, false, _ =>
         {
             Sys.EmptyDirectory(Path.Combine(Sys.WinDir, "Temp"));
-            Logger.Detail(@"Limpiada: C:\Windows\Temp");
+            Logger.Detail(T("lg.z.wtemp"));
             return Task.CompletedTask;
         }),
         new("utemp", "Temp de usuario", "%TEMP%", true, true, false, _ =>
         {
-            Sys.EmptyDirectory(Path.GetTempPath());
-            Logger.Detail("Limpiada: " + Path.GetTempPath());
+            // ".net": DLL que el propio .exe (single-file) desempaqueta para la interfaz.
+            //         Si se borran, el programa falla al cerrarse (DllNotFoundException).
+            // "RNX_Update": descargas de la autoactualizacion.
+            Sys.EmptyDirectory(Path.GetTempPath(), ".net", "RNX_Update");
+            Logger.Detail(T("lg.z.utemp", Path.GetTempPath()));
             return Task.CompletedTask;
         }),
         new("pref", "Prefetch", @"C:\Windows\Prefetch", true, true, false, _ =>
         {
             Sys.DeleteFiles(Path.Combine(Sys.WinDir, "Prefetch"), "*");
-            Logger.Detail("Limpiada: Prefetch");
+            Logger.Detail(T("lg.z.pref"));
             return Task.CompletedTask;
         }),
         new("recent", "Archivos recientes", "Accesos .lnk (respeta los anclados del Explorador)", true, true, false, _ =>
@@ -44,7 +54,7 @@ public static class CleanupCatalog
             // Solo los .lnk sueltos: AutomaticDestinations/CustomDestinations guardan
             // las Jump Lists y los anclados del Explorador y NO se tocan.
             Sys.DeleteFiles(Path.Combine(Sys.RoamingAppData, @"Microsoft\Windows\Recent"), "*.lnk");
-            Logger.Detail("Limpiada: Recent (anclados del Explorador preservados)");
+            Logger.Detail(T("lg.z.recent"));
             return Task.CompletedTask;
         }),
         new("print", "Cola de impresión", "Trabajos atascados del spooler", false, true, false, async ct =>
@@ -52,19 +62,19 @@ public static class CleanupCatalog
             await Sys.CmdAsync("net stop spooler", 60, ct);
             Sys.DeleteFiles(Path.Combine(Environment.SystemDirectory, @"spool\PRINTERS"), "*");
             await Sys.CmdAsync("net start spooler", 60, ct);
-            Logger.Detail("Limpiada: cola de impresion");
+            Logger.Detail(T("lg.z.print"));
         }),
         new("dns", "Cache DNS", "ipconfig /flushdns", true, true, false, async ct =>
         {
             await Sys.RunAsync("ipconfig.exe", "/flushdns", 60, ct);
-            Logger.Detail("Cache DNS vaciada");
+            Logger.Detail(T("lg.z.dns"));
         }),
         new("wup", "Cache Windows Update", @"SoftwareDistribution\Download", false, true, false, async ct =>
         {
             foreach (var s in new[] { "wuauserv", "bits", "cryptsvc" }) await Sys.CmdAsync("net stop " + s, 90, ct);
             Sys.EmptyDirectory(Path.Combine(Sys.WinDir, @"SoftwareDistribution\Download"));
             foreach (var s in new[] { "wuauserv", "bits", "cryptsvc" }) await Sys.CmdAsync("net start " + s, 90, ct);
-            Logger.Detail("Limpiada: cache Windows Update");
+            Logger.Detail(T("lg.z.wup"));
         }),
         new("thumb", "Miniaturas", "thumbcache (reinicia el Explorador)", false, true, false, async ct =>
         {
@@ -77,13 +87,13 @@ public static class CleanupCatalog
             {
                 try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe") { UseShellExecute = true }); } catch { }
             }
-            Logger.Detail("Limpiadas: miniaturas");
+            Logger.Detail(T("lg.z.thumb"));
         }),
         new("icon", "Icon cache", "IconCache.db e iconcache_*.db", false, true, false, _ =>
         {
             Sys.DeleteFile(Path.Combine(Sys.LocalAppData, "IconCache.db"));
             Sys.DeleteFiles(Path.Combine(Sys.LocalAppData, @"Microsoft\Windows\Explorer"), "iconcache_*.db", recursive: true);
-            Logger.Detail("Limpiado: icon cache");
+            Logger.Detail(T("lg.z.icon"));
             return Task.CompletedTask;
         }),
         new("store", "Cache Microsoft Store", "wsreset", false, true, false, async ct =>
@@ -114,18 +124,18 @@ public static class CleanupCatalog
                     {
                         await Task.Delay(1500, ct); // que termine de arrancar antes de cerrarla
                         Sys.KillProcess("WinStore.App");
-                        Logger.Detail("Microsoft Store cerrada automaticamente");
+                        Logger.Detail(T("lg.z.storeClosed"));
                         break;
                     }
                     await Task.Delay(500, ct);
                 }
             }
-            Logger.Detail("Cache Microsoft Store reiniciada");
+            Logger.Detail(T("lg.z.store"));
         }),
         new("deliv", "Delivery Optimization", "Descargas P2P de Windows Update", false, true, false, _ =>
         {
             Sys.EmptyDirectory(Path.Combine(Sys.WinDir, @"SoftwareDistribution\DeliveryOptimization"));
-            Logger.Detail("Limpiada: Delivery Optimization");
+            Logger.Detail(T("lg.z.deliv"));
             return Task.CompletedTask;
         }),
         new("dumps", "Memory dumps y logs CBS", "Minidump, MEMORY.DMP, WER", false, true, false, _ =>
@@ -135,20 +145,20 @@ public static class CleanupCatalog
             Sys.DeleteFiles(Path.Combine(Sys.WinDir, @"Logs\CBS"), "*.log");
             Sys.EmptyDirectory(Path.Combine(Sys.ProgramData, @"Microsoft\Windows\WER\ReportArchive"));
             Sys.EmptyDirectory(Path.Combine(Sys.ProgramData, @"Microsoft\Windows\WER\ReportQueue"));
-            Logger.Detail("Limpiados: memory dumps y CBS logs");
+            Logger.Detail(T("lg.z.dumps"));
             return Task.CompletedTask;
         }),
         new("font", "Cache de fuentes", "FontCache*.dat, FNTCACHE.DAT", false, true, false, _ =>
         {
             Sys.DeleteFiles(Sys.LocalAppData, "FontCache*.dat");
             Sys.DeleteFile(Path.Combine(Environment.SystemDirectory, "FNTCACHE.DAT"));
-            Logger.Detail("Limpiada: cache de fuentes");
+            Logger.Detail(T("lg.z.font"));
             return Task.CompletedTask;
         }),
         new("recycle", "Vaciar papelera", "Papelera de reciclaje de todas las unidades", false, true, false, _ =>
         {
             Sys.EmptyRecycleBin();
-            Logger.Detail("Papelera de reciclaje vaciada");
+            Logger.Detail(T("lg.z.recycle"));
             return Task.CompletedTask;
         }),
         new("eventos", "Registros de eventos", "Visor de eventos y logs de Windows", true, true, true, async ct =>
@@ -176,7 +186,7 @@ public static class CleanupCatalog
             Sys.DeleteFiles(Path.Combine(Sys.WinDir, "Panther"), "*.log", recursive: true);
             Sys.DeleteFile(Path.Combine(Sys.WinDir, @"Logs\DISM\dism.log"));
             Sys.DeleteFile(Path.Combine(Sys.WinDir, "WindowsUpdate.log"));
-            Logger.Detail($"Registros de eventos ({names.Count}) y logs de Windows borrados");
+            Logger.Detail(T("lg.z.eventos", names.Count));
         }),
         new("gpu", "Cache de drivers gráficos", "DXCache/GLCache de NVIDIA, AMD e Intel", true, true, false, _ =>
         {
@@ -191,7 +201,7 @@ public static class CleanupCatalog
                 Path.Combine(Sys.LocalAppData, @"Intel\ShaderCache"),
             ];
             foreach (var d in dirs) Sys.EmptyDirectory(d);
-            Logger.Detail("Cache drivers graficos limpiada");
+            Logger.Detail(T("lg.z.gpu"));
             return Task.CompletedTask;
         }),
         new("discord", "Cache Discord", "Cierra Discord y borra su cache", false, false, false, async ct =>
@@ -203,12 +213,12 @@ public static class CleanupCatalog
             }
             foreach (var d in new[] { "Cache", "Code Cache", "GPUCache" })
                 Sys.EmptyDirectory(Path.Combine(Sys.RoamingAppData, "discord", d));
-            Logger.Detail("Cache de Discord limpiada");
+            Logger.Detail(T("lg.z.discord"));
         }),
         new("ssd", "Optimizar SSD (TRIM)", "defrag C: /L", false, true, false, async ct =>
         {
             await Sys.RunAsync("defrag.exe", "C: /L", 900, ct);
-            Logger.Detail("TRIM/optimizacion ejecutado en C:");
+            Logger.Detail(T("lg.z.ssd"));
         }),
     ];
 
