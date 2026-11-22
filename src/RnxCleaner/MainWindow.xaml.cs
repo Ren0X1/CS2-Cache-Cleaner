@@ -43,6 +43,7 @@ public partial class MainWindow : Window
             e.Cancel = true;
             App.HideToTray(this);
         };
+
         // Idioma y tema antes de dibujar nada
         Loc.Set(_settings.Language);
         InitializeComponent();
@@ -105,6 +106,7 @@ public partial class MainWindow : Window
         if (PageVideo.Visibility == Visibility.Visible) RenderVideo();
         if (PageFonts.Visibility == Visibility.Visible) RenderFonts();
         if (PageVibrance.Visibility == Visibility.Visible) RenderVibrance();
+        if (PageCustomRes.Visibility == Visibility.Visible) RenderRes();
         if (PageSettings.Visibility == Visibility.Visible) RenderSettings();
         _ = RefreshDriveAsync();
     }
@@ -271,8 +273,19 @@ public partial class MainWindow : Window
         Close();
     }
 
+    /// <summary>Abre o cierra el grupo "CS2" del menu.</summary>
+    private void NavCs2Group_Click(object s, RoutedEventArgs e) => SetCs2Group(NavCs2Group.IsChecked == true);
+
+    private void SetCs2Group(bool open)
+    {
+        NavCs2Group.IsChecked = open;
+        NavCs2Items.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void Nav_Checked(object sender, RoutedEventArgs e)
     {
+        // Si se entra en una pestana del grupo CS2 (p. ej. desde un boton), el grupo se abre
+        if (sender == NavCs2 || sender == NavVideo || sender == NavFonts) SetCs2Group(true);
         // Durante InitializeComponent "Limpieza" se marca antes de que existan las paginas
         if (!IsLoaded) return;
         if (_running) return;
@@ -285,6 +298,7 @@ public partial class MainWindow : Window
             RadioButton r when r == NavVideo => PageVideo,
             RadioButton r when r == NavFonts => PageFonts,
             RadioButton r when r == NavVibrance => PageVibrance,
+            RadioButton r when r == NavCustomRes => PageCustomRes,
             RadioButton r when r == NavSettings => PageSettings,
             RadioButton r when r == NavLog => PageLog,
             RadioButton r when r == NavHistory => PageHistory,
@@ -299,12 +313,13 @@ public partial class MainWindow : Window
         if (sender == NavVideo) LoadVideo();
         if (sender == NavFonts) LoadFonts();
         if (sender == NavVibrance) LoadVibrance();
+        if (sender == NavCustomRes) RenderRes();
     }
 
     private void ShowPage(FrameworkElement page)
     {
         if (PageHome is null) return;
-        foreach (var p in new FrameworkElement[] { PageHome, PageCustom, PageCs2, PageVideo, PageFonts, PageVibrance, PageServers, PageBackup, PageSettings, PageLog, PageHistory, PageRun })
+        foreach (var p in new FrameworkElement[] { PageHome, PageCustom, PageCs2, PageVideo, PageFonts, PageCustomRes, PageVibrance, PageServers, PageBackup, PageSettings, PageLog, PageHistory, PageRun })
             p.Visibility = p == page ? Visibility.Visible : Visibility.Collapsed;
         page.Opacity = 0;
         page.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160)));
@@ -674,7 +689,7 @@ public partial class MainWindow : Window
             return;
         Logger.Info(T("lg.restart"));
         await Sys.RunAsync("shutdown.exe", $"/r /t 10 /c \"{T("restart.comment")}\"", 30);
-        Application.Current.Shutdown();
+        App.ExitApp();
     }
 
     private async Task AutoCloseAsync()
@@ -1389,7 +1404,7 @@ public partial class MainWindow : Window
             _settings.Save();
             Loc.Set(_settings.Language);
             ThemeManager.Apply(_settings.Palette, _settings.ThemeMode);
-            if (_settings.VibranceEnabled) App.StartVibrance(); else App.StopVibrance();
+            App.StartVibrance();
             RefreshTexts();
             LoadSettingsIntoUi();
             Logger.Ok(T("lg.cfg.restored"));
@@ -1650,7 +1665,7 @@ public partial class MainWindow : Window
             await Updater.ApplyAsync(_update, progress, CancellationToken.None);
             UpdateSub.Text = T("upd.installing");
             await Task.Delay(800);
-            Application.Current.Shutdown();
+            App.ExitApp();
         }
         catch (Exception ex)
         {
@@ -1689,6 +1704,7 @@ public partial class MainWindow : Window
             case "video": NavVideo.IsChecked = true; break;
             case "fonts": NavFonts.IsChecked = true; await Task.Delay(4000); break;
             case "vibrance": NavVibrance.IsChecked = true; break;
+            case "customres": NavCustomRes.IsChecked = true; break;
             case "videobottom": NavVideo.IsChecked = true; await Task.Delay(400); PageVideo.ScrollToEnd(); break;
             case "custombottom": NavCustom.IsChecked = true; await Task.Delay(400); CustomScroll.ScrollToEnd(); break;
             case "cs2": NavCs2.IsChecked = true; break;
@@ -1722,7 +1738,7 @@ public partial class MainWindow : Window
         var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
         enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
         using (var fs = File.Create(file)) enc.Save(fs);
-        Application.Current.Shutdown();
+        App.ExitApp();
     }
 
     // ===================================================================

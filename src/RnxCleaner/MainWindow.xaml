@@ -45,9 +45,13 @@
                 <StackPanel Grid.Row="2" x:Name="Nav" Margin="4,0">
                     <RadioButton x:Name="NavHome" Content="{c:L nav.home}" Tag="&#xE80F;" Style="{StaticResource NavButton}" GroupName="nav" IsChecked="True" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavCustom" Content="{c:L nav.custom}" Tag="&#xE9D5;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
-                    <RadioButton x:Name="NavCs2" Content="{c:L nav.cs2}" Tag="&#xE7FC;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
-                    <RadioButton x:Name="NavVideo" Content="{c:L nav.video}" Tag="&#xE7F4;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
-                    <RadioButton x:Name="NavFonts" Content="{c:L nav.fonts}" Tag="&#xE8D2;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                    <ToggleButton x:Name="NavCs2Group" Content="CS2" Tag="&#xE7FC;" Style="{StaticResource NavGroup}" Click="NavCs2Group_Click"/>
+                    <StackPanel x:Name="NavCs2Items" Visibility="Collapsed">
+                        <RadioButton x:Name="NavCs2" Content="{c:L nav.sub.modules}" Tag="&#xE74C;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
+                        <RadioButton x:Name="NavVideo" Content="{c:L nav.sub.video}" Tag="&#xE7F4;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
+                        <RadioButton x:Name="NavFonts" Content="{c:L nav.sub.fonts}" Tag="&#xE8D2;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
+                    </StackPanel>
+                    <RadioButton x:Name="NavCustomRes" Content="{c:L nav.customres}" Tag="&#xE740;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavVibrance" Content="{c:L nav.vibrance}" Tag="&#xE790;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavServers" Content="{c:L nav.servers}" Tag="&#xE909;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavBackup" Content="{c:L nav.backup}" Tag="&#xE753;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
@@ -319,30 +323,6 @@
                                     <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L vid.rnx.title}" Style="{StaticResource H2}"/><TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{c:L vid.rnx.sub}"/></StackPanel>
                                 </DockPanel>
                             </Border>
-                            <Border x:Name="ResCard" Style="{StaticResource Card}" Margin="0,14,0,0">
-                                <StackPanel>
-                                    <DockPanel>
-                                        <Button x:Name="ResRestoreBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Top" Click="ResRestore_Click" Content="{c:L res.restore}"/>
-                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L res.title}" Style="{StaticResource H2}"/><TextBlock x:Name="ResSub" Style="{StaticResource Sub}" Margin="0,4,0,0" Text="-"/></StackPanel>
-                                    </DockPanel>
-                                    <WrapPanel x:Name="ResList" Margin="0,14,0,0"/>
-                                    <DockPanel Margin="0,12,0,0">
-                                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
-                                            <TextBox x:Name="ResW" Width="80" VerticalContentAlignment="Center" MaxLength="5"/>
-                                            <TextBlock Text="×" Style="{StaticResource Sub}" VerticalAlignment="Center" Margin="8,0"/>
-                                            <TextBox x:Name="ResH" Width="80" VerticalContentAlignment="Center" MaxLength="5"/>
-                                            <Button Style="{StaticResource PrimaryButton}" Margin="10,0,0,0" Click="ResAdd_Click" Content="{c:L res.add}"/>
-                                        </StackPanel>
-                                        <StackPanel x:Name="ResQuick" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                    </DockPanel>
-                                    <Border x:Name="ResReboot" Visibility="Collapsed" Margin="0,14,0,0" Padding="16,10" CornerRadius="10" Background="{DynamicResource Tint}">
-                                        <DockPanel>
-                                            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Click="ResReboot_Click" Content="{c:L res.reboot.btn}"/>
-                                            <TextBlock Text="{c:L res.reboot}" Foreground="{DynamicResource TintInk}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,14,0"/>
-                                        </DockPanel>
-                                    </Border>
-                                </StackPanel>
-                            </Border>
                             <StackPanel x:Name="VidForm">
                                 <TextBlock Text="{c:L vid.presets}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
                                 <UniformGrid x:Name="VidPresets" Columns="3" Margin="0,0,-10,0"/>
@@ -407,6 +387,38 @@
                         </Grid>
                     </Grid>
 
+                    <!-- ======== CUSTOM RESOLUTION ======== -->
+                    <ScrollViewer x:Name="PageCustomRes" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="36,34,36,28">
+                            <TextBlock Text="{c:L res.title}" Style="{StaticResource H1}"/>
+                            <TextBlock x:Name="ResSub" Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,0" Text="-"/>
+                            <Border x:Name="ResCard" Style="{StaticResource Card}" Margin="0,22,0,0">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Button x:Name="ResRestoreBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Top" Click="ResRestore_Click" Content="{c:L res.restore}"/>
+                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L res.list}" Style="{StaticResource H2}"/><TextBlock x:Name="ResGpu" Style="{StaticResource Sub}" Margin="0,4,0,0" Text="-"/></StackPanel>
+                                    </DockPanel>
+                                    <WrapPanel x:Name="ResList" Margin="0,14,0,0"/>
+                                    <DockPanel Margin="0,12,0,0">
+                                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                                            <TextBox x:Name="ResW" Width="80" VerticalContentAlignment="Center" MaxLength="5"/>
+                                            <TextBlock Text="×" Style="{StaticResource Sub}" VerticalAlignment="Center" Margin="8,0"/>
+                                            <TextBox x:Name="ResH" Width="80" VerticalContentAlignment="Center" MaxLength="5"/>
+                                            <Button Style="{StaticResource PrimaryButton}" Margin="10,0,0,0" Click="ResAdd_Click" Content="{c:L res.add}"/>
+                                        </StackPanel>
+                                        <StackPanel x:Name="ResQuick" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                    <Border x:Name="ResReboot" Visibility="Collapsed" Margin="0,14,0,0" Padding="16,10" CornerRadius="10" Background="{DynamicResource Tint}">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Click="ResReboot_Click" Content="{c:L res.reboot.btn}"/>
+                                            <TextBlock Text="{c:L res.reboot}" Foreground="{DynamicResource TintInk}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                        </DockPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
                     <!-- ======== COLOR EN JUEGOS (vibrance) ======== -->
                     <Grid x:Name="PageVibrance" Visibility="Collapsed" Margin="36,34,36,28">
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
@@ -419,7 +431,6 @@
                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                             <Border Style="{StaticResource Card}">
                                 <DockPanel>
-                                    <CheckBox x:Name="VibToggle" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" Click="VibToggle_Click"/>
                                     <StackPanel Margin="0,0,18,0">
                                         <TextBlock x:Name="VibState" Style="{StaticResource H2}" Text="-"/>
                                         <TextBlock x:Name="VibGpu" Style="{StaticResource Sub}" Margin="0,4,0,0" Text="-"/>

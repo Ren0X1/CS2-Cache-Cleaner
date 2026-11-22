@@ -217,6 +217,39 @@
         </Setter>
     </Style>
 
+    <!-- ============ Grupo desplegable del menu (p. ej. CS2) ============ -->
+    <Style x:Key="NavGroup" TargetType="ToggleButton">
+        <Setter Property="Foreground" Value="{DynamicResource Nav}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Margin" Value="0,1"/>
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="bg" Background="Transparent" CornerRadius="8" Height="36" Padding="10,0">
+                        <DockPanel>
+                            <TextBlock x:Name="chev" DockPanel.Dock="Right" Text="&#xE70D;" FontFamily="{StaticResource Icons}" FontSize="10" VerticalAlignment="Center" Margin="8,0,2,0" RenderTransformOrigin="0.5,0.5">
+                                <TextBlock.RenderTransform><RotateTransform x:Name="rot" Angle="-90"/></TextBlock.RenderTransform>
+                            </TextBlock>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{TemplateBinding Tag}" FontFamily="{StaticResource Icons}" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="bg" Property="Background" Value="{DynamicResource Active}"/></Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="chev" Property="RenderTransform"><Setter.Value><RotateTransform Angle="0"/></Setter.Value></Setter>
+                            <Setter Property="Foreground" Value="{DynamicResource Ink}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- ============ Control segmentado (RadioButtons dentro de un Border "Seg") ============ -->
     <Style x:Key="SegItem" TargetType="RadioButton">
         <Setter Property="Foreground" Value="{DynamicResource Muted}"/>

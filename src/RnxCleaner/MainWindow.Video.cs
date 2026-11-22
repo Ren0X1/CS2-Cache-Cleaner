@@ -40,7 +40,6 @@ public partial class MainWindow
         VidEmpty.Visibility = has ? Visibility.Collapsed : Visibility.Visible;
         VidLockCard.Visibility = VidForm.Visibility = VidRnxCard.Visibility = has ? Visibility.Visible : Visibility.Collapsed;
         VidCs2Warn.Visibility = has && SystemInfo.IsRunning("cs2") ? Visibility.Visible : Visibility.Collapsed;
-        RenderRes();
         if (!has) return;
 
         try { _vid = Cs2Video.Read(_vidAcc!.File); }
@@ -280,11 +279,13 @@ public partial class MainWindow
         if (gpu is null)
         {
             ResSub.Text = T("res.nogpu");
+            ResGpu.Text = "-";
             ResRestoreBtn.Visibility = Visibility.Collapsed;
             ResW.IsEnabled = ResH.IsEnabled = false;
             return;
         }
         ResSub.Text = T("res.sub", gpu.Name);
+        ResGpu.Text = gpu.Name;
         ResRestoreBtn.Visibility = CustomRes.HasBackup(gpu) ? Visibility.Visible : Visibility.Collapsed;
         List<CustomRes.Res> list;
         try { list = CustomRes.Read(gpu); }
@@ -352,6 +353,6 @@ public partial class MainWindow
         if (!await Confirm(T("dlg.restart.o"), T("dlg.restart.t"), T("res.reboot"), T("dlg.restart.yes"), T("dlg.restart.no"))) return;
         Logger.Info(T("lg.restart"));
         await Sys.RunAsync("shutdown.exe", $"/r /t 10 /c \"{T("restart.comment")}\"", 30);
-        Application.Current.Shutdown();
+        App.ExitApp();
     }
 }

@@ -32,11 +32,9 @@ public partial class MainWindow
         if (d is null) return;
 
         bool running = App.Vibrance?.Running == true;
-        VibToggle.IsChecked = _settings.VibranceEnabled;
-        VibState.Text = !_settings.VibranceEnabled ? T("vib.state.off")
-                      : running ? (App.Vibrance!.ActiveGame is { } g ? T("vib.state.game", g) : T("vib.state.on"))
+        VibState.Text = running ? (App.Vibrance!.ActiveGame is { } g ? T("vib.state.game", g) : T("vib.state.on"))
                       : App.Vibrance is null && !SnapMode ? T("vib.state.error") : T("vib.state.starting");
-        VibState.SetResourceReference(TextBlock.ForegroundProperty, _settings.VibranceEnabled && running ? "Accent" : "Muted");
+        VibState.SetResourceReference(TextBlock.ForegroundProperty, running || SnapMode ? "Accent" : "Muted");
         VibGpu.Text = T("vib.gpu", d.Vendor);
 
         bool other = VibranceEngine.VibranceGuiRunning;
@@ -163,15 +161,6 @@ public partial class MainWindow
         RenderVibrance();
     }
 
-    private void VibToggle_Click(object s, RoutedEventArgs e)
-    {
-        _settings.VibranceEnabled = VibToggle.IsChecked == true;
-        _settings.Save();
-        if (_settings.VibranceEnabled) App.StartVibrance(); else App.StopVibrance();
-        ShowToast(T(_settings.VibranceEnabled ? "vib.toast.on" : "vib.toast.off"));
-        RenderVibrance();
-    }
-
     private void VibDefault_Changed(object s, RoutedPropertyChangedEventArgs<double> e)
     {
         if (VibDefaultText is not null) VibDefaultText.Text = $"{(int)e.NewValue} %";
@@ -225,7 +214,17 @@ public partial class MainWindow
         foreach (var (name, path, title) in procs.DistinctBy(x => x.Name.ToLowerInvariant()).OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase))
         {
             var pp = path;
-            VibRunningList.Children.Add(MenuRow($"{name}  ·  {title}", false, null, () => AddVibProfile(pp), VibRunningPopup));
+            var row = new StackPanel { Orientation = Orientation.Horizontal };
+            row.Children.Add(new Image { Width = 20, Height = 20, Margin = new Thickness(0, 0, 10, 0), Source = IconOf(path), VerticalAlignment = VerticalAlignment.Center });
+            var txt = new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 420 };
+            txt.Inlines.Add(new System.Windows.Documents.Run(name) { FontWeight = FontWeights.SemiBold });
+            var sub = new System.Windows.Documents.Run("   " + title) { FontSize = 12 };
+            sub.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty, "Muted");
+            txt.Inlines.Add(sub);
+            row.Children.Add(txt);
+            var b = new Button { Style = (Style)FindResource("FootButton"), Content = row, Height = 36, FontSize = 13.5, HorizontalContentAlignment = HorizontalAlignment.Left };
+            b.Click += (_, _) => { VibRunningPopup.IsOpen = false; AddVibProfile(pp); };
+            VibRunningList.Children.Add(b);
         }
         if (procs.Count == 0) { ShowToast(T("vib.toast.noprocs")); return; }
         VibRunningPopup.IsOpen = true;

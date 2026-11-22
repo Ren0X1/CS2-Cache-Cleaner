@@ -152,21 +152,24 @@ The **CS2 video** tab edits `Steam\userdata\<account>\730\local\cfg\cs2_video.tx
 - **Image quality**: shadows, moving shadows, textures, texture sharpness, lighting detail, effects, corner shading, HDR, anti-aliasing, FSR and NVIDIA Reflex — each with a one-line explanation.
 - **Lock switch**: marks the file **read-only** so CS2 never overwrites it. While locked the form is disabled; unlock it to edit. **Every change is saved straight away**, keeping the rest of the file exactly as it was. The first change makes a backup (`cs2_video.txt.rnxbak`).
 - Several Steam accounts on the PC? Pick which one at the top.
-- **Custom resolutions**: add scaled resolutions to your graphics card (e.g. **1352×1080** stretched) for NVIDIA and AMD, remove them or go back to the driver's list. A restart is recommended afterwards (button included). Same approach as ToastyX's [Scaled Resolution Editor](https://monitortests.com/scaled-resolution-editor) (written from scratch, compatible with what SRE saves).
 
-### 🎨 Game colors (digital vibrance)
+### 🖥️ Custom Resolution
+
+The **Custom Resolution** tab adds scaled resolutions to your graphics card (e.g. **1352×1080** stretched) for NVIDIA and AMD, removes them or goes back to the driver's list. A restart is recommended afterwards (button included). Same approach as ToastyX's [Scaled Resolution Editor](https://monitortests.com/scaled-resolution-editor) (written from scratch, compatible with what SRE saves).
+
+### 🎨 Digital Vibrance
 
 Like **vibranceGUI**, built in: when a game from your list is in front, its colors get more saturated, and optionally its resolution changes. When you leave it, Windows goes back to its normal color and resolution.
 
 - **NVIDIA** (NVAPI, 50–100 %) and **AMD** (ADL saturation, 0–300 %, like vibranceGUI).
 - **Windows color** level, **main monitor only** option, and a list of games with icon, color % and optional resolution. Add a game from the programs that are open, or pick its `.exe`.
 - **Import from vibranceGUI** brings your games and levels in one click. If vibranceGUI is also open, the app warns you, since both would fight, and can close it.
-- While it's on, **closing the window keeps RNX in the tray** next to the clock (right-click → Exit). Leaving RNX restores the normal color.
+- It's **always active while RNX is open**. Like vibranceGUI, **closing the window (X) keeps RNX in the tray** next to the clock (right-click → Exit); minimizing works as usual. Exiting RNX restores the normal color.
 - **Settings → Start with Windows in the background** starts RNX hidden in the tray when you sign in, with admin rights and no UAC prompt.
 
 ### ☁️ Your RNX settings travel with you
 
-Every Drive backup also saves your RNX settings (`rnx_settings.json` in the backup folder): language, colors, Custom selection, backup options, CS2 font size and **game colors with your games**. On a new PC, connect Google and press **Backup → Restore my RNX settings**. Things tied to a PC (paths, power plan, scheduled tasks) are not included.
+Every Drive backup also saves your RNX settings (`rnx_settings.json` in the backup folder): language, colors, Custom selection, backup options, CS2 font size and **Digital Vibrance with your games**. On a new PC, connect Google and press **Backup → Restore my RNX settings**. Things tied to a PC (paths, power plan, scheduled tasks) are not included.
 
 ### 🔤 CS2 font manager
 
@@ -251,23 +254,30 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 - [NVIDIA Profile Inspector](https://github.com/Orbmu2k/nvidiaProfileInspector) by Orbmu2k (bundled).
 - Custom resolutions use the same registry approach as [Scaled Resolution Editor](https://monitortests.com/scaled-resolution-editor) by ToastyX.
 - **Bebas Neue** font by Dharma Type, under the SIL Open Font License 1.1 (bundled).
-- Game colors work like [vibranceGUI](https://github.com/juv/vibranceGUI) by juv (rewritten from scratch).
+- Digital Vibrance works like [vibranceGUI](https://github.com/juv/vibranceGUI) by juv (rewritten from scratch).
 - Microsoft Store fix: `fixStoreIssues.cmd` from [AtlasOS](https://github.com/Atlas-OS/Atlas) (bundled unchanged).
 
 ---
 
 ## 📜 Changelog
 
-### v5.2.0 (current)
+### v5.2.1 (current)
+- 🎨 "Game colors" renamed to **Digital Vibrance**; it's now always active while RNX is open, and **closing the window always keeps RNX in the tray** (minimizing works as usual), like vibranceGUI
+- 🖼️ Open programs are listed with their icon when adding a game to Digital Vibrance
+- 🖥️ **Custom Resolution** moved to its own tab
+- 📂 The CS2 tabs (Modules, Video, Fonts) are grouped in a **CS2** drop-down in the menu
+- ✍️ Clearer, more professional wording (e.g. "Restore defaults")
+
+### v5.2.0
 - 🖥️ **New CS2 video tab**: change CS2's graphics before launching it, in plain words, with quick presets, a **lock switch** that makes `cs2_video.txt` read-only so CS2 never touches it, and a button to apply **RNX's full CS2 config** (binds, sensitivity, crosshair, options and video) with one click
 - 🌐 **Network** in Everything and Custom: DNS 1.1.1.1 + 8.8.8.8 and TCP auto-tuning `normal`
 - 🏷️ **RNX OEM information** in Everything and Custom: Manufacturer RNX, Model **RNX + 5 digits** unique to each PC, support info and logo
 - 🔧 **Repairs** in Custom (by hand only): remove old/faulty devices with a preview list, and AtlasOS's Microsoft Store fix
 - ⚡ Power plan, network and OEM cards added to Custom
-- 🎨 **New Game colors tab** (digital vibrance per game, like vibranceGUI, NVIDIA and AMD) with import from vibranceGUI; RNX stays in the tray while it's on, with an option to start with Windows
+- 🎨 **New Digital Vibrance tab** (color saturation per game, like vibranceGUI, NVIDIA and AMD) with import from vibranceGUI; always active while RNX is open; closing the window keeps RNX in the tray, with an option to start with Windows
 - ☁️ **Your RNX settings are saved with each Drive backup** and can be restored on another PC with one button
 - 🔤 **New CS2 fonts tab**: font manager that installs fonts where CS2 really reads them, with the RNX font, your installed fonts with preview and a size option
-- 🖥️ **Custom resolutions** (like 1352×1080) for NVIDIA and AMD from the CS2 video tab
+- 🖥️ **New Custom Resolution tab**: custom scaled resolutions (like 1352×1080) for NVIDIA and AMD
 - ↩️ Undo also restores DNS, TCP auto-tuning and the OEM information
 - ☁️ Google sign-in for the Drive backup now works for everyone (the Google app is published) and no longer expires every 7 days
 

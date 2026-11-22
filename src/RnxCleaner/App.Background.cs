@@ -17,7 +17,8 @@ public partial class App
 
     public static VibranceEngine? Vibrance { get; private set; }
     public static bool Exiting { get; private set; }
-    public static bool KeepInTray => Shared.VibranceEnabled;
+    /// <summary>Como vibranceGUI: cerrar la ventana siempre la deja en la bandeja.</summary>
+    public static bool KeepInTray => true;
 
     public const string TrayFlag = "/bandeja";
     private const string MutexName = @"Local\RNX_Cache_Cleaner_UI";
@@ -45,8 +46,8 @@ public partial class App
 
     public static void StartBackground()
     {
-        if (Shared.VibranceEnabled) StartVibrance();
-        UpdateTray();
+        // Digital Vibrance siempre activo mientras RNX este abierta
+        StartVibrance();
     }
 
     public static void StartVibrance()
