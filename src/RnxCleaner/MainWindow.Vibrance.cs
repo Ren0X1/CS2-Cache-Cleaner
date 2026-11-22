@@ -211,18 +211,14 @@ public partial class MainWindow
             finally { p.Dispose(); }
         }
         VibRunningList.Children.Clear();
-        foreach (var (name, path, title) in procs.DistinctBy(x => x.Name.ToLowerInvariant()).OrderBy(x => x.Name, StringComparer.CurrentCultureIgnoreCase))
+        foreach (var (name, path, title) in procs.DistinctBy(x => x.Name.ToLowerInvariant()).OrderBy(x => Path.GetFileName(x.Path), StringComparer.CurrentCultureIgnoreCase))
         {
             var pp = path;
             var row = new StackPanel { Orientation = Orientation.Horizontal };
             row.Children.Add(new Image { Width = 20, Height = 20, Margin = new Thickness(0, 0, 10, 0), Source = IconOf(path), VerticalAlignment = VerticalAlignment.Center });
-            var txt = new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 420 };
-            txt.Inlines.Add(new System.Windows.Documents.Run(name) { FontWeight = FontWeights.SemiBold });
-            var sub = new System.Windows.Documents.Run("   " + title) { FontSize = 12 };
-            sub.SetResourceReference(System.Windows.Documents.TextElement.ForegroundProperty, "Muted");
-            txt.Inlines.Add(sub);
-            row.Children.Add(txt);
-            var b = new Button { Style = (Style)FindResource("FootButton"), Content = row, Height = 36, FontSize = 13.5, HorizontalContentAlignment = HorizontalAlignment.Left };
+            // Solo el ejecutable (cs2.exe, chrome.exe...); el titulo de la ventana va como pista
+            row.Children.Add(new TextBlock { Text = Path.GetFileName(path), FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+            var b = new Button { Style = (Style)FindResource("FootButton"), Content = row, Height = 36, FontSize = 13.5, HorizontalContentAlignment = HorizontalAlignment.Left, ToolTip = title };
             b.Click += (_, _) => { VibRunningPopup.IsOpen = false; AddVibProfile(pp); };
             VibRunningList.Children.Add(b);
         }

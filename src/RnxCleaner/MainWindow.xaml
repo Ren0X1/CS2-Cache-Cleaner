@@ -463,7 +463,7 @@
                                     <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="VibAddFile_Click" Content="{c:L vib.addfile}"/>
                                     <Button x:Name="VibAddRunningBtn" Style="{StaticResource PrimaryButton}" Click="VibAddRunning_Click" Content="{c:L vib.add}"/>
                                     <Popup x:Name="VibRunningPopup" PlacementTarget="{Binding ElementName=VibAddRunningBtn}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" VerticalOffset="6">
-                                        <Border Background="{DynamicResource Sheet}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="10" Padding="6" MinWidth="320">
+                                        <Border Background="{DynamicResource Sheet}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="10" Padding="6" MinWidth="240">
                                             <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto"><StackPanel x:Name="VibRunningList"/></ScrollViewer>
                                         </Border>
                                     </Popup>
