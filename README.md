@@ -262,24 +262,21 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 ## 📜 Changelog
 
 ### v5.2.1 (current)
-- 🎨 "Game colors" renamed to **Digital Vibrance**; it's now always active while RNX is open, and **closing the window always keeps RNX in the tray** (minimizing works as usual), like vibranceGUI
-- 🖼️ Open programs are listed with their icon when adding a game to Digital Vibrance
-- 🖥️ **Custom Resolution** moved to its own tab
-- 📂 The CS2 tabs (Modules, Video, Fonts) are grouped in a **CS2** drop-down in the menu
-- ✍️ Clearer, more professional wording (e.g. "Restore defaults")
-
-### v5.2.0
-- 🖥️ **New CS2 video tab**: change CS2's graphics before launching it, in plain words, with quick presets, a **lock switch** that makes `cs2_video.txt` read-only so CS2 never touches it, and a button to apply **RNX's full CS2 config** (binds, sensitivity, crosshair, options and video) with one click
+- 📂 **New menu**: the CS2 tabs (**Modules, Video, Fonts**) are grouped in a **CS2** drop-down, plus new **Custom Resolution** and **Digital Vibrance** tabs
+- 🖥️ **CS2 video**: change CS2's graphics before launching it, in plain words, with quick presets and a **lock switch** that makes `cs2_video.txt` read-only so CS2 never touches it
+- 🎯 **RNX's full CS2 config** with one click (binds, sensitivity, crosshair, options and video), keeping your in-game name; **Restore my config** puts yours back
+- 🔤 **CS2 fonts**: font manager that installs fonts where CS2 really reads them (`game\csgo\panorama\fonts`), with the RNX font (Bebas Neue), all your installed fonts with preview (80 per page) and a size option; **Back to the original** never touches Valve's files
+- 🖥️ **Custom Resolution**: custom scaled resolutions (like 1352×1080) for NVIDIA and AMD, compatible with Scaled Resolution Editor, with **Restore defaults** and a restart prompt
+- 🎨 **Digital Vibrance**: color saturation per game like vibranceGUI (NVIDIA and AMD), optional resolution per game, Windows level and main-monitor option, games added from open programs (shown as `cs2.exe`, `chrome.exe`... with their icon) or by `.exe`, and **import from vibranceGUI**. Always active while RNX is open
+- 🗂️ **Tray**: closing the window (X) always keeps RNX in the tray next to the clock (right-click → Exit); minimizing works as usual. **Settings → Start with Windows in the background** starts it hidden at sign-in
 - 🌐 **Network** in Everything and Custom: DNS 1.1.1.1 + 8.8.8.8 and TCP auto-tuning `normal`
-- 🏷️ **RNX OEM information** in Everything and Custom: Manufacturer RNX, Model **RNX + 5 digits** unique to each PC, support info and logo
-- 🔧 **Repairs** in Custom (by hand only): remove old/faulty devices with a preview list, and AtlasOS's Microsoft Store fix
+- 🏷️ **RNX OEM information** in Everything and Custom: Manufacturer RNX, Model **RNX + 5 digits** unique to each PC, support hours, Discord and logo
 - ⚡ Power plan, network and OEM cards added to Custom
-- 🎨 **New Digital Vibrance tab** (color saturation per game, like vibranceGUI, NVIDIA and AMD) with import from vibranceGUI; always active while RNX is open; closing the window keeps RNX in the tray, with an option to start with Windows
-- ☁️ **Your RNX settings are saved with each Drive backup** and can be restored on another PC with one button
-- 🔤 **New CS2 fonts tab**: font manager that installs fonts where CS2 really reads them, with the RNX font, your installed fonts with preview and a size option
-- 🖥️ **New Custom Resolution tab**: custom scaled resolutions (like 1352×1080) for NVIDIA and AMD
+- 🔧 **Repairs** in Custom (by hand only): remove old and faulty devices with a preview list, and AtlasOS's Microsoft Store fix
 - ↩️ Undo also restores DNS, TCP auto-tuning and the OEM information
-- ☁️ Google sign-in for the Drive backup now works for everyone (the Google app is published) and no longer expires every 7 days
+- ☁️ **Your RNX settings are saved with each Drive backup** and can be restored on another PC with **Restore my RNX settings**
+- 🔑 Google sign-in for the Drive backup works for everyone (the Google app is published) and no longer expires every 7 days
+- ✍️ Clearer, more professional wording across the app
 
 ### v5.1.2
 - 💽 **TRIM on every drive**: SSD optimization now runs on every fixed drive, not just `C:` (drives without TRIM, like HDDs, are skipped and logged)
