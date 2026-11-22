@@ -1,0 +1,20 @@
+"config"
+{
+	"bindings"
+	{
+		"`"		"<unbound>"
+		"F5"		"toggleconsole"
+		"v"		"+jump"
+		"k"		"+voicerecord"
+		"F4"		"buy flashbang; buy smokegrenade; buy hegrenade; buy molotov; buy incgrenade"
+		"F7"		"SAY Ɑ͞ ̶͞ ̶͞ ﻝﮞ᠌"
+		"p"		"getout"
+		","		"sv_rethrow_last_grenade"
+		"MOUSE4"		"say Get Leetify"
+		"MWHEELUP"		"+jump"
+	}
+	"analogbindings"
+	{
+		"MOUSE_X"		"yaw"
+	}
+}

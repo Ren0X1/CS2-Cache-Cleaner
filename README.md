@@ -65,11 +65,14 @@ The same modes as the old `.bat` still work as arguments. With an argument the a
 RNX_Cache_Cleaner.exe              :: graphical interface
 RNX_Cache_Cleaner.exe /rapida      :: quick cleanup
 RNX_Cache_Cleaner.exe /completa    :: full cleanup + TRIM + NVIDIA profile
-RNX_Cache_Cleaner.exe /todo        :: full + shader cache + mouse + NVIDIA + power plan, no questions
+RNX_Cache_Cleaner.exe /todo        :: full + shader cache + mouse + NVIDIA + power plan + network + OEM, no questions
 RNX_Cache_Cleaner.exe /nobackup    :: same as /todo but without the Drive backup
 RNX_Cache_Cleaner.exe /shader      :: shader cache only
 RNX_Cache_Cleaner.exe /raton       :: mouse config only
 RNX_Cache_Cleaner.exe /nvidia      :: NVIDIA CS2 profile only
+RNX_Cache_Cleaner.exe /energia     :: RNX Performance power plan only
+RNX_Cache_Cleaner.exe /red         :: network only (DNS 1.1.1.1 + 8.8.8.8, TCP auto-tuning)
+RNX_Cache_Cleaner.exe /oem         :: RNX OEM information only
 RNX_Cache_Cleaner.exe /backup      :: Steam backup to Google Drive only
 ```
 
@@ -127,7 +130,51 @@ Your settings, Google sign-in, history and backups live in `%LOCALAPPDATA%\RNX C
 - **NVIDIA CS2 profile** — silently imports the bundled **RNX Performance** profile, optimized for CS2, with NVIDIA Profile Inspector (only with an NVIDIA GPU). The profile is fixed and can't be swapped.
 - **RNX Performance power plan** — imports and activates a power plan tuned for maximum performance and minimum latency in games. It always uses the same ID, so it never duplicates: if it already exists it's just activated. If Windows rejects the full `.pow` import (it's all-or-nothing and fails when a single setting isn't supported on that PC), the plan is built setting by setting and unsupported settings are skipped and logged.
 
-**Everything** (`/todo` and `/nobackup`) runs all of them: shader cache, mouse config, NVIDIA profile and power plan.
+- **Network** — sets DNS **1.1.1.1** (Cloudflare) and **8.8.8.8** (Google) on the connected physical network adapters and TCP auto-tuning to `normal`. IPv6 is not touched.
+- **RNX OEM information** — Manufacturer *RNX*, Model **RNX + 5 digits** (generated from the PC's own ID, always the same on that PC, e.g. `RNX 84805`), support hours, Discord, GitHub link and the RNX logo (`C:\ProgramData\RNX\logo.bmp`). Shown in Settings → System → About.
+
+**Everything** (`/todo` and `/nobackup`) runs all of them: shader cache, mouse config, NVIDIA profile, power plan, network and OEM information. **Custom** has a card for each one too.
+
+### 🔧 Repairs (by hand only)
+
+In **Custom → Repairs**. These are never run by Everything:
+
+- **Old and faulty devices** — like Driver Booster: removes devices Windows remembers but that are no longer connected (with `pnputil /remove-device`) and restarts connected devices that report an error. **Shows the full list before doing anything.** Drivers are kept, so anything you plug back in reinstalls by itself (it only loses settings saved for that device). System, CPU, firmware and TPM entries are never touched. A restore point is created first if enabled.
+- **Fix Microsoft Store (AtlasOS)** — runs AtlasOS's `fixStoreIssues.cmd` (bundled unchanged) for when the Store or apps won't install or update: it rebuilds the app deployment database and removes Gaming Services. Only enabled on AtlasOS.
+
+### 🖥️ CS2 video settings
+
+The **CS2 video** tab edits `Steam\userdata\<account>\730\local\cfg\cs2_video.txt` **before you launch the game**, in plain words instead of CS2's internal names:
+
+- **RNX's full CS2 config**: one button copies Ren0X1's binds, sensitivity, crosshair, game options and video settings into the chosen account (your in-game name is kept; nothing tied to his Steam account or inventory is copied). Your own config is saved first and **Restore mine** puts it back. CS2 is closed first if it's open.
+- **Quick choice**: *Maximum FPS*, *Balanced* and *Best looking*.
+- **Screen**: resolution and Hz (read from your monitor), 4:3 / 16:9 / 16:10, full screen / borderless / window, V-Sync.
+- **Image quality**: shadows, moving shadows, textures, texture sharpness, lighting detail, effects, corner shading, HDR, anti-aliasing, FSR and NVIDIA Reflex — each with a one-line explanation.
+- **Lock switch**: marks the file **read-only** so CS2 never overwrites it. While locked the form is disabled; unlock it to edit. **Every change is saved straight away**, keeping the rest of the file exactly as it was. The first change makes a backup (`cs2_video.txt.rnxbak`).
+- Several Steam accounts on the PC? Pick which one at the top.
+- **Custom resolutions**: add scaled resolutions to your graphics card (e.g. **1352×1080** stretched) for NVIDIA and AMD, remove them or go back to the driver's list. A restart is recommended afterwards (button included). Same approach as ToastyX's [Scaled Resolution Editor](https://monitortests.com/scaled-resolution-editor) (written from scratch, compatible with what SRE saves).
+
+### 🎨 Game colors (digital vibrance)
+
+Like **vibranceGUI**, built in: when a game from your list is in front, its colors get more saturated, and optionally its resolution changes. When you leave it, Windows goes back to its normal color and resolution.
+
+- **NVIDIA** (NVAPI, 50–100 %) and **AMD** (ADL saturation, 0–300 %, like vibranceGUI).
+- **Windows color** level, **main monitor only** option, and a list of games with icon, color % and optional resolution. Add a game from the programs that are open, or pick its `.exe`.
+- **Import from vibranceGUI** brings your games and levels in one click. If vibranceGUI is also open, the app warns you, since both would fight, and can close it.
+- While it's on, **closing the window keeps RNX in the tray** next to the clock (right-click → Exit). Leaving RNX restores the normal color.
+- **Settings → Start with Windows in the background** starts RNX hidden in the tray when you sign in, with admin rights and no UAC prompt.
+
+### ☁️ Your RNX settings travel with you
+
+Every Drive backup also saves your RNX settings (`rnx_settings.json` in the backup folder): language, colors, Custom selection, backup options, CS2 font size and **game colors with your games**. On a new PC, connect Google and press **Backup → Restore my RNX settings**. Things tied to a PC (paths, power plan, scheduled tasks) are not included.
+
+### 🔤 CS2 font manager
+
+The **CS2 fonts** tab changes the font of the whole CS2 interface, **the way that actually works in CS2**: the font goes in `game\csgo\panorama\fonts` together with a `fonts.conf` that redirects every Stratum2 variant (plus Arial, Times, Courier and notosans) to it. The original game has no `fonts.conf` there, so nothing from Valve is modified.
+
+- **RNX font** (Bebas Neue) with one click, or **any font installed on your PC** (search and live preview, 80 per page), or a `.ttf`/`.otf` file.
+- **Size** 85–110 % (95 % by default).
+- **Back to the original** removes the `fonts.conf` and the added font. Valve's fonts are never touched. CS2 is closed first if it's open.
 
 ### ⚙️ Settings: your own files
 
@@ -142,7 +189,7 @@ The CS2 mouse module, Full and Everything all use the chosen file. If it disappe
 ### 🧯 Safety: restore point and undo
 
 - **Restore point** — before **Full** and **Everything** the app creates a Windows restore point (Settings → Safety, on by default). Windows only allows one every 24 hours; if there's a recent one, that one is kept. If System Protection is off on `C:`, the log says so.
-- **Undo** — the first time RNX applies the mouse settings, the NVIDIA profile or the power plan, what you had before is saved (for NVIDIA, the driver's profile database). **CS2 modules → Undo** puts it back.
+- **Undo** — the first time RNX applies the mouse settings, the NVIDIA profile, the power plan, the network settings or the OEM information, what you had before is saved (for NVIDIA, the driver's profile database). **CS2 modules → Undo** puts it back.
 - **CS2 open** — if CS2 is running when you clean the shader cache or apply the NVIDIA profile, the app asks to close it first.
 - **Current state** — the CS2 modules tab shows the active power plan, whether your mouse settings match the `.reg` the app uses, the shader cache size and when the NVIDIA profile was last applied.
 
@@ -172,7 +219,9 @@ Profile Inspector, the RNX Performance `.nip` and `.pow`, and `raton.reg` ship *
 | `%LOCALAPPDATA%\RNX Cache Cleaner\history.json` | Cleanup history |
 | `%LOCALAPPDATA%\RNX Cache Cleaner\google\` | Google Drive sign-in token |
 | `%LOCALAPPDATA%\RNX Cache Cleaner\backups\` | Local copy of the backup ZIPs |
-| `%LOCALAPPDATA%\RNX Cache Cleaner\tools\` | Profile Inspector, `.nip` and `.reg`, extracted when used |
+| `%LOCALAPPDATA%\RNX Cache Cleaner\tools\` | Profile Inspector, `.nip`, `.reg` and the Store fix, extracted when used |
+| `%LOCALAPPDATA%\RNX Cache Cleaner\undo\` | What Undo puts back (mouse, power plan, NVIDIA, DNS, OEM) |
+| `C:\ProgramData\RNX\logo.bmp` | OEM logo |
 
 ---
 
@@ -197,9 +246,32 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 
 ---
 
+## 🙏 Credits
+
+- [NVIDIA Profile Inspector](https://github.com/Orbmu2k/nvidiaProfileInspector) by Orbmu2k (bundled).
+- Custom resolutions use the same registry approach as [Scaled Resolution Editor](https://monitortests.com/scaled-resolution-editor) by ToastyX.
+- **Bebas Neue** font by Dharma Type, under the SIL Open Font License 1.1 (bundled).
+- Game colors work like [vibranceGUI](https://github.com/juv/vibranceGUI) by juv (rewritten from scratch).
+- Microsoft Store fix: `fixStoreIssues.cmd` from [AtlasOS](https://github.com/Atlas-OS/Atlas) (bundled unchanged).
+
+---
+
 ## 📜 Changelog
 
-### v5.1.2 (current)
+### v5.2.0 (current)
+- 🖥️ **New CS2 video tab**: change CS2's graphics before launching it, in plain words, with quick presets, a **lock switch** that makes `cs2_video.txt` read-only so CS2 never touches it, and a button to apply **RNX's full CS2 config** (binds, sensitivity, crosshair, options and video) with one click
+- 🌐 **Network** in Everything and Custom: DNS 1.1.1.1 + 8.8.8.8 and TCP auto-tuning `normal`
+- 🏷️ **RNX OEM information** in Everything and Custom: Manufacturer RNX, Model **RNX + 5 digits** unique to each PC, support info and logo
+- 🔧 **Repairs** in Custom (by hand only): remove old/faulty devices with a preview list, and AtlasOS's Microsoft Store fix
+- ⚡ Power plan, network and OEM cards added to Custom
+- 🎨 **New Game colors tab** (digital vibrance per game, like vibranceGUI, NVIDIA and AMD) with import from vibranceGUI; RNX stays in the tray while it's on, with an option to start with Windows
+- ☁️ **Your RNX settings are saved with each Drive backup** and can be restored on another PC with one button
+- 🔤 **New CS2 fonts tab**: font manager that installs fonts where CS2 really reads them, with the RNX font, your installed fonts with preview and a size option
+- 🖥️ **Custom resolutions** (like 1352×1080) for NVIDIA and AMD from the CS2 video tab
+- ↩️ Undo also restores DNS, TCP auto-tuning and the OEM information
+- ☁️ Google sign-in for the Drive backup now works for everyone (the Google app is published) and no longer expires every 7 days
+
+### v5.1.2
 - 💽 **TRIM on every drive**: SSD optimization now runs on every fixed drive, not just `C:` (drives without TRIM, like HDDs, are skipped and logged)
 - ⚡ **Servers → Quick setup**: keep only the 3, 5 or 10 best locations by ping, or play only in one region (Europe, North America...), with one click
 - ↩️ **Undo now includes the NVIDIA profile**: your previous driver profiles are saved before importing RNX Performance and Undo puts them back

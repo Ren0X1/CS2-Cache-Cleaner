@@ -55,13 +55,37 @@ public static class Scheduler
         Logger.Info(T("lg.sch.set", T("sch." + freq), T("plan." + mode)));
     }
 
-    private static string Xml(string freq, string exe, string args)
+    // ------------------------------------------------------------------
+    //  Inicio con Windows en segundo plano (bandeja + color en juegos)
+    // ------------------------------------------------------------------
+    public const string AutostartTask = "RNX Cache Cleaner - Background";
+
+    public static bool AutostartExists()
+    {
+        try { Service().GetFolder(@"\").GetTask(AutostartTask); return true; } catch { return false; }
+    }
+
+    public static void SetAutostart(bool on)
+    {
+        dynamic root = Service().GetFolder(@"\");
+        if (!on)
+        {
+            try { root.DeleteTask(AutostartTask, 0); } catch { }
+            Logger.Info(T("lg.autostart.off"));
+            return;
+        }
+        var exe = Environment.ProcessPath ?? throw new InvalidOperationException("exe path");
+        root.RegisterTask(AutostartTask, Xml("logon", exe, App.TrayFlag, "PT10S"), 6, null, null, 3);
+        Logger.Info(T("lg.autostart.on"));
+    }
+
+    private static string Xml(string freq, string exe, string args, string logonDelay = "PT3M")
     {
         string user = SecurityElement.Escape($@"{Environment.UserDomainName}\{Environment.UserName}");
         string start = DateTime.Today.ToString("yyyy-MM-dd") + "T12:00:00";
         string trigger = freq switch
         {
-            "logon" => $"<LogonTrigger><UserId>{user}</UserId><Delay>PT3M</Delay></LogonTrigger>",
+            "logon" => $"<LogonTrigger><UserId>{user}</UserId><Delay>{logonDelay}</Delay></LogonTrigger>",
             "daily" => $"<CalendarTrigger><StartBoundary>{start}</StartBoundary><ScheduleByDay><DaysInterval>1</DaysInterval></ScheduleByDay></CalendarTrigger>",
             _ => $"<CalendarTrigger><StartBoundary>{start}</StartBoundary><ScheduleByWeek><WeeksInterval>1</WeeksInterval><DaysOfWeek><Sunday/></DaysOfWeek></ScheduleByWeek></CalendarTrigger>",
         };
@@ -76,7 +100,7 @@ public static class Scheduler
                 <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
                 <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
                 <StartWhenAvailable>true</StartWhenAvailable>
-                <ExecutionTimeLimit>PT2H</ExecutionTimeLimit>
+                <ExecutionTimeLimit>{(args.Contains(App.TrayFlag) ? "PT0S" : "PT2H")}</ExecutionTimeLimit>
                 <Enabled>true</Enabled>
               </Settings>
               <Actions Context="Author"><Exec><Command>{SecurityElement.Escape(exe)}</Command><Arguments>{SecurityElement.Escape(args)}</Arguments></Exec></Actions>

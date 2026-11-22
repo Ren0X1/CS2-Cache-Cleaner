@@ -17,7 +17,7 @@ namespace RnxCleaner;
 
 public partial class MainWindow : Window
 {
-    private readonly Settings _settings = Settings.Load();
+    private readonly Settings _settings = App.Shared;
     private readonly SystemInfo _sys = SystemInfo.Detect();
     private readonly RunMode? _autoMode;
     private readonly bool _scheduled;
@@ -36,6 +36,13 @@ public partial class MainWindow : Window
     {
         _autoMode = autoMode;
         _scheduled = scheduled;
+        // Con el color activado, cerrar = quedarse en la bandeja
+        Closing += (_, e) =>
+        {
+            if (App.Exiting || _autoMode is not null || SnapMode || !App.KeepInTray) return;
+            e.Cancel = true;
+            App.HideToTray(this);
+        };
         // Idioma y tema antes de dibujar nada
         Loc.Set(_settings.Language);
         InitializeComponent();
@@ -50,6 +57,7 @@ public partial class MainWindow : Window
         SysSpec.Text = $"{_sys.Windows} · {_sys.GpuName.Replace("NVIDIA GeForce ", "")}";
         SysSpec.ToolTip = _sys.GpuName;
         if (!_sys.IsNvidia) { NvidiaBtn.IsEnabled = false; CustomNvidia.IsEnabled = false; }
+        if (!File.Exists(AtlasRunAsTI)) { FixStoreBtn.IsEnabled = false; FixStoreBtn.ToolTip = T("fix.store.notAtlas"); }
 
         LoadSettingsIntoUi();
         (_mode switch { RunMode.Quick => ModeQuick, RunMode.Full => ModeFull, _ => ModeTodo }).IsChecked = true;
@@ -94,6 +102,9 @@ public partial class MainWindow : Window
         BuildFirstRun();
         if (PageHistory.Visibility == Visibility.Visible) RefreshHistory();
         if (PageServers.Visibility == Visibility.Visible) RenderServers();
+        if (PageVideo.Visibility == Visibility.Visible) RenderVideo();
+        if (PageFonts.Visibility == Visibility.Visible) RenderFonts();
+        if (PageVibrance.Visibility == Visibility.Visible) RenderVibrance();
         if (PageSettings.Visibility == Visibility.Visible) RenderSettings();
         _ = RefreshDriveAsync();
     }
@@ -140,6 +151,8 @@ public partial class MainWindow : Window
         if (plan.Shader) list.Add((T("mod.shader"), true));
         if (plan.Mouse) list.Add((T("mod.mouse"), true));
         if (plan.Power) list.Add((T("mod.power"), true));
+        if (plan.Network) list.Add((T("mod.network"), true));
+        if (plan.Oem) list.Add((T("mod.oem"), true));
         return list;
     }
 
@@ -219,6 +232,9 @@ public partial class MainWindow : Window
             CustomShader.IsChecked = sel.Contains("mod:shader");
             CustomMouse.IsChecked = sel.Contains("mod:mouse");
             CustomNvidia.IsChecked = _sys.IsNvidia && sel.Contains("mod:nvidia");
+            CustomPower.IsChecked = sel.Contains("mod:power");
+            CustomNetwork.IsChecked = sel.Contains("mod:network");
+            CustomOem.IsChecked = sel.Contains("mod:oem");
         }
         _customBoxes.Clear();
         foreach (var item in CleanupCatalog.All)
@@ -266,6 +282,9 @@ public partial class MainWindow : Window
             RadioButton r when r == NavCs2 => PageCs2,
             RadioButton r when r == NavBackup => PageBackup,
             RadioButton r when r == NavServers => PageServers,
+            RadioButton r when r == NavVideo => PageVideo,
+            RadioButton r when r == NavFonts => PageFonts,
+            RadioButton r when r == NavVibrance => PageVibrance,
             RadioButton r when r == NavSettings => PageSettings,
             RadioButton r when r == NavLog => PageLog,
             RadioButton r when r == NavHistory => PageHistory,
@@ -277,12 +296,15 @@ public partial class MainWindow : Window
         if (sender == NavServers) _ = LoadServersAsync();
         if (sender == NavSettings) RenderSettings();
         if (sender == NavCs2) _ = RefreshCs2StateAsync();
+        if (sender == NavVideo) LoadVideo();
+        if (sender == NavFonts) LoadFonts();
+        if (sender == NavVibrance) LoadVibrance();
     }
 
     private void ShowPage(FrameworkElement page)
     {
         if (PageHome is null) return;
-        foreach (var p in new FrameworkElement[] { PageHome, PageCustom, PageCs2, PageServers, PageBackup, PageSettings, PageLog, PageHistory, PageRun })
+        foreach (var p in new FrameworkElement[] { PageHome, PageCustom, PageCs2, PageVideo, PageFonts, PageVibrance, PageServers, PageBackup, PageSettings, PageLog, PageHistory, PageRun })
             p.Visibility = p == page ? Visibility.Visible : Visibility.Collapsed;
         page.Opacity = 0;
         page.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160)));
@@ -435,9 +457,12 @@ public partial class MainWindow : Window
             Shader = CustomShader.IsChecked == true,
             Mouse = CustomMouse.IsChecked == true,
             Nvidia = CustomNvidia.IsChecked == true && _sys.IsNvidia,
+            Power = CustomPower.IsChecked == true,
+            Network = CustomNetwork.IsChecked == true,
+            Oem = CustomOem.IsChecked == true,
             Backup = _settings.BackupToDrive,
         };
-        if (plan.Cleanup.Count == 0 && !plan.Shader && !plan.Mouse && !plan.Nvidia)
+        if (plan.Cleanup.Count == 0 && !plan.Shader && !plan.Mouse && !plan.Nvidia && !plan.Power && !plan.Network && !plan.Oem)
         {
             ShowToast(T("toast.selectOne"));
             return;
@@ -715,6 +740,62 @@ public partial class MainWindow : Window
     // ===================================================================
     //  Personalizada
     // ===================================================================
+    // ---- Reparacion de la Microsoft Store (script de AtlasOS, solo a mano)
+    private static string AtlasRunAsTI => Path.Combine(Sys.WinDir, "AtlasModules", "Scripts", "RunAsTI.cmd");
+
+    private async void FixStore_Click(object s, RoutedEventArgs e)
+    {
+        if (_running) return;
+        if (!File.Exists(AtlasRunAsTI)) { ShowToast(T("fix.store.notAtlas")); return; }
+        if (!await Confirm(T("dlg.warn"), T("dlg.fix.t"), T("dlg.fix.x"), T("fix.store.btn"), T("dlg.cancel"))) return;
+        try
+        {
+            var cmd = AppPaths.ExtractTool("fixStoreIssues.cmd") ?? throw new FileNotFoundException("fixStoreIssues.cmd");
+            // Ventana visible: el script muestra el progreso y espera una tecla al final
+            Process.Start(new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "cmd.exe"), $"/c \"\"{cmd}\"\"")
+                { UseShellExecute = true, WorkingDirectory = AppPaths.Tools });
+            Logger.Info(T("lg.fix.store"));
+            ShowToast(T("toast.fix.store"));
+        }
+        catch (Exception ex) { Logger.Error(T("lg.fix.fail", ex.Message)); ShowToast(T("lg.fix.fail", ex.Message)); }
+    }
+
+    // ---- Dispositivos antiguos y con error (solo a mano, con lista previa)
+    private async void Devices_Click(object s, RoutedEventArgs e)
+    {
+        if (_running) return;
+        DevicesBtn.IsEnabled = false;
+        try
+        {
+            ShowToast(T("dev.scanning"));
+            var (ghosts, errors) = await Devices.ScanAsync();
+            if (ghosts.Count == 0 && errors.Count == 0) { ShowToast(T("dev.none")); return; }
+
+            var sb = new System.Text.StringBuilder();
+            foreach (var g in ghosts.GroupBy(d => d.Group))
+            {
+                sb.AppendLine($"{g.Key} ({g.Count()})");
+                foreach (var d in g) sb.AppendLine("   •  " + d.Name);
+            }
+            if (errors.Count > 0)
+            {
+                if (sb.Length > 0) sb.AppendLine();
+                sb.AppendLine(T("dev.errorsHeader", errors.Count));
+                foreach (var d in errors) sb.AppendLine($"   •  {d.Name} ({d.Group})");
+            }
+            if (!await Confirm(T("dev.title").ToUpper(Culture), T("dev.dlg.t", ghosts.Count, errors.Count), T("dev.dlg.x"),
+                               T("dev.dlg.yes"), T("dlg.cancel"), sb.ToString().TrimEnd()))
+                return;
+
+            Logger.StartSession(T("dev.title"));
+            if (_settings.RestorePoint) await RestorePoint.CreateAsync(T("dev.title"), CancellationToken.None);
+            var (removed, failed, fixd) = await Devices.CleanAsync(ghosts, errors);
+            ShowToast(T("dev.toast", removed, fixd) + (failed > 0 ? " · " + T("dev.toast.failed", failed) : ""));
+        }
+        catch (Exception ex) { Logger.Error(T("lg.dev.fail", ex.Message)); ShowToast(T("lg.dev.fail", ex.Message)); }
+        finally { DevicesBtn.IsEnabled = true; }
+    }
+
     private void SetSelection(Func<CleanupItem, bool> pick)
     {
         foreach (var cb in _customBoxes) cb.IsChecked = pick(CleanupCatalog.Get((string)cb.Tag));
@@ -733,6 +814,9 @@ public partial class MainWindow : Window
         if (CustomShader.IsChecked == true) sel.Add("mod:shader");
         if (CustomMouse.IsChecked == true) sel.Add("mod:mouse");
         if (CustomNvidia.IsChecked == true) sel.Add("mod:nvidia");
+        if (CustomPower.IsChecked == true) sel.Add("mod:power");
+        if (CustomNetwork.IsChecked == true) sel.Add("mod:network");
+        if (CustomOem.IsChecked == true) sel.Add("mod:oem");
         if (sel.Count == 0) sel.Add("none"); // distinguir "nada marcado" de "primera vez"
         _settings.CustomSelection = sel;
         _settings.Save();
@@ -742,7 +826,7 @@ public partial class MainWindow : Window
     private void UpdateCustomCount()
     {
         int n = _customBoxes.Count(c => c.IsChecked == true)
-                + (CustomShader.IsChecked == true ? 1 : 0) + (CustomMouse.IsChecked == true ? 1 : 0) + (CustomNvidia.IsChecked == true ? 1 : 0);
+                + new[] { CustomShader, CustomMouse, CustomNvidia, CustomPower, CustomNetwork, CustomOem }.Count(c => c.IsChecked == true);
         CustomCount.Text = T("custom.count", n);
     }
 
@@ -1064,6 +1148,8 @@ public partial class MainWindow : Window
         if (Undo.HasMouse) parts.Add(T("undo.part.mouse"));
         if (Undo.SavedPower() is { } p) parts.Add(T("undo.part.power", p.Name));
         if (Undo.HasNvidia) parts.Add(T("undo.part.nvidia"));
+        if (Undo.HasDns || Undo.HasTcp) parts.Add(T("undo.part.network"));
+        if (Undo.HasOem) parts.Add(T("undo.part.oem"));
         UndoSub.Text = parts.Count > 0 ? T("cs2.undo.saved", string.Join(" · ", parts)) : T("cs2.undo.none");
         UndoBtn.IsEnabled = parts.Count > 0 && !_running;
     }
@@ -1080,6 +1166,24 @@ public partial class MainWindow : Window
     // ===================================================================
     //  Ajustes: punto de restauracion y limpieza programada
     // ===================================================================
+    private void AutostartToggle_Click(object s, RoutedEventArgs e)
+    {
+        bool on = AutostartToggle.IsChecked == true;
+        try
+        {
+            Scheduler.SetAutostart(on);
+            _settings.Autostart = on;
+            _settings.Save();
+            ShowToast(T(on ? "set.autostart.on" : "set.autostart.off"));
+        }
+        catch (Exception ex)
+        {
+            AutostartToggle.IsChecked = !on;
+            Logger.Error(T("toast.sch.fail", ex.Message));
+            ShowToast(T("toast.sch.fail", ex.Message));
+        }
+    }
+
     private void RpToggle_Click(object s, RoutedEventArgs e)
     {
         _settings.RestorePoint = RpToggle.IsChecked == true;
@@ -1152,6 +1256,7 @@ public partial class MainWindow : Window
         RegState.SetResourceReference(TextBlock.ForegroundProperty, customReg && !File.Exists(_settings.RegPath) ? "Warn" : customReg ? "Accent" : "Ink");
         RegDefaultBtn.IsEnabled = customReg;
         RpToggle.IsChecked = _settings.RestorePoint;
+        AutostartToggle.IsChecked = _settings.Autostart && Scheduler.AutostartExists();
         RenderSchedule();
 
         SetLangs.Children.Clear();
@@ -1267,6 +1372,31 @@ public partial class MainWindow : Window
         await DriveSync.SignOutAsync();
         await RefreshDriveAsync();
         ShowToast(T("toast.driveOff"));
+    }
+
+    private async void RestoreCfg_Click(object s, RoutedEventArgs e)
+    {
+        if (!DriveSync.IsConfigured) return;
+        if (!await DriveSync.HasTokenAsync()) { ShowToast(T("bk.cfg.login")); return; }
+        if (!await Confirm(T("nav.backup").ToUpper(Culture), T("bk.cfg.t"), T("bk.cfg.x"), T("bk.cfg.btn"), T("dlg.cancel"))) return;
+        RestoreCfgBtn.IsEnabled = false;
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            var json = await DriveSync.DownloadSettingsAsync(_settings, cts.Token);
+            if (json is null) { ShowToast(T("bk.cfg.none")); return; }
+            _settings.ImportPortable(json);
+            _settings.Save();
+            Loc.Set(_settings.Language);
+            ThemeManager.Apply(_settings.Palette, _settings.ThemeMode);
+            if (_settings.VibranceEnabled) App.StartVibrance(); else App.StopVibrance();
+            RefreshTexts();
+            LoadSettingsIntoUi();
+            Logger.Ok(T("lg.cfg.restored"));
+            ShowToast(T("bk.cfg.done"));
+        }
+        catch (Exception ex) { Logger.Error(T("lg.cfg.fail", ex.Message)); ShowToast(T("lg.cfg.fail", ex.Message)); }
+        finally { RestoreCfgBtn.IsEnabled = true; }
     }
 
     private async Task RefreshDriveAsync()
@@ -1546,6 +1676,21 @@ public partial class MainWindow : Window
         {
             case "home": _history = Demo(); DrawHomeChart(); break;
             case "custom": NavCustom.IsChecked = true; break;
+            case "devices":
+            {
+                NavCustom.IsChecked = true;
+                var (gh, er) = await Devices.ScanAsync();
+                var sb = new System.Text.StringBuilder();
+                foreach (var g in gh.GroupBy(d => d.Group)) { sb.AppendLine($"{g.Key} ({g.Count()})"); foreach (var d in g) sb.AppendLine("   •  " + d.Name); }
+                if (er.Count > 0) { sb.AppendLine(); sb.AppendLine(T("dev.errorsHeader", er.Count)); foreach (var d in er) sb.AppendLine($"   •  {d.Name} ({d.Group})"); }
+                _ = Confirm(T("dev.title").ToUpper(Culture), T("dev.dlg.t", gh.Count, er.Count), T("dev.dlg.x"), T("dev.dlg.yes"), T("dlg.cancel"), sb.ToString().TrimEnd());
+                break;
+            }
+            case "video": NavVideo.IsChecked = true; break;
+            case "fonts": NavFonts.IsChecked = true; await Task.Delay(4000); break;
+            case "vibrance": NavVibrance.IsChecked = true; break;
+            case "videobottom": NavVideo.IsChecked = true; await Task.Delay(400); PageVideo.ScrollToEnd(); break;
+            case "custombottom": NavCustom.IsChecked = true; await Task.Delay(400); CustomScroll.ScrollToEnd(); break;
             case "cs2": NavCs2.IsChecked = true; break;
             case "settings": NavSettings.IsChecked = true; break;
             case "servers": NavServers.IsChecked = true; await Task.Delay(6000); break;
@@ -1585,8 +1730,10 @@ public partial class MainWindow : Window
     // ===================================================================
     private TaskCompletionSource<bool>? _dialogTcs;
 
-    private Task<bool> Confirm(string overline, string title, string text, string yes, string no)
+    private Task<bool> Confirm(string overline, string title, string text, string yes, string no, string? list = null)
     {
+        DialogList.Text = list ?? "";
+        DialogListBox.Visibility = string.IsNullOrEmpty(list) ? Visibility.Collapsed : Visibility.Visible;
         DialogOverline.Text = overline;
         DialogTitle.Text = title;
         DialogText.Text = text;

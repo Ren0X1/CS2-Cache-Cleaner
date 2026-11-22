@@ -11,3 +11,12 @@
 *.ico binary
 *.png binary
 *.nip binary
+
+# Script de AtlasOS (polyglot batch/PowerShell): se guarda byte a byte, tal cual funciona
+src/RnxCleaner/Assets/fixStoreIssues.cmd -text
+
+# Config de CS2 de RNX: se guarda byte a byte
+src/RnxCleaner/Assets/cs2config/** -text
+
+# Fuente RNX y plantilla fonts.conf: byte a byte
+src/RnxCleaner/Assets/fonts/** -text

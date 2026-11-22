@@ -103,6 +103,7 @@ public static class DriveSync
         Logger.Detail(T("lg.dr.folder", settings.DriveFolder));
 
         await MigrateLooseZipsAsync(svc, rootId, ct);
+        await UploadSettingsAsync(svc, rootId, settings, ct);
 
         // La carpeta de dia mas reciente es la copia "actual"
         var days = await ListDayFoldersAsync(svc, rootId, ct);
@@ -186,6 +187,46 @@ public static class DriveSync
         if (ok) await RotateAsync(svc, rootId, ct);
         progress?.Report(1);
         return ok;
+    }
+
+    // ------------------------------------------------------------------
+    //  Config de RNX (rnx_settings.json en la carpeta de backups)
+    // ------------------------------------------------------------------
+    public const string SettingsFile = "rnx_settings.json";
+
+    private static async Task UploadSettingsAsync(DriveService svc, string rootId, Settings settings, CancellationToken ct)
+    {
+        try
+        {
+            var bytes = System.Text.Encoding.UTF8.GetBytes(settings.ExportPortable());
+            var existing = (await ListZipsAsync(svc, rootId, ct)).FirstOrDefault(f => f.Name == SettingsFile);
+            using var ms = new MemoryStream(bytes);
+            IUploadProgress r;
+            if (existing is null)
+            {
+                var req = svc.Files.Create(new DriveFile { Name = SettingsFile, Parents = [rootId], Description = "RNX Cache Cleaner settings" }, ms, "application/json");
+                req.Fields = "id";
+                r = await req.UploadAsync(ct);
+            }
+            else r = await svc.Files.Update(new DriveFile(), existing.Id, ms, "application/json").UploadAsync(ct);
+            if (r.Status == UploadStatus.Completed) Logger.Ok(T("lg.dr.settingsUp"));
+            else Logger.Warn(T("lg.dr.settingsFail", r.Exception?.Message));
+        }
+        catch (Exception ex) { Logger.Warn(T("lg.dr.settingsFail", ex.Message)); }
+    }
+
+    /// <summary>Descarga la config de RNX guardada en Drive (null si no hay).</summary>
+    public static async Task<string?> DownloadSettingsAsync(Settings settings, CancellationToken ct)
+    {
+        var cred = await AuthorizeAsync(interactive: false, ct);
+        if (cred is null) return null;
+        using var svc = Service(cred);
+        var rootId = await EnsureFolderAsync(svc, settings.DriveFolder, "root", ct);
+        var f = (await ListZipsAsync(svc, rootId, ct)).FirstOrDefault(x => x.Name == SettingsFile);
+        if (f is null) return null;
+        using var ms = new MemoryStream();
+        await svc.Files.Get(f.Id).DownloadAsync(ms, ct);
+        return System.Text.Encoding.UTF8.GetString(ms.ToArray());
     }
 
     /// <summary>Carpetas de dia que se guardan: la actual y la anterior.</summary>

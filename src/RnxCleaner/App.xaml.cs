@@ -31,6 +31,51 @@ public partial class App : Application
             return;
         }
 
+        int svb = Array.FindIndex(e.Args, a => a.Equals("--selftest-vibrance", StringComparison.OrdinalIgnoreCase));
+        if (svb >= 0 && svb + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = SelfTest.VibranceAsync(e.Args[svb + 1]).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
+        int sr = Array.FindIndex(e.Args, a => a.Equals("--selftest-res", StringComparison.OrdinalIgnoreCase));
+        if (sr >= 0 && sr + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = SelfTest.ResAsync(e.Args[sr + 1]).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
+        int sfo = Array.FindIndex(e.Args, a => a.Equals("--selftest-fonts", StringComparison.OrdinalIgnoreCase));
+        if (sfo >= 0 && sfo + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = SelfTest.FontsAsync(e.Args[sfo + 1]).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
+        int sv = Array.FindIndex(e.Args, a => a.Equals("--selftest-video", StringComparison.OrdinalIgnoreCase));
+        if (sv >= 0 && sv + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = SelfTest.VideoAsync(e.Args[sv + 1]).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
+        int sn = Array.FindIndex(e.Args, a => a.Equals("--selftest-network", StringComparison.OrdinalIgnoreCase));
+        if (sn >= 0 && sn + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = SelfTest.NetworkAsync(e.Args[sn + 1]).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
         int sf = Array.FindIndex(e.Args, a => a.Equals("--selftest-safety", StringComparison.OrdinalIgnoreCase));
         if (sf >= 0 && sf + 1 < e.Args.Length)
         {
@@ -67,9 +112,18 @@ public partial class App : Application
         // Limpieza programada (Programador de tareas): minimizada, sin preguntas y con aviso al final
         bool scheduled = auto is not null && e.Args.Any(a => a.Equals(Scheduler.Flag, StringComparison.OrdinalIgnoreCase));
 
+        // Solo una RNX con ventana: si ya hay una (p. ej. en la bandeja), se muestra esa
+        bool trayStart = auto is null && e.Args.Any(a => a.Equals(TrayFlag, StringComparison.OrdinalIgnoreCase));
+        if (auto is null && !ClaimSingleInstance()) { Shutdown(); return; }
+
+        Oem.RepairLogo();
+
         var w = new MainWindow(auto, scheduled);
         if (scheduled) { w.ShowActivated = false; w.WindowState = WindowState.Minimized; }
         MainWindow = w;
+        if (auto is null) StartBackground();
+        // Inicio con Windows (/bandeja): solo el icono y el observador de color
+        if (trayStart) { if (!KeepInTray) Shutdown(); return; }
         w.Show();
     }
 

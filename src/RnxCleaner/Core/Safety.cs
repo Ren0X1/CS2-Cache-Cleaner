@@ -91,7 +91,7 @@ public static class Undo
     public static bool HasMouse => File.Exists(MouseFile);
     public static bool HasPower => File.Exists(PowerFile);
     public static bool HasNvidia => File.Exists(Path.Combine(NvidiaDir, "nvdrsdb0.bin"));
-    public static bool Available => HasMouse || HasPower || HasNvidia;
+    public static bool Available => HasMouse || HasPower || HasNvidia || HasDns || HasTcp || HasOem;
 
     /// <summary>Copia los perfiles NVIDIA actuales antes de importar el RNX Performance.</summary>
     public static void SaveNvidia()
@@ -195,7 +195,83 @@ public static class Undo
             }
             else { ok = false; Logger.Error(T("lg.undo.fail", "powercfg /setactive " + guid)); }
         }
+        if (HasDns)
+        {
+            try
+            {
+                var saved = System.Text.Json.JsonSerializer.Deserialize<List<NetTweaks.Adapter>>(await File.ReadAllTextAsync(DnsFile, ct)) ?? [];
+                foreach (var a in saved)
+                {
+                    var name = a.Name.Replace("'", "''");
+                    var servers = a.Static.Split([',', ' '], StringSplitOptions.RemoveEmptyEntries);
+                    await NetTweaks.PowerShellAsync(servers.Length == 0
+                        ? $"Set-DnsClientServerAddress -InterfaceAlias '{name}' -ResetServerAddresses"
+                        : $"Set-DnsClientServerAddress -InterfaceAlias '{name}' -ServerAddresses ({string.Join(",", servers.Select(x => $"'{x}'"))})", ct);
+                    Logger.Ok(T("lg.undo.dns", a.Name, servers.Length == 0 ? "DHCP" : string.Join(", ", servers)));
+                }
+                await Sys.RunAsync("ipconfig.exe", "/flushdns", 30, ct);
+                File.Delete(DnsFile);
+            }
+            catch (Exception ex) { ok = false; Logger.Error(T("lg.undo.fail", "DNS: " + ex.Message)); }
+        }
+        if (HasTcp)
+        {
+            var level = File.ReadAllText(TcpFile).Trim();
+            await NetTweaks.SetAutoTuningAsync(level, ct);
+            if (await NetTweaks.AutoTuningAsync(ct) == level) { File.Delete(TcpFile); Logger.Ok(T("lg.undo.tcp", level)); }
+            else { ok = false; Logger.Error(T("lg.undo.fail", "autotuninglevel=" + level)); }
+        }
+        if (HasOem)
+        {
+            try
+            {
+                using (var k = Microsoft.Win32.RegistryKey.OpenBaseKey(Microsoft.Win32.RegistryHive.LocalMachine, Microsoft.Win32.RegistryView.Registry64).OpenSubKey(Oem.Key, true))
+                    if (k is not null) foreach (var v in Oem.Values) k.DeleteValue(v, false);
+                if (new FileInfo(OemFile).Length > 0)
+                {
+                    var code = await Sys.RunAsync(Path.Combine(Environment.SystemDirectory, "reg.exe"), $"import \"{OemFile}\"", 60, ct);
+                    if (code != 0) throw new IOException("reg import " + code);
+                }
+                File.Delete(OemFile);
+                Logger.Ok(T("lg.undo.oem"));
+            }
+            catch (Exception ex) { ok = false; Logger.Error(T("lg.undo.fail", "OEM: " + ex.Message)); }
+        }
         return ok;
+    }
+
+    // ---- Red y OEM
+    private static string DnsFile => Path.Combine(Dir, "dns_before.json");
+    private static string TcpFile => Path.Combine(Dir, "autotuning_before.txt");
+    private static string OemFile => Path.Combine(Dir, "oem_before.reg");
+    public static bool HasDns => File.Exists(DnsFile);
+    public static bool HasTcp => File.Exists(TcpFile);
+    public static bool HasOem => File.Exists(OemFile);
+
+    public static async Task SaveDnsAsync(List<NetTweaks.Adapter> adapters, CancellationToken ct)
+    {
+        if (HasDns) return;
+        Directory.CreateDirectory(Dir);
+        await File.WriteAllTextAsync(DnsFile, System.Text.Json.JsonSerializer.Serialize(adapters), ct);
+        Logger.Detail(T("lg.undo.savedDns"));
+    }
+
+    public static void SaveAutoTuning(string level)
+    {
+        if (HasTcp) return;
+        Directory.CreateDirectory(Dir);
+        File.WriteAllText(TcpFile, level);
+    }
+
+    /// <summary>Exporta la clave OEMInformation; si no existia se deja un archivo vacio (= borrar al deshacer).</summary>
+    public static async Task SaveOemAsync(CancellationToken ct)
+    {
+        if (HasOem) return;
+        Directory.CreateDirectory(Dir);
+        var code = await Sys.RunAsync(Path.Combine(Environment.SystemDirectory, "reg.exe"),
+                                      $@"export ""HKLM\{Oem.Key}"" ""{OemFile}"" /y /reg:64", 60, ct);
+        if (code != 0 || !File.Exists(OemFile)) await File.WriteAllTextAsync(OemFile, "", ct);
+        Logger.Detail(T("lg.undo.savedOem"));
     }
 }
 

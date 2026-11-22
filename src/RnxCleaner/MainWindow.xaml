@@ -46,6 +46,9 @@
                     <RadioButton x:Name="NavHome" Content="{c:L nav.home}" Tag="&#xE80F;" Style="{StaticResource NavButton}" GroupName="nav" IsChecked="True" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavCustom" Content="{c:L nav.custom}" Tag="&#xE9D5;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavCs2" Content="{c:L nav.cs2}" Tag="&#xE7FC;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavVideo" Content="{c:L nav.video}" Tag="&#xE7F4;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavFonts" Content="{c:L nav.fonts}" Tag="&#xE8D2;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavVibrance" Content="{c:L nav.vibrance}" Tag="&#xE790;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavServers" Content="{c:L nav.servers}" Tag="&#xE909;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavBackup" Content="{c:L nav.backup}" Tag="&#xE753;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavHistory" Content="{c:L nav.history}" Tag="&#xE9D2;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
@@ -168,7 +171,7 @@
                                 <Button Style="{StaticResource GhostButton}" Content="{c:L custom.none}" Click="SelNone_Click"/>
                             </StackPanel>
                         </StackPanel>
-                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer x:Name="CustomScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto">
                             <StackPanel>
                                 <TextBlock Text="{c:L custom.system}" Style="{StaticResource Overline}"/>
                                 <ItemsControl x:Name="CustomList"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate></ItemsControl.ItemsPanel></ItemsControl>
@@ -183,7 +186,29 @@
                                     <CheckBox x:Name="CustomNvidia" Style="{StaticResource CheckCard}" Click="CustomItem_Click">
                                         <StackPanel><TextBlock Text="{c:L mod.nvidia}" FontWeight="SemiBold"/><TextBlock Text="{c:L mod.nvidia.d}" Style="{StaticResource Sub}" FontSize="12"/></StackPanel>
                                     </CheckBox>
+                                    <CheckBox x:Name="CustomPower" Style="{StaticResource CheckCard}" Click="CustomItem_Click">
+                                        <StackPanel><TextBlock Text="{c:L mod.power}" FontWeight="SemiBold"/><TextBlock Text="{c:L mod.power.d}" Style="{StaticResource Sub}" FontSize="12"/></StackPanel>
+                                    </CheckBox>
+                                    <CheckBox x:Name="CustomNetwork" Style="{StaticResource CheckCard}" Click="CustomItem_Click">
+                                        <StackPanel><TextBlock Text="{c:L mod.network}" FontWeight="SemiBold"/><TextBlock Text="{c:L mod.network.d}" Style="{StaticResource Sub}" FontSize="12"/></StackPanel>
+                                    </CheckBox>
+                                    <CheckBox x:Name="CustomOem" Style="{StaticResource CheckCard}" Click="CustomItem_Click">
+                                        <StackPanel><TextBlock Text="{c:L mod.oem}" FontWeight="SemiBold"/><TextBlock Text="{c:L mod.oem.d}" Style="{StaticResource Sub}" FontSize="12"/></StackPanel>
+                                    </CheckBox>
                                 </UniformGrid>
+                                <TextBlock Text="{c:L custom.fixes}" Style="{StaticResource Overline}" Margin="0,12,0,8"/>
+                                <Border Style="{StaticResource Card}" Margin="0,0,8,0">
+                                    <DockPanel>
+                                        <Button x:Name="FixStoreBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Center" Click="FixStore_Click" Content="{c:L fix.store.btn}"/>
+                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L fix.store.title}" FontWeight="SemiBold"/><TextBlock x:Name="FixStoreSub" Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,0" Text="{c:L fix.store.sub}"/></StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource Card}" Margin="0,12,8,0">
+                                    <DockPanel>
+                                        <Button x:Name="DevicesBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Center" Click="Devices_Click" Content="{c:L dev.btn}"/>
+                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L dev.title}" FontWeight="SemiBold"/><TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,0" Text="{c:L dev.sub}"/></StackPanel>
+                                    </DockPanel>
+                                </Border>
                             </StackPanel>
                         </ScrollViewer>
                         <Border Grid.Row="2" Style="{StaticResource Card}" Padding="20,12" Margin="0,12,8,0">
@@ -265,6 +290,184 @@
                         </StackPanel>
                     </ScrollViewer>
 
+                    <!-- ======== VIDEO CS2 (cs2_video.txt) ======== -->
+                    <ScrollViewer x:Name="PageVideo" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="36,34,36,28">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom">
+                                    <Border x:Name="VidAccountsBox" Style="{StaticResource SegBox}" Margin="0,0,8,0"><StackPanel x:Name="VidAccounts" Orientation="Horizontal"/></Border>
+                                    <Button Style="{StaticResource GhostButton}" Click="VidRefresh_Click" Content="{c:L sv.refresh}"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,0,20,0"><TextBlock Text="{c:L vid.title}" Style="{StaticResource H1}"/><TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,0" Text="{c:L vid.sub}"/></StackPanel>
+                            </DockPanel>
+                            <Border x:Name="VidCs2Warn" Visibility="Collapsed" Margin="0,18,0,0" Padding="16,10" CornerRadius="10" Background="{DynamicResource Tint}">
+                                <TextBlock Text="{c:L vid.cs2open}" Foreground="{DynamicResource TintInk}" FontSize="13" TextWrapping="Wrap"/>
+                            </Border>
+                            <TextBlock x:Name="VidEmpty" Visibility="Collapsed" Style="{StaticResource Sub}" Margin="0,30,0,0" Text="{c:L vid.none}"/>
+                            <Border x:Name="VidLockCard" Style="{StaticResource Card}" Margin="0,22,0,0">
+                                <DockPanel>
+                                    <CheckBox x:Name="VidLock" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" Click="VidLock_Click"/>
+                                    <StackPanel Margin="0,0,18,0"><TextBlock x:Name="VidLockTitle" Style="{StaticResource H2}" Text="-"/><TextBlock x:Name="VidLockSub" Style="{StaticResource Sub}" Margin="0,4,0,0" Text="-"/></StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border x:Name="VidRnxCard" Style="{StaticResource Card}" Margin="0,14,0,0">
+                                <DockPanel>
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button x:Name="VidRnxRestore" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="VidRnxRestore_Click" Content="{c:L vid.rnx.restore}"/>
+                                        <Button Style="{StaticResource PrimaryButton}" Click="VidRnxApply_Click" Content="{c:L vid.rnx.btn}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L vid.rnx.title}" Style="{StaticResource H2}"/><TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{c:L vid.rnx.sub}"/></StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border x:Name="ResCard" Style="{StaticResource Card}" Margin="0,14,0,0">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Button x:Name="ResRestoreBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Top" Click="ResRestore_Click" Content="{c:L res.restore}"/>
+                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L res.title}" Style="{StaticResource H2}"/><TextBlock x:Name="ResSub" Style="{StaticResource Sub}" Margin="0,4,0,0" Text="-"/></StackPanel>
+                                    </DockPanel>
+                                    <WrapPanel x:Name="ResList" Margin="0,14,0,0"/>
+                                    <DockPanel Margin="0,12,0,0">
+                                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                                            <TextBox x:Name="ResW" Width="80" VerticalContentAlignment="Center" MaxLength="5"/>
+                                            <TextBlock Text="×" Style="{StaticResource Sub}" VerticalAlignment="Center" Margin="8,0"/>
+                                            <TextBox x:Name="ResH" Width="80" VerticalContentAlignment="Center" MaxLength="5"/>
+                                            <Button Style="{StaticResource PrimaryButton}" Margin="10,0,0,0" Click="ResAdd_Click" Content="{c:L res.add}"/>
+                                        </StackPanel>
+                                        <StackPanel x:Name="ResQuick" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                    <Border x:Name="ResReboot" Visibility="Collapsed" Margin="0,14,0,0" Padding="16,10" CornerRadius="10" Background="{DynamicResource Tint}">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Click="ResReboot_Click" Content="{c:L res.reboot.btn}"/>
+                                            <TextBlock Text="{c:L res.reboot}" Foreground="{DynamicResource TintInk}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                        </DockPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel x:Name="VidForm">
+                                <TextBlock Text="{c:L vid.presets}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                                <UniformGrid x:Name="VidPresets" Columns="3" Margin="0,0,-10,0"/>
+                                <TextBlock Text="{c:L vid.screen}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                                <Border Style="{StaticResource Card}"><StackPanel x:Name="VidScreen"/></Border>
+                                <TextBlock Text="{c:L vid.quality}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                                <Border Style="{StaticResource Card}"><StackPanel x:Name="VidQuality"/></Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ======== FUENTES CS2 (Font Manager) ======== -->
+                    <Grid x:Name="PageFonts" Visibility="Collapsed" Margin="36,34,36,28">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{c:L font.title}" Style="{StaticResource H1}"/>
+                            <TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,0" Text="{c:L font.sub}"/>
+                            <Border x:Name="FontCs2Warn" Visibility="Collapsed" Margin="0,14,0,0" Padding="16,10" CornerRadius="10" Background="{DynamicResource Tint}">
+                                <TextBlock Text="{c:L font.cs2open}" Foreground="{DynamicResource TintInk}" FontSize="13" TextWrapping="Wrap"/>
+                            </Border>
+                            <TextBlock x:Name="FontNoCs2" Visibility="Collapsed" Style="{StaticResource Sub}" Margin="0,24,0,0" Text="{c:L font.nocs2}"/>
+                        </StackPanel>
+                        <Grid x:Name="FontBody" Grid.Row="1" Margin="0,18,0,0">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                            <Border Style="{StaticResource Card}">
+                                <DockPanel>
+                                    <Button x:Name="FontRestoreBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Center" Click="FontRestore_Click" Content="{c:L font.restore}"/>
+                                    <StackPanel Margin="0,0,18,0">
+                                        <TextBlock Text="{c:L font.current}" Style="{StaticResource Meta}" FontSize="12"/>
+                                        <TextBlock x:Name="FontState" Text="-" FontSize="20" FontWeight="SemiBold" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,12,0,0">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Click="FontRnx_Click" Content="{c:L font.rnx.btn}"/>
+                                    <StackPanel Margin="0,0,18,0">
+                                        <TextBlock Text="{c:L font.rnx.title}" Style="{StaticResource H2}"/>
+                                        <TextBlock x:Name="FontRnxPreview" Text="-" FontSize="24" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <DockPanel Grid.Row="2" Margin="0,18,0,10">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <TextBlock Text="{c:L font.size}" Style="{StaticResource Meta}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <Border Style="{StaticResource SegBox}" Margin="0,0,10,0"><StackPanel x:Name="FontSizes" Orientation="Horizontal"/></Border>
+                                    <Button Style="{StaticResource GhostButton}" Click="FontFile_Click" Content="{c:L font.file}"/>
+                                </StackPanel>
+                                <TextBox x:Name="FontSearch" Margin="0,0,16,0" VerticalContentAlignment="Center" TextChanged="FontSearch_TextChanged" ToolTip="{c:L font.search}"/>
+                            </DockPanel>
+                            <Border Grid.Row="3" Style="{StaticResource Card}" Padding="0,4">
+                                <Grid>
+                                    <ScrollViewer x:Name="FontScroll" VerticalScrollBarVisibility="Auto"><StackPanel x:Name="FontList"/></ScrollViewer>
+                                    <TextBlock x:Name="FontEmpty" Style="{StaticResource Sub}" HorizontalAlignment="Center" VerticalAlignment="Center" Text="" Visibility="Collapsed"/>
+                                </Grid>
+                            </Border>
+                            <DockPanel x:Name="FontPager" Grid.Row="4" Margin="0,10,0,0">
+                                <Button x:Name="FontNextBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Click="FontNext_Click" Content="{c:L font.next}"/>
+                                <Button x:Name="FontPrevBtn" DockPanel.Dock="Left" Style="{StaticResource GhostButton}" Click="FontPrev_Click" Content="{c:L font.prev}"/>
+                                <TextBlock x:Name="FontPageText" Style="{StaticResource Meta}" HorizontalAlignment="Center" VerticalAlignment="Center" Text="-"/>
+                            </DockPanel>
+                        </Grid>
+                    </Grid>
+
+                    <!-- ======== COLOR EN JUEGOS (vibrance) ======== -->
+                    <Grid x:Name="PageVibrance" Visibility="Collapsed" Margin="36,34,36,28">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="{c:L vib.title}" Style="{StaticResource H1}"/>
+                            <TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,0" Text="{c:L vib.sub}"/>
+                            <TextBlock x:Name="VibNoGpu" Visibility="Collapsed" Style="{StaticResource Sub}" Margin="0,24,0,0" Text="{c:L vib.nogpu}"/>
+                        </StackPanel>
+                        <Grid x:Name="VibBody" Grid.Row="1" Margin="0,18,0,0">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                            <Border Style="{StaticResource Card}">
+                                <DockPanel>
+                                    <CheckBox x:Name="VibToggle" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" Click="VibToggle_Click"/>
+                                    <StackPanel Margin="0,0,18,0">
+                                        <TextBlock x:Name="VibState" Style="{StaticResource H2}" Text="-"/>
+                                        <TextBlock x:Name="VibGpu" Style="{StaticResource Sub}" Margin="0,4,0,0" Text="-"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Border>
+                            <Border x:Name="VibOtherWarn" Grid.Row="1" Visibility="Collapsed" Margin="0,12,0,0" Padding="16,10" CornerRadius="10" Background="{DynamicResource Tint}">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Click="VibCloseOther_Click" Content="{c:L vib.other.btn}"/>
+                                    <TextBlock Text="{c:L vib.other}" Foreground="{DynamicResource TintInk}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                </DockPanel>
+                            </Border>
+                            <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <TextBlock x:Name="VibDefaultText" DockPanel.Dock="Right" Width="56" TextAlignment="Right" FontWeight="SemiBold" VerticalAlignment="Center" Text="-"/>
+                                        <Slider x:Name="VibDefault" DockPanel.Dock="Right" Width="260" VerticalAlignment="Center" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="VibDefault_Changed" PreviewMouseUp="VibDefault_Commit" LostKeyboardFocus="VibDefault_Commit"/>
+                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L vib.default}" FontWeight="SemiBold" FontSize="14"/><TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,2,0,0" Text="{c:L vib.default.h}"/></StackPanel>
+                                    </DockPanel>
+                                    <Border Height="1" Background="{DynamicResource Line2}" Margin="0,12"/>
+                                    <DockPanel>
+                                        <CheckBox x:Name="VibPrimary" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" Click="VibPrimary_Click"/>
+                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L vib.primary}" FontWeight="SemiBold" FontSize="14"/><TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,2,0,0" Text="{c:L vib.primary.h}"/></StackPanel>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+                            <DockPanel Grid.Row="3" Margin="0,18,0,8">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                    <Button x:Name="VibImportBtn" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="VibImport_Click" Content="{c:L vib.import}"/>
+                                    <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="VibAddFile_Click" Content="{c:L vib.addfile}"/>
+                                    <Button x:Name="VibAddRunningBtn" Style="{StaticResource PrimaryButton}" Click="VibAddRunning_Click" Content="{c:L vib.add}"/>
+                                    <Popup x:Name="VibRunningPopup" PlacementTarget="{Binding ElementName=VibAddRunningBtn}" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" VerticalOffset="6">
+                                        <Border Background="{DynamicResource Sheet}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="10" Padding="6" MinWidth="320">
+                                            <ScrollViewer MaxHeight="360" VerticalScrollBarVisibility="Auto"><StackPanel x:Name="VibRunningList"/></ScrollViewer>
+                                        </Border>
+                                    </Popup>
+                                </StackPanel>
+                                <TextBlock Text="{c:L vib.games}" Style="{StaticResource Overline}" VerticalAlignment="Bottom"/>
+                            </DockPanel>
+                            <Border Grid.Row="4" Style="{StaticResource Card}" Padding="0,4">
+                                <Grid>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="VibList"/></ScrollViewer>
+                                    <TextBlock x:Name="VibEmpty" Style="{StaticResource Sub}" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{c:L vib.empty}" Visibility="Collapsed"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+
                     <!-- ======== SERVIDORES DE VALVE ======== -->
                     <Grid x:Name="PageServers" Visibility="Collapsed" Margin="36,34,36,28">
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
@@ -338,6 +541,16 @@
                                 </StackPanel>
                             </Border>
 
+                            <TextBlock Text="{c:L set.bg}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <CheckBox x:Name="AutostartToggle" Style="{StaticResource Toggle}" Click="AutostartToggle_Click">
+                                        <TextBlock Text="{c:L set.autostart}" Style="{StaticResource H2}"/>
+                                    </CheckBox>
+                                    <TextBlock Style="{StaticResource Sub}" Margin="0,8,0,0" Text="{c:L set.autostart.sub}"/>
+                                </StackPanel>
+                            </Border>
+
                             <TextBlock Text="{c:L set.sch}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
@@ -403,6 +616,7 @@
                                 </StackPanel>
                             </Border>
                             <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                <Button x:Name="RestoreCfgBtn" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="RestoreCfg_Click" Content="{c:L bk.cfg.btn}" ToolTip="{c:L bk.cfg.tip}"/>
                                 <Button Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" Click="BackupNow_Click" Content="{c:L bk.now}"/>
                                 <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="OpenBackups_Click" Content="{c:L bk.local}"/>
                                 <Button Style="{StaticResource GhostButton}" Click="OpenDrive_Click" Content="{c:L bk.open}"/>
@@ -601,11 +815,16 @@
 
             <!-- ======== DIALOGO ======== -->
             <Grid x:Name="Dialog" Grid.ColumnSpan="2" Background="{DynamicResource Shade}" Visibility="Collapsed" Panel.ZIndex="30">
-                <Border Width="480" VerticalAlignment="Center" Padding="28,24" Background="{DynamicResource Sheet}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="14">
+                <Border Width="540" VerticalAlignment="Center" Padding="28,24" Background="{DynamicResource Sheet}" BorderBrush="{DynamicResource Edge}" BorderThickness="1" CornerRadius="14">
                     <StackPanel>
                         <TextBlock x:Name="DialogOverline" Text="-" Style="{StaticResource Overline}" Foreground="{DynamicResource Warn}"/>
                         <TextBlock x:Name="DialogTitle" Text="-" Style="{StaticResource H2}" FontSize="19" TextWrapping="Wrap"/>
                         <TextBlock x:Name="DialogText" Text="-" Style="{StaticResource Sub}" Margin="0,10,0,22"/>
+                        <Border x:Name="DialogListBox" Visibility="Collapsed" Margin="0,-8,0,22" Padding="12,8" CornerRadius="8" Background="{DynamicResource Track}">
+                            <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto">
+                                <TextBlock x:Name="DialogList" FontSize="12.5" LineHeight="19" TextWrapping="Wrap" Foreground="{DynamicResource Ink}"/>
+                            </ScrollViewer>
+                        </Border>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                             <Button x:Name="DialogNo" Style="{StaticResource GhostButton}" Content="-" Margin="0,0,8,0" Click="DialogNo_Click"/>
                             <Button x:Name="DialogYes" Style="{StaticResource PrimaryButton}" Content="-" Click="DialogYes_Click"/>

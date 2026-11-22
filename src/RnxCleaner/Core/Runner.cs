@@ -2,7 +2,7 @@ using static RnxCleaner.Core.Loc;
 
 namespace RnxCleaner.Core;
 
-public enum RunMode { Quick, Full, Todo, NoBackup, Custom, Shader, Mouse, Nvidia, BackupOnly, Power }
+public enum RunMode { Quick, Full, Todo, NoBackup, Custom, Shader, Mouse, Nvidia, BackupOnly, Power, Network, Oem }
 
 public enum StepStatus { Pending, Running, Ok, Warn, Error, Skipped }
 
@@ -17,6 +17,8 @@ public sealed class RunPlan
     public bool Shader { get; set; }
     public bool Mouse { get; set; }
     public bool Power { get; set; }
+    public bool Network { get; set; }
+    public bool Oem { get; set; }
     public bool Nvidia { get; set; }
 
     /// <summary>Si es false (modo argumentos) nunca se abre el navegador para iniciar sesion.</summary>
@@ -26,14 +28,14 @@ public sealed class RunPlan
     {
         RunMode.Quick => "/rapida", RunMode.Full => "/completa", RunMode.Todo => "/todo",
         RunMode.NoBackup => "/nobackup", RunMode.Shader => "/shader", RunMode.Mouse => "/raton",
-        RunMode.Nvidia => "/nvidia", RunMode.BackupOnly => "/backup", RunMode.Power => "/energia", _ => ""
+        RunMode.Nvidia => "/nvidia", RunMode.BackupOnly => "/backup", RunMode.Power => "/energia", RunMode.Network => "/red", RunMode.Oem => "/oem", _ => ""
     };
 
     public static RunMode? Parse(string arg) => arg.Trim().ToLowerInvariant().TrimStart('/', '-') switch
     {
         "rapida" => RunMode.Quick, "completa" => RunMode.Full, "todo" => RunMode.Todo,
         "nobackup" => RunMode.NoBackup, "shader" => RunMode.Shader, "raton" => RunMode.Mouse,
-        "nvidia" => RunMode.Nvidia, "backup" => RunMode.BackupOnly, "energia" or "power" => RunMode.Power, _ => null
+        "nvidia" => RunMode.Nvidia, "backup" => RunMode.BackupOnly, "energia" or "power" => RunMode.Power, "red" or "network" => RunMode.Network, "oem" => RunMode.Oem, _ => null
     };
 
     /// <summary>Mismo comportamiento que cada argumento del .bat.</summary>
@@ -45,9 +47,11 @@ public sealed class RunPlan
             RunMode.Quick => new() { Key = "quick", Cleanup = [.. CleanupCatalog.Quick], Backup = backup, Interactive = interactive },
             // La completa del .bat aplicaba el perfil NVIDIA si habia GPU NVIDIA
             RunMode.Full => new() { Key = "full", Cleanup = [.. CleanupCatalog.Full], Nvidia = sys.IsNvidia, Backup = backup, Interactive = interactive },
-            RunMode.Todo => new() { Key = "todo", Cleanup = [.. CleanupCatalog.Full], Nvidia = sys.IsNvidia, Shader = true, Mouse = true, Power = true, Backup = backup, Interactive = interactive },
-            RunMode.NoBackup => new() { Key = "nobackup", Cleanup = [.. CleanupCatalog.Full], Nvidia = sys.IsNvidia, Shader = true, Mouse = true, Power = true, Backup = false, Interactive = interactive },
+            RunMode.Todo => new() { Key = "todo", Cleanup = [.. CleanupCatalog.Full], Nvidia = sys.IsNvidia, Shader = true, Mouse = true, Power = true, Network = true, Oem = true, Backup = backup, Interactive = interactive },
+            RunMode.NoBackup => new() { Key = "nobackup", Cleanup = [.. CleanupCatalog.Full], Nvidia = sys.IsNvidia, Shader = true, Mouse = true, Power = true, Network = true, Oem = true, Backup = false, Interactive = interactive },
             RunMode.Power => new() { Key = "power", Power = true, Backup = false, Interactive = interactive },
+            RunMode.Network => new() { Key = "network", Network = true, Backup = false, Interactive = interactive },
+            RunMode.Oem => new() { Key = "oem", Oem = true, Backup = false, Interactive = interactive },
             RunMode.Shader => new() { Key = "shader", Shader = true, Backup = backup, Interactive = interactive },
             RunMode.Mouse => new() { Key = "mouse", Mouse = true, Backup = backup, Interactive = interactive },
             RunMode.Nvidia => new() { Key = "nvidia", Nvidia = true, Backup = backup, Interactive = interactive },
@@ -122,6 +126,12 @@ public static class Runner
             steps.Add(new(T("step.power"), "", async (_, ct) =>
                 await PowerPlan.ApplyAsync(s, ct) ? StepStatus.Ok : StepStatus.Error));
         }
+
+        if (plan.Network)
+            steps.Add(new(T("mod.network"), "", (_, ct) => NetTweaks.ApplyAsync(ct)));
+
+        if (plan.Oem)
+            steps.Add(new(T("mod.oem"), "", (_, ct) => Oem.ApplyAsync(ct)));
 
         if (plan.Mouse)
         {
