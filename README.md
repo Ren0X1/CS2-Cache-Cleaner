@@ -261,7 +261,10 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 
 ## 📜 Changelog
 
-### v5.2.1 (current)
+### v5.2.2 (current)
+- 💜 New **Lavender** color palette (#B174F7), in Settings → Color and on first launch
+
+### v5.2.1
 - 📂 **New menu**: the CS2 tabs (**Modules, Video, Fonts**) are grouped in a **CS2** drop-down, plus new **Custom Resolution** and **Digital Vibrance** tabs
 - 🖥️ **CS2 video**: change CS2's graphics before launching it, in plain words, with quick presets and a **lock switch** that makes `cs2_video.txt` read-only so CS2 never touches it
 - 🎯 **RNX's full CS2 config** with one click (binds, sensitivity, crosshair, options and video), keeping your in-game name; **Restore my config** puts yours back

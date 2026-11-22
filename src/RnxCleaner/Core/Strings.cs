@@ -26,6 +26,7 @@ public static class Strings
         ["pal.naranja"] = ["Signal orange", "Naranja señal", "Оранжевый", "Signalorange", "Orange signal", "信号橙"],
         ["pal.frambuesa"] = ["Raspberry", "Frambuesa", "Малиновый", "Himbeere", "Framboise", "覆盆子红"],
         ["pal.oceano"] = ["Ocean", "Océano", "Океан", "Ozean", "Océan", "海洋蓝"],
+        ["pal.lavanda"] = ["Lavender", "Lavanda", "Лаванда", "Lavendel", "Lavande", "薰衣草紫"],
         ["pal.grafito"] = ["Graphite", "Grafito", "Графит", "Graphit", "Graphite", "石墨"],
         ["tip.lang"] = ["Language", "Idioma", "Язык", "Sprache", "Langue", "语言"],
         ["tip.color"] = ["Color", "Color", "Цвет", "Farbe", "Couleur", "颜色"],

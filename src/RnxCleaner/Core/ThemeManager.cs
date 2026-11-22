@@ -11,7 +11,7 @@ namespace RnxCleaner.Core;
 /// </summary>
 public static class ThemeManager
 {
-    public static readonly string[] Palettes = ["ambar", "cobalto", "naranja", "frambuesa", "oceano", "grafito"];
+    public static readonly string[] Palettes = ["ambar", "cobalto", "naranja", "frambuesa", "oceano", "lavanda", "grafito"];
     public static readonly string[] Modes = ["system", "light", "dark"];
 
     // acento claro, acento oscuro, texto sobre acento (claro/oscuro), tinte (claro), tinte texto (claro), tinte (oscuro), tinte texto (oscuro)
@@ -22,6 +22,7 @@ public static class ThemeManager
         ["naranja"]   = ["#E2560B", "#FF8A47", "#FFFFFF", "#2A1003", "#FDE7DA", "#7A2A03", "#3B2014", "#FFD2B8"],
         ["frambuesa"] = ["#C30052", "#FF5C9A", "#FFFFFF", "#33000F", "#FBE0EA", "#6E0030", "#3D1424", "#FFC4DA"],
         ["oceano"]    = ["#0A6F94", "#4CC0E8", "#FFFFFF", "#022130", "#DBF0F8", "#06384C", "#123444", "#BFE9F8"],
+        ["lavanda"]   = ["#7A3FD1", "#B174F7", "#FFFFFF", "#1E0B3A", "#EFE6FD", "#4B1C8F", "#2D2140", "#E3CCFF"],
         ["grafito"]   = ["#14171C", "#E8EBF0", "#FFFFFF", "#14171C", "#E9EBEE", "#14171C", "#2B3039", "#E8EBF0"],
     };
 
