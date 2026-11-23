@@ -752,18 +752,15 @@
                             <TextBlock Text="{c:L set.files}" Style="{StaticResource Overline}"/>
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
-                                    <DockPanel>
-                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="RegExport_Click" Content="{c:L set.reg.export}" ToolTip="{c:L set.reg.export.tip}"/>
-                                            <Button x:Name="RegDefaultBtn" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="RegDefault_Click" Content="{c:L set.useDefault}"/>
-                                            <Button Style="{StaticResource PrimaryButton}" Click="RegChoose_Click" Content="{c:L set.choose}"/>
-                                        </StackPanel>
-                                        <StackPanel Margin="0,0,18,0">
-                                            <TextBlock Text="{c:L set.reg.title}" Style="{StaticResource H2}"/>
-                                            <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{c:L set.reg.sub}"/>
-                                            <TextBlock x:Name="RegState" Margin="0,8,0,0" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="-"/>
-                                        </StackPanel>
-                                    </DockPanel>
+                                    <!-- Texto a todo el ancho y botones debajo: con textos largos (o en otros idiomas) no se aplasta -->
+                                    <TextBlock Text="{c:L set.reg.title}" Style="{StaticResource H2}"/>
+                                    <TextBlock Style="{StaticResource Sub}" Margin="0,4,0,0" Text="{c:L set.reg.sub}"/>
+                                    <TextBlock x:Name="RegState" Margin="0,8,0,0" FontSize="13" FontWeight="SemiBold" TextWrapping="Wrap" Text="-"/>
+                                    <WrapPanel HorizontalAlignment="Right" Margin="0,14,0,0">
+                                        <Button Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="RegExport_Click" Content="{c:L set.reg.export}" ToolTip="{c:L set.reg.export.tip}"/>
+                                        <Button x:Name="RegDefaultBtn" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="RegDefault_Click" Content="{c:L set.useDefault}"/>
+                                        <Button Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Click="RegChoose_Click" Content="{c:L set.choose}"/>
+                                    </WrapPanel>
                                 </StackPanel>
                             </Border>
 

@@ -354,7 +354,38 @@ public partial class MainWindow : Window
         ColorList.Children.Clear();
         foreach (var p in ThemeManager.Palettes)
             ColorList.Children.Add(MenuRow(T("pal." + p), p == ThemeManager.Palette, ThemeManager.Swatch(p, ThemeManager.IsDark), () => SetPalette(p), ColorPopup));
+        ColorList.Children.Add(MenuRow(T("pal.custom"), ThemeManager.IsCustom, ThemeManager.IsCustom ? ThemeManager.Swatch(ThemeManager.Palette, ThemeManager.IsDark) : null,
+                                       OpenCustomColor, ColorPopup));
         ColorPopup.IsOpen = true;
+    }
+
+    /// <summary>Selector de color personalizado (vista previa en directo; Cancelar deja el anterior).</summary>
+    private void OpenCustomColor()
+    {
+        var prev = ThemeManager.Palette;
+        var start = ThemeManager.TryCustom(prev, out var c) ? c : ThemeManager.Swatch(prev, ThemeManager.IsDark);
+        var w = new ColorPickerWindow(start, hex => ThemeManager.Apply(hex, ThemeManager.Mode)) { Owner = this };
+        if (w.ShowDialog() == true && w.Result is { } r) SetPalette(r);
+        else ThemeManager.Apply(prev, ThemeManager.Mode);
+        if (PageSettings.Visibility == Visibility.Visible) RenderSettings();
+        if (FirstRun.Visibility == Visibility.Visible) RenderFirstRunColors();
+    }
+
+    /// <summary>Circulo extra "personalizado" junto a las paletas (arcoiris, o el color elegido).</summary>
+    private RadioButton CustomSwatch(string group, Thickness margin)
+    {
+        Brush bg;
+        if (ThemeManager.IsCustom) bg = new SolidColorBrush(ThemeManager.Swatch(ThemeManager.Palette, ThemeManager.IsDark));
+        else
+        {
+            var g = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(1, 1) };
+            for (int i = 0; i <= 6; i++) g.GradientStops.Add(new GradientStop(ColorPickerWindow.FromHsv(i * 60 % 360, 0.75, 1), i / 6.0));
+            bg = g;
+        }
+        var rb = new RadioButton { Style = (Style)FindResource("SwatchPick"), Background = bg, IsChecked = ThemeManager.IsCustom, GroupName = group,
+                                   ToolTip = T("pal.custom") + (ThemeManager.IsCustom ? " · " + ThemeManager.Palette : ""), Margin = margin };
+        rb.Click += (_, _) => OpenCustomColor();
+        return rb;
     }
 
     private void ThemeBtn_Click(object s, RoutedEventArgs e)
@@ -406,6 +437,20 @@ public partial class MainWindow : Window
     // ===================================================================
     //  Primer arranque: idioma, color y apariencia
     // ===================================================================
+    private void RenderFirstRunColors()
+    {
+        FrColors.Children.Clear();
+        foreach (var p in ThemeManager.Palettes)
+        {
+            var rb = new RadioButton { Style = (Style)FindResource("SwatchPick"), Background = new SolidColorBrush(ThemeManager.Swatch(p, ThemeManager.IsDark)),
+                                       IsChecked = p == ThemeManager.Palette, GroupName = "frpal", ToolTip = T("pal." + p), Margin = new Thickness(0, 0, 10, 0) };
+            var pal = p;
+            rb.Click += (_, _) => { SetPalette(pal); RenderFirstRunColors(); };
+            FrColors.Children.Add(rb);
+        }
+        FrColors.Children.Add(CustomSwatch("frpal", new Thickness(0, 0, 10, 0)));
+    }
+
     private void ShowFirstRun()
     {
         BuildFirstRun();
@@ -446,15 +491,7 @@ public partial class MainWindow : Window
             FrLangs.Children.Add(rb);
         }
 
-        FrColors.Children.Clear();
-        foreach (var p in ThemeManager.Palettes)
-        {
-            var rb = new RadioButton { Style = (Style)FindResource("SwatchPick"), Background = new SolidColorBrush(ThemeManager.Swatch(p, ThemeManager.IsDark)),
-                                       IsChecked = p == ThemeManager.Palette, GroupName = "frpal", ToolTip = T("pal." + p), Margin = new Thickness(0, 0, 10, 0) };
-            var pal = p;
-            rb.Click += (_, _) => SetPalette(pal);
-            FrColors.Children.Add(rb);
-        }
+        RenderFirstRunColors();
 
         FrLooks.Children.Clear();
         foreach (var m in ThemeManager.Modes)
@@ -1307,6 +1344,7 @@ public partial class MainWindow : Window
             rb.Click += (_, _) => SetPalette(pal);
             SetColors.Children.Add(rb);
         }
+        SetColors.Children.Add(CustomSwatch("setpal", new Thickness(6, 0, 0, 0)));
         SetLooks.Children.Clear();
         foreach (var m in ThemeManager.Modes)
         {

@@ -52,13 +52,13 @@ public static class ThemeManager
 
     public static void Apply(string palette, string mode)
     {
-        Palette = Pal.ContainsKey(palette) ? palette : "ambar";
+        Palette = Pal.ContainsKey(palette) || TryCustom(palette, out _) ? palette : "ambar";
         Mode = Modes.Contains(mode) ? mode : "system";
         IsDark = Mode == "dark" || (Mode == "system" && SystemIsDark());
 
         var res = Application.Current.Resources;
         foreach (var (k, v) in IsDark ? Dark : Light) res[k] = Brush(v);
-        var p = Pal[Palette];
+        var p = TryCustom(Palette, out var cc) ? Derive(cc) : Pal[Palette];
         res["Accent"] = Brush(IsDark ? p[1] : p[0]);
         res["OnAccent"] = Brush(IsDark ? p[3] : p[2]);
         res["Tint"] = Brush(IsDark ? p[6] : p[4]);
@@ -78,7 +78,61 @@ public static class ThemeManager
     }
 
     /// <summary>Color de muestra de una paleta (para los circulos de seleccion).</summary>
-    public static Color Swatch(string palette, bool dark) => (Color)ColorConverter.ConvertFromString(Pal[palette][dark ? 1 : 0]);
+    public static Color Swatch(string palette, bool dark) =>
+        (Color)ColorConverter.ConvertFromString((TryCustom(palette, out var c) ? Derive(c) : Pal[palette])[dark ? 1 : 0]);
+
+    // ------------------------------------------------------------------
+    //  Color personalizado: la "paleta" es el codigo del color (#RRGGBB)
+    // ------------------------------------------------------------------
+    public static bool IsCustom => TryCustom(Palette, out _);
+
+    public static bool TryCustom(string palette, out Color c)
+    {
+        c = default;
+        if (palette.Length != 7 || palette[0] != '#') return false;
+        try { c = (Color)ColorConverter.ConvertFromString(palette); return true; } catch { return false; }
+    }
+
+    public static string Hex(Color c) => $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+
+    private static readonly Color SheetDark = Color.FromRgb(0x15, 0x18, 0x1D), White = Colors.White, InkLight = Color.FromRgb(0x14, 0x17, 0x1C);
+
+    /// <summary>
+    /// Genera la paleta completa a partir de un color, con el mismo formato que las fijas.
+    /// El acento se aclara u oscurece lo justo para tener buen contraste en cada modo.
+    /// </summary>
+    public static string[] Derive(Color c)
+    {
+        // Modo oscuro: el acento tiene que destacar sobre el fondo oscuro
+        var dark = c;
+        for (int i = 0; i < 20 && Contrast(dark, SheetDark) < 4.5; i++) dark = Mix(dark, White, 0.12);
+        // Modo claro: el acento tiene que leerse sobre blanco
+        var light = c;
+        for (int i = 0; i < 20 && Contrast(light, White) < 4.5; i++) light = Mix(light, Colors.Black, 0.12);
+        var onLight = Contrast(White, light) >= 3 ? White : InkLight;
+        var onDark = Contrast(Mix(dark, Colors.Black, 0.85), dark) >= 4.5 ? Mix(dark, Colors.Black, 0.85) : (Contrast(White, dark) > Contrast(InkLight, dark) ? White : InkLight);
+        return
+        [
+            Hex(light), Hex(dark), Hex(onLight), Hex(onDark),
+            Hex(Mix(c, White, 0.88)), Hex(Mix(light, Colors.Black, 0.45)),
+            Hex(Mix(dark, SheetDark, 0.8)), Hex(Mix(dark, White, 0.6)),
+        ];
+    }
+
+    public static Color Mix(Color a, Color b, double t) => Color.FromRgb(
+        (byte)Math.Round(a.R + (b.R - a.R) * t), (byte)Math.Round(a.G + (b.G - a.G) * t), (byte)Math.Round(a.B + (b.B - a.B) * t));
+
+    private static double Lum(Color c)
+    {
+        static double Ch(byte v) { var x = v / 255.0; return x <= 0.03928 ? x / 12.92 : Math.Pow((x + 0.055) / 1.055, 2.4); }
+        return 0.2126 * Ch(c.R) + 0.7152 * Ch(c.G) + 0.0722 * Ch(c.B);
+    }
+
+    public static double Contrast(Color a, Color b)
+    {
+        double la = Lum(a), lb = Lum(b);
+        return (Math.Max(la, lb) + 0.05) / (Math.Min(la, lb) + 0.05);
+    }
 
     public static bool SystemIsDark()
     {

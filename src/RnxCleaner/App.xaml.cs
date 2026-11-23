@@ -48,7 +48,10 @@ public partial class App : Application
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
             Loc.Set(Shared.Language);
             ThemeManager.Apply(Shared.Palette, Shared.ThemeMode);
-            var aw = new ActivationWindow { ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -20000, Top = -20000 };
+            Window aw = sna + 2 < e.Args.Length && e.Args[sna + 2] == "picker"
+                ? new ColorPickerWindow(System.Windows.Media.Color.FromRgb(0xB1, 0x74, 0xF7), _ => { })
+                : new ActivationWindow();
+            aw.ShowActivated = false; aw.WindowStartupLocation = WindowStartupLocation.Manual; aw.Left = -20000; aw.Top = -20000;
             aw.Show();
             Dispatcher.BeginInvoke(async () =>
             {

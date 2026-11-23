@@ -53,6 +53,8 @@ Changes apply to your next matchmaking search.
 
 ## 🌍 Languages, colors and appearance
 
+Besides the built-in palettes you can pick a **custom color** (color picker or hex code, with live preview); RNX adjusts its shade automatically for light and dark mode.
+
 On first launch you choose your **language** (English by default, Spanish, Russian, German, French or Chinese), your **color** (Amber by default, Cobalt, Signal orange, Raspberry, Ocean or Graphite) and the **appearance**: Light, Dark or **System**, which follows Windows' light/dark mode live. All three can be changed later from the buttons at the bottom of the sidebar. Everything is translated, including the log.
 
 ---
@@ -290,7 +292,11 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 
 ## 📜 Changelog
 
-### v5.3.0 (current)
+### v5.3.1 (current)
+- 🎨 **Custom color**: besides the built-in palettes, choose any color with a color picker (saturation/brightness square, hue bar and hex code) with live preview, from the color menu, Settings or the first launch. The shade is adjusted automatically so text stays readable in light and dark mode, and it's saved with your settings
+- 🐛 Settings: the mouse `.reg` card no longer squeezes its description next to the buttons (buttons now go below, in every language)
+
+### v5.3.0
 - 🔑 **Activation**: the first time RNX opens on a PC it asks for a 6-digit code (valid for one minute) from the administrator; contact on Discord **ren0x1**
 - 📊 **Performance HUD** in its own tab: FPS, 1 % / 0.1 % lows, frametime graph, CPU, GPU and RAM, three designs, six positions or free position with a lock, size, opacity and a show/hide key. Separate window, nothing injected into games
 - 🟩 **NVIDIA driver** tab: latest Game Ready / Studio driver from NVIDIA without the NVIDIA App, components to choose, telemetry and installer ads always removed, direct install with optional clean installation, clean package to save, and a **New** badge when you're behind
