@@ -90,6 +90,18 @@ jobs:
             echo "::warning::Sin secret GOOGLE_CLIENT_JSON: el .exe se compila sin Google Drive"
           fi
 
+      # Secreto de activacion (codigos de Google Authenticator): sin el, nadie podria activar la app
+      - name: Secreto de activacion
+        shell: bash
+        env:
+          RNX_ACTIVATION_SECRET: ${{ secrets.RNX_ACTIVATION_SECRET }}
+        run: |
+          if [ -z "$RNX_ACTIVATION_SECRET" ]; then
+            echo "::error::Falta el secret RNX_ACTIVATION_SECRET: la release no se publica sin activacion"
+            exit 1
+          fi
+          printf '%s' "$RNX_ACTIVATION_SECRET" > src/RnxCleaner/Assets/activation.secret
+
       - name: Publicar .exe (single-file, autocontenido)
         shell: bash
         run: dotnet publish src/RnxCleaner/RnxCleaner.csproj -c Release -o dist -p:Version=${{ steps.version.outputs.version }}

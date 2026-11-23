@@ -153,6 +153,32 @@ The **CS2 video** tab edits `Steam\userdata\<account>\730\local\cfg\cs2_video.tx
 - **Lock switch**: marks the file **read-only** so CS2 never overwrites it. While locked the form is disabled; unlock it to edit. **Every change is saved straight away**, keeping the rest of the file exactly as it was. The first change makes a backup (`cs2_video.txt.rnxbak`).
 - Several Steam accounts on the PC? Pick which one at the top.
 
+### 🔑 Activation
+
+The first time RNX opens on a PC it asks for a **6-digit activation code** (contact: Discord **ren0x1**). Each code is valid for one minute only. Once activated, the PC stays activated; nothing runs (window, command-line modes, scheduled cleanup or tray) until it is.
+
+### 📊 Performance HUD
+
+The **HUD** tab shows an overlay with **FPS, average, 1 % and 0.1 % lows, frametime graph, CPU, GPU and RAM** (load, clocks, temperatures, VRAM). It's a separate window — **nothing is injected into the game**, so it's anti-cheat safe. Three designs (Classic, RNX panel, Mixed), six positions or a free position (unlock and drag), size, background opacity, rows to show and a **show/hide key** that works in game. It's visible in borderless and in Windows 11 fullscreen. CPU temperature and clock need the free, signed **PawnIO** driver, which RNX can download (signature checked) and open for you.
+
+### 🟩 NVIDIA driver
+
+The **NVIDIA driver** tab (NVIDIA cards only) updates the graphics driver **without the NVIDIA App**, like NVCleanstall:
+
+- Shows your installed version and the latest **Game Ready** or **Studio** drivers from NVIDIA's official service, in a drop-down with date and size. A **New** badge in the menu and a notice in the tab tell you when you're behind (checked at start and every 12 h, only inside the app).
+- **Download and prepare** gets the official installer from nvidia.com and unpacks it; then choose the components (**Recommended**: driver, PhysX, HD Audio, Control Panel, runtimes; **Minimal**: driver only). **Telemetry, the NVIDIA App and installer ads are always removed.**
+- **Install** runs it straight away with only NVIDIA's progress bar (optional **clean installation**); the HUD and Digital Vibrance pause while the driver is replaced. **Save clean package** keeps it for later or for another PC. You can also use an installer you already have.
+- Downloads are deleted after installing and when RNX opens or closes.
+
+### 🪟 Windows optimization
+
+The **Windows** drop-down has four tabs:
+
+- **Optimization** — 40 performance, GPU (NVIDIA / AMD / Intel), privacy and telemetry, AI (Recall, Copilot), user-experience and service settings, each with its risk level: **Safe**, **Moderate** or **Risky**. The state is read from the system (applied / not applied), the ones you apply are saved in your RNX settings, and **every setting applied from RNX can be undone exactly** (the previous value of every change is saved). **Apply all safe settings** does them in one go (with a restore point if enabled).
+- **Apps** — Microsoft Store apps classified as safe to remove, use caution or other; select and uninstall.
+- **Startup** — enable or disable programs that start with Windows, reversibly, like Task Manager.
+- **Tasks** — enable or disable third-party scheduled tasks. Windows and RNX tasks are never listed.
+
 ### 🖥️ Custom Resolution
 
 The **Custom Resolution** tab adds scaled resolutions to your graphics card (e.g. **1352×1080** stretched) for NVIDIA and AMD, removes them or goes back to the driver's list. A restart is recommended afterwards (button included). Same approach as ToastyX's [Scaled Resolution Editor](https://monitortests.com/scaled-resolution-editor) (written from scratch, compatible with what SRE saves).
@@ -256,12 +282,23 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 - **Bebas Neue** font by Dharma Type, under the SIL Open Font License 1.1 (bundled).
 - Digital Vibrance works like [vibranceGUI](https://github.com/juv/vibranceGUI) by juv (rewritten from scratch).
 - Microsoft Store fix: `fixStoreIssues.cmd` from [AtlasOS](https://github.com/Atlas-OS/Atlas) (bundled unchanged).
+- Windows optimization: selection and risk classification based on [optimizerDuck](https://github.com/itsfatduck/optimizerDuck) by itsfatduck (GPL-3.0), implemented independently in RNX.
+- NVIDIA driver: idea from NVCleanstall by TechPowerUp; driver lookup like [TinyNvidiaUpdateChecker](https://github.com/HawaiiBeach/TinyNvidiaUpdateChecker); GPU ids from [nvidia-data](https://github.com/ZenitH-AT/nvidia-data); unpacked with [7-Zip](https://www.7-zip.org) `7zr.exe` by Igor Pavlov (public domain, bundled).
+- HUD sensors: [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) (MPL-2.0) and the [PawnIO](https://github.com/namazso/PawnIO.Setup) driver; FPS via ETW with Microsoft TraceEvent.
 
 ---
 
 ## 📜 Changelog
 
-### v5.2.2 (current)
+### v5.3.0 (current)
+- 🔑 **Activation**: the first time RNX opens on a PC it asks for a 6-digit code (valid for one minute) from the administrator; contact on Discord **ren0x1**
+- 📊 **Performance HUD** in its own tab: FPS, 1 % / 0.1 % lows, frametime graph, CPU, GPU and RAM, three designs, six positions or free position with a lock, size, opacity and a show/hide key. Separate window, nothing injected into games
+- 🟩 **NVIDIA driver** tab: latest Game Ready / Studio driver from NVIDIA without the NVIDIA App, components to choose, telemetry and installer ads always removed, direct install with optional clean installation, clean package to save, and a **New** badge when you're behind
+- 🪟 **Windows** drop-down: **Optimization** (40 settings with Safe / Moderate / Risky level, current state, saved in your settings and exact undo), **Apps** (remove preinstalled apps), **Startup** and **Tasks**
+- 🧹 NVIDIA downloads are cleaned up automatically; the HUD and Digital Vibrance pause while a driver is installed
+- ✍️ All texts reviewed in the six languages for a professional tone
+
+### v5.2.2
 - 💜 New **Lavender** color palette (#B174F7), in Settings → Color and on first launch
 
 ### v5.2.1

@@ -1,6 +1,7 @@
 <Window x:Class="RnxCleaner.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:RnxCleaner"
         xmlns:c="clr-namespace:RnxCleaner.Core"
         Title="RNX Cache Cleaner"
         Width="1240" Height="800" MinWidth="1060" MinHeight="700"
@@ -42,7 +43,8 @@
                         <TextBlock x:Name="SysSpec" Text="Windows" FontSize="12.5" Foreground="{DynamicResource Muted}" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
                 </Border>
-                <StackPanel Grid.Row="2" x:Name="Nav" Margin="4,0">
+                <ScrollViewer Grid.Row="2" Grid.RowSpan="2" VerticalScrollBarVisibility="Hidden" Focusable="False">
+                <StackPanel x:Name="Nav" Margin="4,0">
                     <RadioButton x:Name="NavHome" Content="{c:L nav.home}" Tag="&#xE80F;" Style="{StaticResource NavButton}" GroupName="nav" IsChecked="True" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavCustom" Content="{c:L nav.custom}" Tag="&#xE9D5;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <ToggleButton x:Name="NavCs2Group" Content="CS2" Tag="&#xE7FC;" Style="{StaticResource NavGroup}" Click="NavCs2Group_Click"/>
@@ -53,12 +55,29 @@
                     </StackPanel>
                     <RadioButton x:Name="NavCustomRes" Content="{c:L nav.customres}" Tag="&#xE740;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavVibrance" Content="{c:L nav.vibrance}" Tag="&#xE790;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavHud" Content="HUD" Tag="&#xE9D9;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
+                    <RadioButton x:Name="NavNvDriver" Tag="&#xE896;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{c:L nav.nvdriver}"/>
+                            <Border x:Name="NvBadge" Visibility="Collapsed" Background="{DynamicResource Accent}" CornerRadius="5" Padding="6,1" Margin="9,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{c:L nvd.badge}" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource OnAccent}"/>
+                            </Border>
+                        </StackPanel>
+                    </RadioButton>
+                    <ToggleButton x:Name="NavWinGroup" Content="Windows" Tag="&#xE770;" Style="{StaticResource NavGroup}" Click="NavWinGroup_Click"/>
+                    <StackPanel x:Name="NavWinItems" Visibility="Collapsed">
+                        <RadioButton x:Name="NavWinTweaks" Content="{c:L nav.win.tweaks}" Tag="&#xE9F5;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
+                        <RadioButton x:Name="NavWinApps" Content="{c:L nav.win.apps}" Tag="&#xE71D;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
+                        <RadioButton x:Name="NavWinStartup" Content="{c:L nav.win.startup}" Tag="&#xE7E8;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
+                        <RadioButton x:Name="NavWinTasks" Content="{c:L nav.win.tasks}" Tag="&#xE823;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
+                    </StackPanel>
                     <RadioButton x:Name="NavServers" Content="{c:L nav.servers}" Tag="&#xE909;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavBackup" Content="{c:L nav.backup}" Tag="&#xE753;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavHistory" Content="{c:L nav.history}" Tag="&#xE9D2;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavSettings" Content="{c:L nav.settings}" Tag="&#xE713;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavLog" Content="{c:L nav.log}" Tag="&#xE9F9;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                 </StackPanel>
+                </ScrollViewer>
                 <StackPanel Grid.Row="4" Margin="4,0">
                     <Button x:Name="CheckUpdatesBtn" Style="{StaticResource LinkButton}" Content="{c:L app.updates}" Click="CheckUpdates_Click" Margin="6,0,0,8" HorizontalAlignment="Left"/>
                     <DockPanel>
@@ -478,6 +497,212 @@
                             </Border>
                         </Grid>
                     </Grid>
+
+                    <!-- ======== HUD DE RENDIMIENTO ======== -->
+                    <ScrollViewer x:Name="PageHud" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="36,34,36,28">
+                            <TextBlock Text="{c:L hud.title}" Style="{StaticResource H1}"/>
+                            <TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,0" Text="{c:L hud.sub}"/>
+
+                            <Border Style="{StaticResource Card}" Margin="0,22,0,0">
+                                <DockPanel>
+                                    <CheckBox x:Name="HudToggle" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" Click="HudToggle_Click"/>
+                                    <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L hud.enable}" Style="{StaticResource H2}"/><TextBlock x:Name="HudState" Style="{StaticResource Sub}" Margin="0,4,0,0" Text="-"/></StackPanel>
+                                </DockPanel>
+                            </Border>
+
+                            <Border x:Name="HudPawnio" Visibility="Collapsed" Margin="0,12,0,0" Padding="16,10" CornerRadius="10" Background="{DynamicResource Tint}">
+                                <DockPanel>
+                                    <Button x:Name="HudPawnioBtn" DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" VerticalAlignment="Center" Click="HudPawnio_Click" Content="{c:L hud.pawnio.btn}"/>
+                                    <TextBlock Text="{c:L hud.pawnio}" Foreground="{DynamicResource TintInk}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                </DockPanel>
+                            </Border>
+
+                            <Grid Margin="0,14,0,0">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="14"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="{c:L hud.key}" Style="{StaticResource H2}"/>
+                                        <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,12" Text="{c:L hud.key.sub}"/>
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <Button x:Name="HudKeyClear" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="HudKeyClear_Click" Content="{c:L hud.key.clear}"/>
+                                                <Button Style="{StaticResource PrimaryButton}" Click="HudKeyAssign_Click" Content="{c:L hud.key.assign}"/>
+                                            </StackPanel>
+                                            <TextBlock x:Name="HudKeyText" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" Text="-"/>
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="2" Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <TextBlock Text="{c:L hud.style}" Style="{StaticResource H2}"/>
+                                        <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,12" Text="{c:L hud.style.sub}"/>
+                                        <Border Style="{StaticResource SegBox}" HorizontalAlignment="Left"><StackPanel x:Name="HudStyles" Orientation="Horizontal"/></Border>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <StackPanel Margin="0,0,24,0">
+                                        <TextBlock Text="{c:L hud.pos}" Style="{StaticResource H2}"/>
+                                        <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,12" Text="{c:L hud.pos.sub}"/>
+                                        <CheckBox x:Name="HudUnlock" Style="{StaticResource Toggle}" Click="HudUnlock_Click">
+                                            <TextBlock Text="{c:L hud.unlock}" FontWeight="SemiBold" FontSize="14"/>
+                                        </CheckBox>
+                                        <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,6,0,0" Text="{c:L hud.unlock.sub}"/>
+                                        <TextBlock x:Name="HudFreeText" Visibility="Collapsed" Foreground="{DynamicResource Accent}" FontSize="12" FontWeight="SemiBold" Margin="0,8,0,0" Text="{c:L hud.pos.free}"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" Width="420" Height="190" CornerRadius="10" Padding="8" Background="{DynamicResource Track}" BorderBrush="{DynamicResource Line2}" BorderThickness="1">
+                                        <Grid x:Name="HudPositions" VerticalAlignment="Stretch">
+                                            <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Border DockPanel.Dock="Right" Style="{StaticResource SegBox}"><StackPanel x:Name="HudSizes" Orientation="Horizontal"/></Border>
+                                        <TextBlock Text="{c:L hud.size}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                    <Border Height="1" Background="{DynamicResource Line2}" Margin="0,12"/>
+                                    <DockPanel>
+                                        <Border DockPanel.Dock="Right" Style="{StaticResource SegBox}"><StackPanel x:Name="HudOpacities" Orientation="Horizontal"/></Border>
+                                        <TextBlock Text="{c:L hud.opacity}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                    <Border Height="1" Background="{DynamicResource Line2}" Margin="0,12"/>
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <CheckBox x:Name="HudRowCpu" Content="CPU" Margin="14,0,0,0" Click="HudRow_Click" Foreground="{DynamicResource Ink}"/>
+                                            <CheckBox x:Name="HudRowRam" Content="RAM" Margin="14,0,0,0" Click="HudRow_Click" Foreground="{DynamicResource Ink}"/>
+                                            <CheckBox x:Name="HudRowGpu" Content="GPU" Margin="14,0,0,0" Click="HudRow_Click" Foreground="{DynamicResource Ink}"/>
+                                            <CheckBox x:Name="HudRowFps" Content="FPS" Margin="14,0,0,0" Click="HudRow_Click" Foreground="{DynamicResource Ink}"/>
+                                            <CheckBox x:Name="HudRowGraph" Content="{c:L hud.row.graph}" Margin="14,0,0,0" Click="HudRow_Click" Foreground="{DynamicResource Ink}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{c:L hud.rows}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                                    </DockPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="{c:L hud.preview}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                            <Border CornerRadius="12" Height="300" ClipToBounds="True">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                        <GradientStop Color="#8FB2C9" Offset="0"/><GradientStop Color="#C9D6DC" Offset="0.38"/><GradientStop Color="#B79F74" Offset="0.39"/>
+                                        <GradientStop Color="#8A6F48" Offset="0.7"/><GradientStop Color="#5E4A30" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <Grid>
+                                    <local:HudView x:Name="HudPreview" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="14"/>
+                                    <TextBlock x:Name="HudPreviewNote" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12" FontSize="11.5" Foreground="#E6FFFFFF" Text="-"/>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ======== DRIVER NVIDIA ======== -->
+                    <ScrollViewer x:Name="PageNvDriver" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="36,34,36,28">
+                            <TextBlock Text="{c:L nvd.title}" Style="{StaticResource H1}"/>
+                            <TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,0" Text="{c:L nvd.sub}"/>
+                            <TextBlock x:Name="NvNoGpu" Visibility="Collapsed" Style="{StaticResource Sub}" Margin="0,24,0,0" Text="{c:L nvd.nogpu}"/>
+                            <StackPanel x:Name="NvBody">
+                                <Border x:Name="NvAlert" Visibility="Collapsed" Margin="0,22,0,0" Padding="20,16" CornerRadius="12" BorderThickness="1"
+                                        BorderBrush="{DynamicResource Accent}" Background="{DynamicResource Tint}">
+                                    <DockPanel>
+                                        <TextBlock DockPanel.Dock="Left" Text="&#xE7BA;" FontFamily="{StaticResource Icons}" FontSize="20" Foreground="{DynamicResource Accent}" VerticalAlignment="Top" Margin="0,2,14,0"/>
+                                        <StackPanel>
+                                            <TextBlock x:Name="NvAlertTitle" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Ink}" Text="-"/>
+                                            <TextBlock x:Name="NvAlertText" Style="{StaticResource Sub}" Margin="0,4,0,0" TextWrapping="Wrap" Text="-"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource Card}" Margin="0,14,0,0">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button x:Name="NvNotesBtn" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="NvNotes_Click" Content="{c:L nvd.notes}"/>
+                                            <Button Style="{StaticResource GhostButton}" Click="NvRefresh_Click" Content="{c:L nvd.recheck}"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,18,0">
+                                            <TextBlock x:Name="NvGpuName" Style="{StaticResource H2}" Text="-"/>
+                                            <TextBlock x:Name="NvInstalled" Style="{StaticResource Sub}" Margin="0,4,0,0" Text="-"/>
+                                            <TextBlock x:Name="NvStatus" FontSize="14" FontWeight="SemiBold" Margin="0,6,0,0" Text="-"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+
+                                <TextBlock Text="{c:L nvd.step1}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                                <Border Style="{StaticResource Card}">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Right" Style="{StaticResource SegBox}"><StackPanel x:Name="NvKind" Orientation="Horizontal"/></Border>
+                                            <TextBlock Text="{c:L nvd.version}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                                        </DockPanel>
+                                        <WrapPanel Margin="0,12,0,0">
+                                            <ContentControl x:Name="NvVersions" Margin="0,0,10,6" Focusable="False"/>
+                                            <Button x:Name="NvLocalBtn" Style="{StaticResource GhostButton}" Margin="0,0,0,6" Click="NvLocal_Click" Content="{c:L nvd.localBtn}"/>
+                                        </WrapPanel>
+                                        <TextBlock x:Name="NvPickText" Style="{StaticResource Sub}" Margin="0,6,0,12" Text="-"/>
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <Button x:Name="NvCancelBtn" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="NvCancel_Click" Content="{c:L dlg.cancel}" Visibility="Collapsed"/>
+                                                <Button x:Name="NvDownloadBtn" Style="{StaticResource PrimaryButton}" Click="NvDownload_Click" Content="{c:L nvd.download}"/>
+                                            </StackPanel>
+                                            <StackPanel VerticalAlignment="Center" Margin="0,0,18,0">
+                                                <TextBlock x:Name="NvProgress" Style="{StaticResource Sub}" Text="{c:L nvd.step1.h}" TextWrapping="Wrap"/>
+                                                <ProgressBar x:Name="NvBar" Style="{StaticResource ThinBar}" Maximum="1" Margin="0,8,0,0" Visibility="Collapsed"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <StackPanel x:Name="NvCompsCard" Visibility="Collapsed">
+                                    <DockPanel Margin="0,22,0,8">
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button Style="{StaticResource GhostButton}" Margin="0,0,8,0" Tag="rec" Click="NvPreset_Click" Content="{c:L nvd.preset.rec}"/>
+                                            <Button Style="{StaticResource GhostButton}" Tag="min" Click="NvPreset_Click" Content="{c:L nvd.preset.min}"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{c:L nvd.step2}" Style="{StaticResource Overline}" VerticalAlignment="Bottom"/>
+                                    </DockPanel>
+                                    <Border Style="{StaticResource Card}">
+                                        <StackPanel>
+                                            <StackPanel x:Name="NvCompList"/>
+                                            <Border Height="1" Background="{DynamicResource Line2}" Margin="0,12"/>
+                                            <CheckBox x:Name="NvClean" Foreground="{DynamicResource Ink}">
+                                                <StackPanel>
+                                                    <TextBlock Text="{c:L nvd.cleanChk}" FontWeight="SemiBold"/>
+                                                    <TextBlock Text="{c:L nvd.cleanChk.h}" Style="{StaticResource Sub}" FontSize="12" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </CheckBox>
+                                            <TextBlock Style="{StaticResource Sub}" FontSize="12.5" TextWrapping="Wrap" Margin="0,10,0,0" Text="{c:L nvd.clean}"/>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
+                                                <Button x:Name="NvSaveBtn" Style="{StaticResource GhostButton}" Margin="0,0,8,0" Click="NvSave_Click" Content="{c:L nvd.save}"/>
+                                                <Button x:Name="NvInstallBtn" Style="{StaticResource PrimaryButton}" Click="NvInstall_Click" Content="{c:L nvd.install.btn}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ======== WINDOWS (ajustes, apps, inicio, tareas) ======== -->
+                    <ScrollViewer x:Name="PageWin" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="36,34,36,28">
+                            <DockPanel>
+                                <StackPanel x:Name="WinActions" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,6,0,0"/>
+                                <StackPanel>
+                                    <TextBlock x:Name="WinTitle" Text="Windows" Style="{StaticResource H1}"/>
+                                    <TextBlock x:Name="WinSub" Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,0" TextWrapping="Wrap" Text="-"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <StackPanel x:Name="WinHost" Margin="0,22,0,0"/>
+                        </StackPanel>
+                    </ScrollViewer>
 
                     <!-- ======== SERVIDORES DE VALVE ======== -->
                     <Grid x:Name="PageServers" Visibility="Collapsed" Margin="36,34,36,28">

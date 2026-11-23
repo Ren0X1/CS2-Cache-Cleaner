@@ -8,6 +8,9 @@ dist/
 # Cliente OAuth de Google: lo mete el workflow desde un secret
 src/RnxCleaner/Assets/google_client.json
 
+# Secreto TOTP de activacion: lo mete el workflow desde un secret
+src/RnxCleaner/Assets/activation.secret
+
 # Restos de la version .bat (ya no se versionan)
 RNX_Cleaner.log
 backups/

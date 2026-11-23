@@ -36,6 +36,7 @@ public partial class MainWindow : Window
     {
         _autoMode = autoMode;
         _scheduled = scheduled;
+        App.NvUpdateChanged += OnNvUpdateChanged;
         // Con el color activado, cerrar = quedarse en la bandeja
         Closing += (_, e) =>
         {
@@ -57,7 +58,7 @@ public partial class MainWindow : Window
         SysPc.Text = Environment.MachineName;
         SysSpec.Text = $"{_sys.Windows} · {_sys.GpuName.Replace("NVIDIA GeForce ", "")}";
         SysSpec.ToolTip = _sys.GpuName;
-        if (!_sys.IsNvidia) { NvidiaBtn.IsEnabled = false; CustomNvidia.IsEnabled = false; }
+        if (!_sys.IsNvidia) { NvidiaBtn.IsEnabled = false; CustomNvidia.IsEnabled = false; NavNvDriver.Visibility = Visibility.Collapsed; }
         if (!File.Exists(AtlasRunAsTI)) { FixStoreBtn.IsEnabled = false; FixStoreBtn.ToolTip = T("fix.store.notAtlas"); }
 
         LoadSettingsIntoUi();
@@ -107,6 +108,9 @@ public partial class MainWindow : Window
         if (PageFonts.Visibility == Visibility.Visible) RenderFonts();
         if (PageVibrance.Visibility == Visibility.Visible) RenderVibrance();
         if (PageCustomRes.Visibility == Visibility.Visible) RenderRes();
+        if (PageHud.Visibility == Visibility.Visible) RenderHud();
+        if (PageNvDriver.Visibility == Visibility.Visible) RenderNvDriver();
+        if (PageWin.Visibility == Visibility.Visible) LoadWindows(_winMode);
         if (PageSettings.Visibility == Visibility.Visible) RenderSettings();
         _ = RefreshDriveAsync();
     }
@@ -280,12 +284,15 @@ public partial class MainWindow : Window
     {
         NavCs2Group.IsChecked = open;
         NavCs2Items.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
+        if (open && NavWinGroup.IsChecked == true && !(NavWinTweaks.IsChecked == true || NavWinApps.IsChecked == true || NavWinStartup.IsChecked == true || NavWinTasks.IsChecked == true))
+        { NavWinGroup.IsChecked = false; NavWinItems.Visibility = Visibility.Collapsed; }
     }
 
     private void Nav_Checked(object sender, RoutedEventArgs e)
     {
         // Si se entra en una pestana del grupo CS2 (p. ej. desde un boton), el grupo se abre
         if (sender == NavCs2 || sender == NavVideo || sender == NavFonts) SetCs2Group(true);
+        if (sender == NavWinTweaks || sender == NavWinApps || sender == NavWinStartup || sender == NavWinTasks) SetWinGroup(true);
         // Durante InitializeComponent "Limpieza" se marca antes de que existan las paginas
         if (!IsLoaded) return;
         if (_running) return;
@@ -299,6 +306,9 @@ public partial class MainWindow : Window
             RadioButton r when r == NavFonts => PageFonts,
             RadioButton r when r == NavVibrance => PageVibrance,
             RadioButton r when r == NavCustomRes => PageCustomRes,
+            RadioButton r when r == NavHud => PageHud,
+            RadioButton r when r == NavNvDriver => PageNvDriver,
+            RadioButton r when r == NavWinTweaks || r == NavWinApps || r == NavWinStartup || r == NavWinTasks => PageWin,
             RadioButton r when r == NavSettings => PageSettings,
             RadioButton r when r == NavLog => PageLog,
             RadioButton r when r == NavHistory => PageHistory,
@@ -314,12 +324,18 @@ public partial class MainWindow : Window
         if (sender == NavFonts) LoadFonts();
         if (sender == NavVibrance) LoadVibrance();
         if (sender == NavCustomRes) RenderRes();
+        if (sender == NavHud) LoadHud();
+        if (sender == NavNvDriver) LoadNvDriver();
+        if (sender == NavWinTweaks) LoadWindows("tweaks");
+        if (sender == NavWinApps) LoadWindows("apps");
+        if (sender == NavWinStartup) LoadWindows("startup");
+        if (sender == NavWinTasks) LoadWindows("tasks");
     }
 
     private void ShowPage(FrameworkElement page)
     {
         if (PageHome is null) return;
-        foreach (var p in new FrameworkElement[] { PageHome, PageCustom, PageCs2, PageVideo, PageFonts, PageCustomRes, PageVibrance, PageServers, PageBackup, PageSettings, PageLog, PageHistory, PageRun })
+        foreach (var p in new FrameworkElement[] { PageHome, PageCustom, PageCs2, PageVideo, PageFonts, PageCustomRes, PageVibrance, PageHud, PageNvDriver, PageWin, PageServers, PageBackup, PageSettings, PageLog, PageHistory, PageRun })
             p.Visibility = p == page ? Visibility.Visible : Visibility.Collapsed;
         page.Opacity = 0;
         page.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160)));
@@ -1705,6 +1721,13 @@ public partial class MainWindow : Window
             case "fonts": NavFonts.IsChecked = true; await Task.Delay(4000); break;
             case "vibrance": NavVibrance.IsChecked = true; break;
             case "customres": NavCustomRes.IsChecked = true; break;
+            case "hud": NavHud.IsChecked = true; break;
+            case "nvdriver": NavNvDriver.IsChecked = true; await Task.Delay(4000); break;
+            case "wtweaks": NavWinTweaks.IsChecked = true; await Task.Delay(5000); break;
+            case "wapps": NavWinApps.IsChecked = true; await Task.Delay(9000); break;
+            case "wstartup": NavWinStartup.IsChecked = true; await Task.Delay(2000); break;
+            case "wtasks": NavWinTasks.IsChecked = true; await Task.Delay(3000); break;
+            case "hud-a1": case "hud-c1": case "hud-m": _settings.HudStyle = page[4..]; NavHud.IsChecked = true; await Task.Delay(300); PageHud.ScrollToEnd(); break;
             case "videobottom": NavVideo.IsChecked = true; await Task.Delay(400); PageVideo.ScrollToEnd(); break;
             case "custombottom": NavCustom.IsChecked = true; await Task.Delay(400); CustomScroll.ScrollToEnd(); break;
             case "cs2": NavCs2.IsChecked = true; break;

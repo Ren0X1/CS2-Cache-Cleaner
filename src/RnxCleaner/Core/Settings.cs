@@ -34,6 +34,26 @@ public sealed class Settings
     public bool Autostart { get; set; }
     public bool TrayHintShown { get; set; }
 
+    /// <summary>HUD de rendimiento (apagado por defecto).</summary>
+    public bool HudEnabled { get; set; }
+    public bool HudVisible { get; set; } = true;
+    public int HudHotkeyMods { get; set; }
+    public int HudHotkeyVk { get; set; }
+    public string HudStyle { get; set; } = "a1";
+    public string HudCorner { get; set; } = "tl";
+    public double HudX { get; set; } = 40;
+    public double HudY { get; set; } = 40;
+    public bool HudLocked { get; set; } = true;
+    public double HudScale { get; set; } = 1.0;
+    public double HudOpacity { get; set; } = 0.58;
+    /// <summary>Ajustes de Windows aplicados por el usuario desde RNX (ids de WinTweaks).</summary>
+    public List<string> WinTweaks { get; set; } = [];
+    public bool HudCpu { get; set; } = true;
+    public bool HudRam { get; set; } = true;
+    public bool HudGpu { get; set; } = true;
+    public bool HudFps { get; set; } = true;
+    public bool HudGraph { get; set; } = true;
+
     /// <summary>Cuenta de Steam elegida en Video CS2.</summary>
     public string VideoAccount { get; set; } = "";
 
@@ -97,6 +117,17 @@ public sealed class Settings
         public int? VibranceDefault { get; set; }
         public bool? VibrancePrimaryOnly { get; set; }
         public List<VibranceProfile>? VibranceProfiles { get; set; }
+        public bool? HudEnabled { get; set; }
+        public int? HudHotkeyMods { get; set; }
+        public int? HudHotkeyVk { get; set; }
+        public string? HudStyle { get; set; }
+        public string? HudCorner { get; set; }
+        public double? HudX { get; set; }
+        public double? HudY { get; set; }
+        public double? HudScale { get; set; }
+        public double? HudOpacity { get; set; }
+        public bool[]? HudRows { get; set; }
+        public List<string>? WinTweaks { get; set; }
     }
 
     public string ExportPortable() => JsonSerializer.Serialize(new Portable
@@ -106,6 +137,9 @@ public sealed class Settings
         BackupExclude = BackupExclude, CustomSelection = CustomSelection, RestorePoint = RestorePoint,
         FontSize = FontSize, VibranceEnabled = VibranceEnabled, VibranceDefault = VibranceDefault,
         VibrancePrimaryOnly = VibrancePrimaryOnly, VibranceProfiles = VibranceProfiles,
+        HudEnabled = HudEnabled, HudHotkeyMods = HudHotkeyMods, HudHotkeyVk = HudHotkeyVk, HudStyle = HudStyle, HudCorner = HudCorner,
+        HudX = HudX, HudY = HudY, HudScale = HudScale, HudOpacity = HudOpacity, HudRows = [HudCpu, HudRam, HudGpu, HudFps, HudGraph],
+        WinTweaks = WinTweaks,
     }, Json);
 
     /// <summary>Aplica lo que venga en el json (lo que no venga, se queda como esta).</summary>
@@ -127,6 +161,17 @@ public sealed class Settings
         if (p.VibranceDefault is { } vd) VibranceDefault = vd;
         if (p.VibrancePrimaryOnly is { } vp) VibrancePrimaryOnly = vp;
         if (p.VibranceProfiles is { } vl) VibranceProfiles = vl;
+        if (p.HudEnabled is { } he) HudEnabled = he;
+        if (p.HudHotkeyMods is { } hm) HudHotkeyMods = hm;
+        if (p.HudHotkeyVk is { } hk) HudHotkeyVk = hk;
+        if (p.HudStyle is { } hs) HudStyle = hs;
+        if (p.HudCorner is { } hc) HudCorner = hc;
+        if (p.HudX is { } hx) HudX = hx;
+        if (p.HudY is { } hy) HudY = hy;
+        if (p.HudScale is { } hsc) HudScale = hsc;
+        if (p.HudOpacity is { } ho) HudOpacity = ho;
+        if (p.HudRows is { Length: 5 } hr) (HudCpu, HudRam, HudGpu, HudFps, HudGraph) = (hr[0], hr[1], hr[2], hr[3], hr[4]);
+        if (p.WinTweaks is { } wt) WinTweaks = wt;
         FirstRunDone = true;
     }
 

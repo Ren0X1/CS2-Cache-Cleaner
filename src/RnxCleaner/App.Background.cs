@@ -48,10 +48,45 @@ public partial class App
     {
         // Digital Vibrance siempre activo mientras RNX este abierta
         StartVibrance();
+        ApplyHud();
+        if (!SnapMode)
+        {
+            _ = Task.Run(NvidiaDriver.CleanWork);
+            WatchNvidiaDriver();
+        }
+    }
+
+    // ---- Aviso de driver nuevo de NVIDIA (solo dentro de la app): al abrir y cada 12 h mientras RNX siga abierta
+    public static NvidiaDriver.UpdateInfo? NvUpdate { get; private set; }
+    public static event Action? NvUpdateChanged;
+
+    private static async void WatchNvidiaDriver()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(15));
+        while (!Exiting)
+        {
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(40));
+                var info = await Task.Run(() => NvidiaDriver.CheckAsync(cts.Token));
+                SetNvUpdate(info);
+                if (info is not null) Logger.Detail(T("lg.nvd.available", info.Latest.Version, info.Gpu.InstalledVersion));
+            }
+            catch (Exception ex) { Logger.Detail("NVIDIA check: " + ex.Message); }
+            await Task.Delay(TimeSpan.FromHours(12));
+        }
+    }
+
+    /// <summary>Tambien lo llama la pestana del driver al consultar o instalar.</summary>
+    public static void SetNvUpdate(NvidiaDriver.UpdateInfo? info)
+    {
+        NvUpdate = info;
+        NvUpdateChanged?.Invoke();
     }
 
     public static void StartVibrance()
     {
+        if (_gpuPaused) return;
         Vibrance ??= VibranceEngine.Create(Shared);
         if (Vibrance is not null)
         {
@@ -125,6 +160,8 @@ public partial class App
     {
         // El color y la resolucion vuelven a los de Windows al salir (o al actualizar)
         try { Vibrance?.Dispose(); } catch { }
+        try { NvidiaDriver.CleanWork(); } catch { }
+        try { Shared.HudEnabled = Shared.HudEnabled; StopHudForExit(); } catch { }
         try { if (_tray is not null) { _tray.Visible = false; _tray.Dispose(); } } catch { }
         base.OnExit(e);
     }

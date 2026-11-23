@@ -536,6 +536,221 @@ oiaja" };
         await File.WriteAllTextAsync(reportPath, sb.ToString(), Encoding.UTF8);
     }
 
+    /// <summary>
+    /// --selftest-wintweaks: copia el estado real del registro a HKCU\Software\RNX_selftest_wt, aplica y deshace
+    /// cada ajuste ahi (el sistema real solo se lee) y lee en modo lectura servicios, tareas, apps e inicio reales.
+    /// </summary>
+    public static async Task WinTweaksAsync(string reportPath)
+    {
+        var sb = new StringBuilder();
+        bool ok = true;
+        void L(string s) { sb.AppendLine(s); }
+        void C(bool cond, string what) { L((cond ? "OK   " : "FALLO ") + what); ok &= cond; }
+        const string Sandbox = @"Software\RNX_selftest_wt";
+        try
+        {
+            // 1) Estado REAL (solo lectura)
+            WinTweaks.TestRoot = null;
+            var real = WinTweaks.Visible.ToList();
+            L($"ajustes visibles en este PC: {real.Count} de {WinTweaks.All.Count} (GPU: {string.Join(", ", WinTweaks.GpuKeys().Select(g => g.Vendor))})");
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var applied = real.Where(WinTweaks.IsApplied).Select(t => t.Id).ToList();
+            L($"estado real leido en {sw.ElapsedMilliseconds} ms; ya aplicados: {(applied.Count == 0 ? "ninguno" : string.Join(", ", applied))}");
+            C(WinTweaks.ServiceList().Count > 200, $"lista de servicios embebida: {WinTweaks.ServiceList().Count}");
+
+            // Copia del estado real de cada operacion de registro/servicio a la rama aislada
+            var seed = new List<(WinTweaks.Op Op, string? Value)>();
+            foreach (var t in WinTweaks.All) foreach (var o in t.Ops()) if (o.Testable) { try { seed.Add((o, o.Capture())); } catch { } }
+            Registry.CurrentUser.DeleteSubKeyTree(Sandbox, false);
+            WinTweaks.TestRoot = Sandbox;
+            foreach (var (o, v) in seed) if (v is not null) o.Restore(v);
+            L($"rama aislada sembrada con {seed.Count(x => x.Value is not null)} valores reales");
+
+            // 2) Aplicar y deshacer cada ajuste en la rama aislada
+            foreach (var t in WinTweaks.All)
+            {
+                var ops = t.Ops().Where(o => o.Testable && o.Exists).ToList();
+                if (ops.Count == 0) { L($"--   {t.Id}: sin operaciones de registro (tareas/energia), no se prueba aqui"); continue; }
+                var before = ops.ToDictionary(o => o.Key, o => o.Capture());
+                var r = WinTweaks.Apply(t);
+                bool on = WinTweaks.IsApplied(t);
+                var u = WinTweaks.Undo(t);
+                var after = ops.ToDictionary(o => o.Key, o => o.Capture());
+                var diff = before.Where(kv => after[kv.Key] != kv.Value).Select(kv => kv.Key).ToList();
+                C(r.Failed == 0 && on && u.Failed == 0 && diff.Count == 0 && !WinTweaks.CanUndo(t),
+                  $"{t.Id} [{t.Risk}]: {ops.Count} valores, aplicado={on}, deshecho exacto={diff.Count == 0}{(diff.Count > 0 ? " -> " + string.Join("; ", diff.Take(3)) : "")}{(r.FirstError is { } e ? " ERR " + e : "")}");
+            }
+
+            // 3) Herramientas (solo lectura)
+            WinTweaks.TestRoot = null;
+            var st = StartupApps.List();
+            L($"inicio: {st.Count} programas ({st.Count(e => e.Enabled)} activos): {string.Join(", ", st.Take(8).Select(e => e.Name + (e.Enabled ? "" : " [off]")))}");
+            var tk = ThirdPartyTasks.List();
+            C(!tk.Any(i => i.Name.StartsWith("RNX", StringComparison.OrdinalIgnoreCase)), $"tareas de terceros: {tk.Count}, ninguna RNX listada");
+            L("  " + string.Join(", ", tk.Take(10).Select(i => i.Name + (i.Enabled ? "" : " [off]"))));
+            var apps = await AppxApps.ListAsync(CancellationToken.None);
+            C(apps.Count > 0, $"apps: {apps.Count} (seguras {apps.Count(a => a.Risk == TweakRisk.Safe)}, precaucion {apps.Count(a => a.Risk == TweakRisk.Moderate)}, otras {apps.Count(a => a.Risk is null)})");
+            L("  seguras: " + string.Join(", ", apps.Where(a => a.Risk == TweakRisk.Safe).Select(a => a.Name)));
+        }
+        catch (Exception ex) { L("FALLO excepcion: " + ex); ok = false; }
+        finally
+        {
+            WinTweaks.TestRoot = Sandbox;
+            try { File.Delete(Path.Combine(AppPaths.Root, "undo", "wintweaks_selftest.json")); } catch { }
+            WinTweaks.TestRoot = null;
+            Registry.CurrentUser.DeleteSubKeyTree(Sandbox, false);
+            L("limpieza: rama aislada borrada = " + (Registry.CurrentUser.OpenSubKey(Sandbox) is null));
+        }
+        L(ok ? "RESULTADO: TODO OK" : "RESULTADO: HAY FALLOS");
+        await File.WriteAllTextAsync(reportPath, sb.ToString(), Encoding.UTF8);
+    }
+
+    /// <summary>--selftest-activation: TOTP (vector RFC 6238), ventana de 1 minuto, bloqueo y firma en el registro. Deja el registro como estaba.</summary>
+    public static async Task ActivationAsync(string reportPath)
+    {
+        var sb = new StringBuilder();
+        bool ok = true;
+        void C(bool cond, string what) { sb.AppendLine((cond ? "OK   " : "FALLO ") + what); ok &= cond; }
+        var before = Activation.StoredRaw();
+        try
+        {
+            var rfc = Encoding.ASCII.GetBytes("12345678901234567890");
+            C(Activation.Totp(rfc, 59 / 30) == "287082" && Activation.Totp(rfc, 1111111109 / 30) == "081804", "algoritmo TOTP = RFC 6238 (vectores oficiales)");
+            C(Activation.Available, "secreto embebido en esta compilacion");
+            var sec = Activation.SecretForTest()!;
+            var now = DateTimeOffset.UtcNow;
+            long step = now.ToUnixTimeSeconds() / 30;
+            C(Activation.Verify(sec, Activation.Totp(sec, step), now), "codigo actual: valido");
+            C(Activation.Verify(sec, Activation.Totp(sec, step - 1), now), "codigo anterior (menos de 1 min): valido");
+            C(!Activation.Verify(sec, Activation.Totp(sec, step - 4), now), "codigo de hace 2 min: rechazado");
+            C(!Activation.Verify(sec, Activation.Totp(sec, step + 2), now), "codigo futuro: rechazado");
+
+            Activation.Remove();
+            C(!Activation.IsActivated(), "sin la clave en el registro: no activado");
+            Activation.SetRaw("1");
+            C(!Activation.IsActivated(), "valor escrito a mano (\"1\"): no activado");
+            Activation.SetRaw(Convert.ToBase64String(new byte[32]));
+            C(!Activation.IsActivated(), "firma falsa / de otro PC: no activado");
+            Activation.Remove();
+
+            int wrong = 0;
+            for (int i = 0; i < 5; i++) if (Activation.TryActivate("000000") == Activation.Result.Wrong) wrong++;
+            var locked = Activation.TryActivate(Activation.Totp(sec, DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30));
+            C(wrong >= 4 && locked == Activation.Result.Locked && !Activation.IsActivated(), $"5 fallos: bloqueado {Activation.LockSeconds} s (ni el codigo correcto entra)");
+
+            var t = typeof(Activation);
+            t.GetField("_lockedUntil", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.SetValue(null, DateTime.MinValue);
+            var r = Activation.TryActivate(Activation.Totp(sec, DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30));
+            C(r == Activation.Result.Ok && Activation.IsActivated(), "codigo correcto: activado y firma guardada en HKLM");
+        }
+        catch (Exception ex) { C(false, "excepcion: " + ex); }
+        finally { Activation.SetRaw(before); }
+        sb.AppendLine("registro restaurado: " + (Activation.StoredRaw() == before ? (before is null ? "sin activar (como estaba)" : "igual que antes") : "DISTINTO"));
+        sb.AppendLine(ok ? "RESULTADO: TODO OK" : "RESULTADO: HAY FALLOS");
+        await File.WriteAllTextAsync(reportPath, sb.ToString(), Encoding.UTF8);
+    }
+
+    /// <summary>--selftest-nvdriver: busca, descarga, descomprime y filtra el driver (NO instala nada) y lo borra al terminar.</summary>
+    public static async Task NvDriverAsync(string reportPath)
+    {
+        var sb = new StringBuilder();
+        bool ok = true;
+        void L(string s) { sb.AppendLine(s); }
+        void C(bool cond, string what) { L((cond ? "OK   " : "FALLO ") + what); ok &= cond; }
+        try
+        {
+            var gpu = NvidiaDriver.Detect();
+            C(gpu is not null, $"grafica: {gpu?.Name} driver {gpu?.InstalledVersion}");
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(40));
+            var grd = await NvidiaDriver.LookupAsync(gpu!, false, cts.Token);
+            var studio = await NvidiaDriver.LookupAsync(gpu!, true, cts.Token);
+            C(grd.Count > 0, $"Game Ready: {string.Join(", ", grd.Take(5).Select(r => r.Version + " " + r.Date.ToString("yyyy-MM-dd")))}");
+            C(studio.Count > 0 && studio.All(r => r.Studio), $"Studio: {string.Join(", ", studio.Take(3).Select(r => r.Version))}");
+            C(grd.All(r => !r.Url.Contains("nsd")), "Game Ready sin paquetes Studio (nsd)");
+            var upd = await NvidiaDriver.CheckAsync(cts.Token);
+            L($"aviso: {(upd is null ? "al dia" : $"{upd.Latest.Version} disponible, {upd.Behind} por detras")}");
+            var r0 = grd[0];
+            L($"descargando {r0.Url} ({r0.Size})");
+            int last = -1;
+            var file = await NvidiaDriver.DownloadAsync(r0.Url, new Progress<double>(p => last = (int)(p * 100)), cts.Token);
+            C(new FileInfo(file).Length > 500_000_000, $"descarga {new FileInfo(file).Length / 1048576} MB");
+            var dir = await NvidiaDriver.ExtractAsync(file, cts.Token);
+            var comps = NvidiaDriver.Components(dir);
+            C(comps.Any(c => c.Folder == "Display.Driver" && c.Required), "componentes: " + string.Join(", ", comps.Select(c => c.Folder)));
+            var keep = comps.Where(c => NvidiaDriver.InPreset(c.Folder, "rec")).Select(c => c.Folder).ToList();
+            L("recomendado: " + string.Join(", ", keep));
+            NvidiaDriver.Prepare(dir, keep);
+            var left = Directory.GetFileSystemEntries(dir).Select(Path.GetFileName).ToList();
+            L("queda: " + string.Join(", ", left));
+            C(!left.Any(n => n is "NvTelemetry" or "NvApp" or "GFExperience" or "NvContainer"), "sin telemetria ni NVIDIA App");
+            C(File.Exists(Path.Combine(dir, "setup.exe")) && Directory.Exists(Path.Combine(dir, "NVI2")), "setup.exe y NVI2 presentes");
+            var cfg = File.ReadAllText(Path.Combine(dir, "setup.cfg"));
+            C(!cfg.Contains("EulaHtmlFile") || !cfg.Contains("<file name=\"${{EulaHtmlFile}}\""), "setup.cfg sin EULA/consentimiento");
+            C(!cfg.Contains("<file name=\"${{PrivacyPolicyFile}}\""), "setup.cfg sin privacidad");
+            var pres = Path.Combine(dir, "NVI2", "presentations.cfg");
+            if (File.Exists(pres))
+            {
+                var px = System.Xml.Linq.XDocument.Load(pres);
+                var urls = px.Descendants().Where(e => (string?)e.Attribute("name") is "ProgressPresentationUrl" or "ProgressPresentationSelectedPackageUrl").ToList();
+                C(urls.Count > 0 && urls.All(e => (string?)e.Attribute("value") == ""), $"anuncios del instalador quitados ({urls.Count})");
+            }
+            else L("presentations.cfg no existe");
+            // setup.exe sigue arrancando? (solo lectura de version)
+            var vi = System.Diagnostics.FileVersionInfo.GetVersionInfo(Path.Combine(dir, "setup.exe"));
+            L($"setup.exe {vi.FileDescription} {vi.FileVersion}");
+        }
+        catch (Exception ex) { L("FALLO excepcion: " + ex); ok = false; }
+        finally { NvidiaDriver.CleanWork(); }
+        L("limpieza: " + string.Join(", ", Directory.Exists(NvidiaDriver.WorkDir) ? Directory.GetFileSystemEntries(NvidiaDriver.WorkDir).Select(Path.GetFileName) : []));
+        L(ok ? "RESULTADO: TODO OK" : "RESULTADO: HAY FALLOS");
+        await File.WriteAllTextAsync(reportPath, sb.ToString(), Encoding.UTF8);
+    }
+
+    /// <summary>--selftest-hud: lista los sensores que ve LibreHardwareMonitor y mide FPS por ETW unos segundos.</summary>
+    public static async Task HudAsync(string reportPath)
+    {
+        var sb = new StringBuilder();
+        void L(string s) { sb.AppendLine(s); }
+        try
+        {
+            using var sens = new HudSensors();
+            sens.Update(); await Task.Delay(1200); sens.Update();
+            L($"CPU: {sens.CpuName} carga={sens.CpuLoad:0.0} mhz={sens.CpuClock:0} temp={sens.CpuTemp:0.0}");
+            L($"RAM: {sens.RamName} usada={sens.RamUsedMb:0} MB");
+            L($"GPU: {sens.GpuName} carga={sens.GpuLoad:0.0} mhz={sens.GpuClock:0} temp={sens.GpuTemp:0.0} vram={sens.VramUsedMb:0} MB");
+            using var fps = new FpsMonitor();
+            await Task.Delay(1500);
+            await Task.Delay(1500);
+            var pres = fps.Presenters();
+            foreach (var (pid, f) in pres.Take(6)) L($"  presentando: {FpsMonitor.ProcessName(pid)} (pid {pid}) {f} fps");
+            if (pres.Count > 0)
+            {
+                fps.Track(pres[0].Pid);
+                await Task.Delay(3000);
+                var r = fps.Read();
+                L($"ETW {FpsMonitor.ProcessName(pres[0].Pid)}: fps={r.Fps:0} media={r.Avg:0.0} 1%={r.Low1:0.0} 0.1%={r.Low01:0.0} ultimo={r.FrameMs:0.00} ms muestras={r.Graph.Length}");
+            }
+            else L("ETW: ningun programa presentando fotogramas ahora mismo");
+            // Controlador completo con la ventana oculta (no se guarda nada en settings.json)
+            var s = App.Shared;
+            bool en = s.HudEnabled, vis = s.HudVisible; int vk = s.HudHotkeyVk, mods = s.HudHotkeyMods;
+            s.HudEnabled = true; s.HudVisible = false; s.HudHotkeyVk = 0x7B; s.HudHotkeyMods = 2 | 4;   // Ctrl+Shift+F12
+            int ticks = 0;
+            App.HudTick += () => ticks++;
+            App.ApplyHud();
+            L("Tecla de prueba registrada: " + App.RegisterHudHotkey() + " (" + App.HotkeyText(s.HudHotkeyMods, s.HudHotkeyVk) + ")");
+            await Task.Delay(4500);
+            var d = App.HudLast;
+            L($"Controlador: ticks={ticks} running={App.HudRunning} proceso={d?.Process} fps={d?.Fps:0} cpu={d?.CpuLoad:0.0}% gpu={d?.GpuLoad:0.0}% {d?.GpuTemp:0}°C vram={d?.VramUsedMb:0}/{d?.VramTotalMb:0} ram={d?.RamUsedMb:0}/{d?.RamTotalMb:0}");
+            s.HudEnabled = false; App.ApplyHud();
+            L("Parado: running=" + App.HudRunning);
+            s.HudEnabled = en; s.HudVisible = vis; s.HudHotkeyVk = vk; s.HudHotkeyMods = mods;
+            L("RESULTADO: FIN");
+        }
+        catch (Exception ex) { L("[FAIL] Excepcion: " + ex); }
+        await File.WriteAllTextAsync(reportPath, sb.ToString(), Encoding.UTF8);
+    }
+
     private static string Netsh(string args)
     {
         var psi = new ProcessStartInfo(Path.Combine(Environment.SystemDirectory, "netsh.exe"), args)

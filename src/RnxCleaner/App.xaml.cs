@@ -6,7 +6,7 @@ namespace RnxCleaner;
 
 public partial class App : Application
 {
-    private static bool SnapMode;
+    internal static bool SnapMode;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -28,6 +28,77 @@ public partial class App : Application
             SnapMode = true;
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
             _ = SelfTest.PowerAsync(e.Args[sp + 1]).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
+        int sh = Array.FindIndex(e.Args, a => a.Equals("--selftest-hud", StringComparison.OrdinalIgnoreCase));
+        if (sh >= 0 && sh + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = SelfTest.HudAsync(e.Args[sh + 1]).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
+        // Captura de la pantalla de activacion: --snap-activation <png>
+        int sna = Array.FindIndex(e.Args, a => a.Equals("--snap-activation", StringComparison.OrdinalIgnoreCase));
+        if (sna >= 0 && sna + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            Loc.Set(Shared.Language);
+            ThemeManager.Apply(Shared.Palette, Shared.ThemeMode);
+            var aw = new ActivationWindow { ShowActivated = false, WindowStartupLocation = WindowStartupLocation.Manual, Left = -20000, Top = -20000 };
+            aw.Show();
+            Dispatcher.BeginInvoke(async () =>
+            {
+                await Task.Delay(800);
+                var root = (FrameworkElement)aw.Content;
+                var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap((int)root.ActualWidth, (int)root.ActualHeight, 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+                var dv = new System.Windows.Media.DrawingVisual();
+                using (var dc = dv.RenderOpen()) { dc.DrawRectangle(aw.Background, null, new Rect(0, 0, root.ActualWidth, root.ActualHeight)); dc.DrawRectangle(new System.Windows.Media.VisualBrush(root), null, new Rect(0, 0, root.ActualWidth, root.ActualHeight)); }
+                bmp.Render(dv);
+                var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+                enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bmp));
+                using (var f = System.IO.File.Create(e.Args[sna + 1])) enc.Save(f);
+                Shutdown();
+            });
+            return;
+        }
+
+        int sac = Array.FindIndex(e.Args, a => a.Equals("--selftest-activation", StringComparison.OrdinalIgnoreCase));
+        if (sac >= 0 && sac + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = SelfTest.ActivationAsync(e.Args[sac + 1]).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
+        int swt = Array.FindIndex(e.Args, a => a.Equals("--selftest-wintweaks", StringComparison.OrdinalIgnoreCase));
+        if (swt >= 0 && swt + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = SelfTest.WinTweaksAsync(e.Args[swt + 1]).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
+        int sgp = Array.FindIndex(e.Args, a => a.Equals("--selftest-gpupause", StringComparison.OrdinalIgnoreCase));
+        if (sgp >= 0 && sgp + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = GpuPauseTestAsync(e.Args[sgp + 1]).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
+        int snd = Array.FindIndex(e.Args, a => a.Equals("--selftest-nvdriver", StringComparison.OrdinalIgnoreCase));
+        if (snd >= 0 && snd + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = SelfTest.NvDriverAsync(e.Args[snd + 1]).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
             return;
         }
 
@@ -115,6 +186,17 @@ public partial class App : Application
         // Solo una RNX con ventana: si ya hay una (p. ej. en la bandeja), se muestra esa
         bool trayStart = auto is null && e.Args.Any(a => a.Equals(TrayFlag, StringComparison.OrdinalIgnoreCase));
         if (auto is null && !ClaimSingleInstance()) { Shutdown(); return; }
+
+        // Activacion de primer uso: sin activar no se ejecuta nada (ni ventana, ni modos /todo..., ni la bandeja)
+        if (!Activation.IsActivated())
+        {
+            if (auto is not null || trayStart) { Logger.Info("ACTIVATION: this PC is not activated, start blocked"); Shutdown(); return; }
+            Loc.Set(Shared.Language);
+            ThemeManager.Apply(Shared.Palette, Shared.ThemeMode);
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            if (new ActivationWindow().ShowDialog() != true) { Shutdown(); return; }
+            ShutdownMode = ShutdownMode.OnMainWindowClose;
+        }
 
         Oem.RepairLogo();
 
