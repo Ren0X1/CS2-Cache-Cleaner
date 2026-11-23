@@ -199,7 +199,18 @@ public static class DriveSync
         try
         {
             var bytes = System.Text.Encoding.UTF8.GetBytes(settings.ExportPortable());
-            var existing = (await ListZipsAsync(svc, rootId, ct)).FirstOrDefault(f => f.Name == SettingsFile);
+            // Solo debe haber un rnx_settings.json: se actualiza el mas reciente y los demas van a la papelera
+            var all = await ListSettingsAsync(svc, rootId, ct);
+            var existing = all.FirstOrDefault();
+            foreach (var dup in all.Skip(1))
+            {
+                try
+                {
+                    await svc.Files.Update(new DriveFile { Trashed = true }, dup.Id).ExecuteAsync(ct);
+                    Logger.Detail(T("lg.dr.settingsDup", dup.ModifiedTimeDateTimeOffset?.LocalDateTime.ToString("g", Culture) ?? dup.Id));
+                }
+                catch (Exception ex) { Logger.Detail("DRIVE: " + ex.Message); }
+            }
             using var ms = new MemoryStream(bytes);
             IUploadProgress r;
             if (existing is null)
@@ -222,7 +233,7 @@ public static class DriveSync
         if (cred is null) return null;
         using var svc = Service(cred);
         var rootId = await EnsureFolderAsync(svc, settings.DriveFolder, "root", ct);
-        var f = (await ListZipsAsync(svc, rootId, ct)).FirstOrDefault(x => x.Name == SettingsFile);
+        var f = (await ListSettingsAsync(svc, rootId, ct)).FirstOrDefault();
         if (f is null) return null;
         using var ms = new MemoryStream();
         await svc.Files.Get(f.Id).DownloadAsync(ms, ct);
@@ -284,6 +295,34 @@ public static class DriveSync
         var r = await list.ExecuteAsync(ct);
         return r.Files.Where(f => DateTime.TryParseExact(f.Name, "yyyy-MM-dd", null, System.Globalization.DateTimeStyles.None, out _))
                       .OrderByDescending(f => f.Name, StringComparer.Ordinal).ToList();
+    }
+
+    /// <summary>Prueba interna: cuantos rnx_settings.json hay antes y despues de guardar, y si se puede leer.</summary>
+    internal static async Task<string> TestSettingsAsync(Settings settings, CancellationToken ct)
+    {
+        var cred = await AuthorizeAsync(interactive: false, ct);
+        if (cred is null) return "FALLO sin sesion de Google";
+        using var svc = Service(cred);
+        var rootId = await EnsureFolderAsync(svc, settings.DriveFolder, "root", ct);
+        int before = (await ListSettingsAsync(svc, rootId, ct)).Count;
+        await UploadSettingsAsync(svc, rootId, settings, ct);
+        int after = (await ListSettingsAsync(svc, rootId, ct)).Count;
+        await UploadSettingsAsync(svc, rootId, settings, ct);
+        int again = (await ListSettingsAsync(svc, rootId, ct)).Count;
+        var json = await DownloadSettingsAsync(settings, ct);
+        bool ok = after == 1 && again == 1 && json is not null && json.Contains("WinTweaks");
+        return $"{(ok ? "OK  " : "FALLO")} antes={before} tras guardar={after} tras guardar otra vez={again} descarga={(json is null ? "no" : json.Length + " bytes")}";
+    }
+
+    /// <summary>Todos los rnx_settings.json de la carpeta, del mas reciente al mas antiguo.</summary>
+    private static async Task<List<DriveFile>> ListSettingsAsync(DriveService svc, string folderId, CancellationToken ct)
+    {
+        var list = svc.Files.List();
+        list.Q = $"'{folderId}' in parents and trashed=false and name='{SettingsFile}'";
+        list.Fields = "files(id,name,modifiedTime)";
+        list.OrderBy = "modifiedTime desc";
+        list.PageSize = 100;
+        return [.. (await list.ExecuteAsync(ct)).Files];
     }
 
     private static async Task<List<DriveFile>> ListZipsAsync(DriveService svc, string folderId, CancellationToken ct)

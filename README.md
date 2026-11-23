@@ -292,7 +292,11 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 
 ## 📜 Changelog
 
-### v5.3.1 (current)
+### v5.3.2 (current)
+- ☁️ **Drive**: only one `rnx_settings.json` is kept in the backup folder; it's updated on every backup and any duplicates are moved to the Drive trash
+- 🐛 **Restore my RNX settings** now finds the settings saved in Drive
+
+### v5.3.1
 - 🎨 **Custom color**: besides the built-in palettes, choose any color with a color picker (saturation/brightness square, hue bar and hex code) with live preview, from the color menu, Settings or the first launch. The shade is adjusted automatically so text stays readable in light and dark mode, and it's saved with your settings
 - 🐛 Settings: the mouse `.reg` card no longer squeezes its description next to the buttons (buttons now go below, in every language)
 

@@ -69,6 +69,21 @@ public partial class App : Application
             return;
         }
 
+        int sds = Array.FindIndex(e.Args, a => a.Equals("--selftest-drivesettings", StringComparison.OrdinalIgnoreCase));
+        if (sds >= 0 && sds + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            var rep = e.Args[sds + 1];
+            _ = Task.Run(async () =>
+            {
+                string r;
+                try { r = await DriveSync.TestSettingsAsync(Shared, CancellationToken.None); } catch (Exception ex) { r = "FALLO " + ex.Message; }
+                await System.IO.File.WriteAllTextAsync(rep, r);
+            }).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
         int sac = Array.FindIndex(e.Args, a => a.Equals("--selftest-activation", StringComparison.OrdinalIgnoreCase));
         if (sac >= 0 && sac + 1 < e.Args.Length)
         {
