@@ -48,6 +48,7 @@ public partial class MainWindow
         bool show = u is not null && NavNvDriver.Visibility == Visibility.Visible;
         bool wasHidden = NvBadge.Visibility != Visibility.Visible;
         NvBadge.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        UpdateDrvGroupBadge();
         if (show && wasHidden && IsVisible && PageNvDriver.Visibility != Visibility.Visible)
             ShowToast(T("nvd.toast", u!.Latest.Version));
         if (PageNvDriver.Visibility == Visibility.Visible) RenderNvDriver();

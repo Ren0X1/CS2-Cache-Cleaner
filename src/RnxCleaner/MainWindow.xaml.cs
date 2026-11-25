@@ -110,6 +110,7 @@ public partial class MainWindow : Window
         if (PageCustomRes.Visibility == Visibility.Visible) RenderRes();
         if (PageHud.Visibility == Visibility.Visible) RenderHud();
         if (PageNvDriver.Visibility == Visibility.Visible) RenderNvDriver();
+        if (PagePcDrivers.Visibility == Visibility.Visible) RenderPcDrivers();
         if (PageWin.Visibility == Visibility.Visible) LoadWindows(_winMode);
         if (PageSettings.Visibility == Visibility.Visible) RenderSettings();
         _ = RefreshDriveAsync();
@@ -286,6 +287,8 @@ public partial class MainWindow : Window
         NavCs2Items.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
         if (open && NavWinGroup.IsChecked == true && !(NavWinTweaks.IsChecked == true || NavWinApps.IsChecked == true || NavWinStartup.IsChecked == true || NavWinTasks.IsChecked == true))
         { NavWinGroup.IsChecked = false; NavWinItems.Visibility = Visibility.Collapsed; }
+        if (open && NavDrvGroup.IsChecked == true && !(NavNvDriver.IsChecked == true || NavPcDrivers.IsChecked == true))
+        { NavDrvGroup.IsChecked = false; NavDrvItems.Visibility = Visibility.Collapsed; UpdateDrvGroupBadge(); }
     }
 
     private void Nav_Checked(object sender, RoutedEventArgs e)
@@ -293,6 +296,7 @@ public partial class MainWindow : Window
         // Si se entra en una pestana del grupo CS2 (p. ej. desde un boton), el grupo se abre
         if (sender == NavCs2 || sender == NavVideo || sender == NavFonts) SetCs2Group(true);
         if (sender == NavWinTweaks || sender == NavWinApps || sender == NavWinStartup || sender == NavWinTasks) SetWinGroup(true);
+        if (InDrvGroup(sender)) SetDrvGroup(true);
         // Durante InitializeComponent "Limpieza" se marca antes de que existan las paginas
         if (!IsLoaded) return;
         if (_running) return;
@@ -308,6 +312,7 @@ public partial class MainWindow : Window
             RadioButton r when r == NavCustomRes => PageCustomRes,
             RadioButton r when r == NavHud => PageHud,
             RadioButton r when r == NavNvDriver => PageNvDriver,
+            RadioButton r when r == NavPcDrivers => PagePcDrivers,
             RadioButton r when r == NavWinTweaks || r == NavWinApps || r == NavWinStartup || r == NavWinTasks => PageWin,
             RadioButton r when r == NavSettings => PageSettings,
             RadioButton r when r == NavLog => PageLog,
@@ -326,6 +331,7 @@ public partial class MainWindow : Window
         if (sender == NavCustomRes) RenderRes();
         if (sender == NavHud) LoadHud();
         if (sender == NavNvDriver) LoadNvDriver();
+        if (sender == NavPcDrivers) LoadPcDrivers();
         if (sender == NavWinTweaks) LoadWindows("tweaks");
         if (sender == NavWinApps) LoadWindows("apps");
         if (sender == NavWinStartup) LoadWindows("startup");
@@ -335,7 +341,7 @@ public partial class MainWindow : Window
     private void ShowPage(FrameworkElement page)
     {
         if (PageHome is null) return;
-        foreach (var p in new FrameworkElement[] { PageHome, PageCustom, PageCs2, PageVideo, PageFonts, PageCustomRes, PageVibrance, PageHud, PageNvDriver, PageWin, PageServers, PageBackup, PageSettings, PageLog, PageHistory, PageRun })
+        foreach (var p in new FrameworkElement[] { PageHome, PageCustom, PageCs2, PageVideo, PageFonts, PageCustomRes, PageVibrance, PageHud, PageNvDriver, PagePcDrivers, PageWin, PageServers, PageBackup, PageSettings, PageLog, PageHistory, PageRun })
             p.Visibility = p == page ? Visibility.Visible : Visibility.Collapsed;
         page.Opacity = 0;
         page.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(160)));
@@ -1761,6 +1767,7 @@ public partial class MainWindow : Window
             case "customres": NavCustomRes.IsChecked = true; break;
             case "hud": NavHud.IsChecked = true; break;
             case "nvdriver": NavNvDriver.IsChecked = true; await Task.Delay(4000); break;
+            case "pcdrivers": NavPcDrivers.IsChecked = true; await Task.Delay(30000); break;
             case "wtweaks": NavWinTweaks.IsChecked = true; await Task.Delay(5000); break;
             case "wapps": NavWinApps.IsChecked = true; await Task.Delay(9000); break;
             case "wstartup": NavWinStartup.IsChecked = true; await Task.Delay(2000); break;

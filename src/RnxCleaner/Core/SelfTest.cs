@@ -650,6 +650,39 @@ oiaja" };
         await File.WriteAllTextAsync(reportPath, sb.ToString(), Encoding.UTF8);
     }
 
+    /// <summary>--selftest-pcdrivers: solo lectura. Dispositivos, Windows Update, Catalogo y componentes de winget.</summary>
+    public static async Task PcDriversAsync(string reportPath)
+    {
+        var sb = new StringBuilder();
+        bool ok = true;
+        void L(string s) => sb.AppendLine(s);
+        void C(bool c, string w) { L((c ? "OK   " : "FALLO ") + w); ok &= c; }
+        try
+        {
+            var sw = Stopwatch.StartNew();
+            var devs = await Task.Run(PcDrivers.Devices);
+            C(devs.Count > 20, $"dispositivos: {devs.Count} en {sw.ElapsedMilliseconds} ms; con NVIDIA: {devs.Count(d => PcDrivers.IsNvidia(d.Name + d.Provider))}");
+            foreach (var g in devs.GroupBy(d => d.Class).OrderByDescending(g => g.Count()).Take(12)) L($"   {g.Key}: {g.Count()}");
+            var eth = devs.FirstOrDefault(d => d.Name.Contains("I219"));
+            L($"   ethernet: {eth?.Name} {eth?.Version} {eth?.Date:yyyy-MM-dd} ids={eth?.HardwareIds.Length}");
+            sw.Restart();
+            var wu = await Task.Run(() => PcDrivers.WindowsUpdate(devs));
+            C(true, $"Windows Update: {wu.Count} en {sw.ElapsedMilliseconds} ms");
+            foreach (var u in wu) L($"   {u.DeviceName} | {u.Current} -> {u.NewVersion} | {u.Title}");
+            sw.Restart();
+            var cat = await PcDrivers.CatalogAsync(devs, null, CancellationToken.None);
+            C(true, $"Catalogo: {cat.Count} mas nuevos en {sw.ElapsedMilliseconds} ms");
+            foreach (var u in cat) L($"   {u.DeviceName} [{u.Class}] | {u.Current} -> {u.NewVersion} ({u.NewDate:yyyy-MM-dd}) | {u.Title}");
+            sw.Restart();
+            var comps = await PcDrivers.ComponentsAsync(CancellationToken.None);
+            C(comps.Any(c => c.Id.StartsWith("Oracle.Java", StringComparison.OrdinalIgnoreCase)), $"componentes: {comps.Count} en {sw.ElapsedMilliseconds} ms");
+            foreach (var c in comps) L($"   {c.Name} | {c.Id} | {c.Current} -> {c.Available}");
+        }
+        catch (Exception ex) { L("FALLO excepcion: " + ex); ok = false; }
+        L(ok ? "RESULTADO: TODO OK" : "RESULTADO: HAY FALLOS");
+        await File.WriteAllTextAsync(reportPath, sb.ToString(), Encoding.UTF8);
+    }
+
     /// <summary>--selftest-nvdriver: busca, descarga, descomprime y filtra el driver (NO instala nada) y lo borra al terminar.</summary>
     public static async Task NvDriverAsync(string reportPath)
     {

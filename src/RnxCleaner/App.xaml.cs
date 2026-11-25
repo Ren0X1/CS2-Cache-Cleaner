@@ -84,6 +84,15 @@ public partial class App : Application
             return;
         }
 
+        int spd = Array.FindIndex(e.Args, a => a.Equals("--selftest-pcdrivers", StringComparison.OrdinalIgnoreCase));
+        if (spd >= 0 && spd + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            _ = SelfTest.PcDriversAsync(e.Args[spd + 1]).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
         int sac = Array.FindIndex(e.Args, a => a.Equals("--selftest-activation", StringComparison.OrdinalIgnoreCase));
         if (sac >= 0 && sac + 1 < e.Args.Length)
         {

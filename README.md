@@ -155,6 +155,10 @@ The **CS2 video** tab edits `Steam\userdata\<account>\730\local\cfg\cs2_video.tx
 - **Lock switch**: marks the file **read-only** so CS2 never overwrites it. While locked the form is disabled; unlock it to edit. **Every change is saved straight away**, keeping the rest of the file exactly as it was. The first change makes a backup (`cs2_video.txt.rnxbak`).
 - Several Steam accounts on the PC? Pick which one at the top.
 
+### 🔧 PC drivers
+
+**Drivers → PC drivers** works like Driver Booster: it reads every device and its driver and shows **Outdated drivers**, **Game components** and **Up to date**. Drivers come only from official, signed sources — **Windows Update** and the **Microsoft Update Catalog** (searched by hardware ID, installed with Windows' own `pnputil`, which only applies a driver that matches the device) — and game components (Java, Visual C++, .NET, DirectX, GameInput…) are updated with **winget**. A restore point is created first if enabled. **NVIDIA drivers are excluded**: they're handled in **Drivers → NVIDIA driver**.
+
 ### 🔑 Activation
 
 The first time RNX opens on a PC it asks for a **6-digit activation code** (contact: Discord **ren0x1**). Each code is valid for one minute only. Once activated, the PC stays activated; nothing runs (window, command-line modes, scheduled cleanup or tray) until it is.
@@ -286,13 +290,18 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 - Microsoft Store fix: `fixStoreIssues.cmd` from [AtlasOS](https://github.com/Atlas-OS/Atlas) (bundled unchanged).
 - Windows optimization: selection and risk classification based on [optimizerDuck](https://github.com/itsfatduck/optimizerDuck) by itsfatduck (GPL-3.0), implemented independently in RNX.
 - NVIDIA driver: idea from NVCleanstall by TechPowerUp; driver lookup like [TinyNvidiaUpdateChecker](https://github.com/HawaiiBeach/TinyNvidiaUpdateChecker); GPU ids from [nvidia-data](https://github.com/ZenitH-AT/nvidia-data); unpacked with [7-Zip](https://www.7-zip.org) `7zr.exe` by Igor Pavlov (public domain, bundled).
+- PC drivers: Microsoft Update Catalog approach from [OpenDriverUpdater](https://github.com/OpenDriverUpdater/OpenDriverUpdater) (MIT), implemented independently in RNX.
 - HUD sensors: [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) (MPL-2.0) and the [PawnIO](https://github.com/namazso/PawnIO.Setup) driver; FPS via ETW with Microsoft TraceEvent.
 
 ---
 
 ## 📜 Changelog
 
-### v5.3.2 (current)
+### v5.3.3 (current)
+- 🧩 New **Drivers** drop-down with **NVIDIA driver** (NVIDIA cards only) and the new **PC drivers** tab
+- 🔧 **PC drivers**, like Driver Booster: lists every device with its driver, finds newer drivers from official, signed sources (**Windows Update** and the **Microsoft Update Catalog** by hardware ID, like OpenDriverUpdater) and **game components** (Java, Visual C++, .NET, DirectX, GameInput) through winget, and updates the selected ones with a restore point first. **NVIDIA drivers are never touched here**
+
+### v5.3.2
 - ☁️ **Drive**: only one `rnx_settings.json` is kept in the backup folder; it's updated on every backup and any duplicates are moved to the Drive trash
 - 🐛 **Restore my RNX settings** now finds the settings saved in Drive
 

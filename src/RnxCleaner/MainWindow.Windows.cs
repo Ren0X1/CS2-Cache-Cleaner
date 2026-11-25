@@ -31,6 +31,8 @@ public partial class MainWindow
         // Acordeon: al abrir Windows se cierra CS2 (salvo que haya una pestana de CS2 abierta)
         if (open && !(NavCs2.IsChecked == true || NavVideo.IsChecked == true || NavFonts.IsChecked == true))
         { NavCs2Group.IsChecked = false; NavCs2Items.Visibility = Visibility.Collapsed; }
+        if (open && !(NavNvDriver.IsChecked == true || NavPcDrivers.IsChecked == true))
+        { NavDrvGroup.IsChecked = false; NavDrvItems.Visibility = Visibility.Collapsed; UpdateDrvGroupBadge(); }
         NavWinGroup.IsChecked = open;
         NavWinItems.Visibility = open ? Visibility.Visible : Visibility.Collapsed;
     }

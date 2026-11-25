@@ -56,7 +56,16 @@
                     <RadioButton x:Name="NavCustomRes" Content="{c:L nav.customres}" Tag="&#xE740;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavVibrance" Content="{c:L nav.vibrance}" Tag="&#xE790;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavHud" Content="HUD" Tag="&#xE9D9;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
-                    <RadioButton x:Name="NavNvDriver" Tag="&#xE896;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked">
+                    <ToggleButton x:Name="NavDrvGroup" Tag="&#xE964;" Style="{StaticResource NavGroup}" Click="NavDrvGroup_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{c:L nav.drivers}"/>
+                            <Border x:Name="DrvGroupBadge" Visibility="Collapsed" Background="{DynamicResource Accent}" CornerRadius="5" Padding="6,1" Margin="9,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{c:L nvd.badge}" FontSize="10.5" FontWeight="SemiBold" Foreground="{DynamicResource OnAccent}"/>
+                            </Border>
+                        </StackPanel>
+                    </ToggleButton>
+                    <StackPanel x:Name="NavDrvItems" Visibility="Collapsed">
+                    <RadioButton x:Name="NavNvDriver" Tag="&#xE896;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{c:L nav.nvdriver}"/>
                             <Border x:Name="NvBadge" Visibility="Collapsed" Background="{DynamicResource Accent}" CornerRadius="5" Padding="6,1" Margin="9,0,0,0" VerticalAlignment="Center">
@@ -64,6 +73,8 @@
                             </Border>
                         </StackPanel>
                     </RadioButton>
+                    <RadioButton x:Name="NavPcDrivers" Content="{c:L nav.pcdrivers}" Tag="&#xE7F8;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
+                    </StackPanel>
                     <ToggleButton x:Name="NavWinGroup" Content="Windows" Tag="&#xE770;" Style="{StaticResource NavGroup}" Click="NavWinGroup_Click"/>
                     <StackPanel x:Name="NavWinItems" Visibility="Collapsed">
                         <RadioButton x:Name="NavWinTweaks" Content="{c:L nav.win.tweaks}" Tag="&#xE9F5;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
@@ -687,6 +698,24 @@
                                     </Border>
                                 </StackPanel>
                             </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ======== DRIVERS DEL PC ======== -->
+                    <ScrollViewer x:Name="PagePcDrivers" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="36,34,36,28">
+                            <TextBlock Text="{c:L pcd.title}" Style="{StaticResource H1}"/>
+                            <TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,0" TextWrapping="Wrap" Text="{c:L pcd.sub}"/>
+                            <Border Style="{StaticResource Card}" Margin="0,22,0,0">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <StackPanel x:Name="PcActions" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="PcSummary" FontSize="19" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,18,0" Text="-"/>
+                                    </DockPanel>
+                                    <ProgressBar x:Name="PcBar" Style="{StaticResource ThinBar}" Maximum="1" Margin="0,14,0,0" Visibility="Collapsed"/>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel x:Name="PcHost"/>
                         </StackPanel>
                     </ScrollViewer>
 
