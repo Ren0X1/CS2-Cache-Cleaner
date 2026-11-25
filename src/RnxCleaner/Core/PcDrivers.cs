@@ -115,30 +115,43 @@ public static class PcDrivers
         return res;
     }
 
-    /// <summary>Descarga e instala por Windows Update los drivers indicados. Devuelve (instalados, reinicio necesario).</summary>
-    public static (int Installed, bool Reboot) InstallWindowsUpdate(IEnumerable<string> updateIds)
+    /// <summary>
+    /// Descarga e instala por Windows Update los drivers indicados, de uno en uno (para poder mostrar el progreso).
+    /// onStart(i, titulo) se llama antes de cada uno. Devuelve (instalados, reinicio necesario).
+    /// </summary>
+    public static (int Installed, bool Reboot) InstallWindowsUpdate(IEnumerable<string> updateIds, Action<int, string>? onStart = null)
     {
         var want = new HashSet<string>(updateIds, StringComparer.OrdinalIgnoreCase);
         dynamic session = NewSession();
         dynamic r = session.CreateUpdateSearcher().Search("IsInstalled=0 and Type='Driver'");
-        dynamic coll = Activator.CreateInstance(Type.GetTypeFromProgID("Microsoft.Update.UpdateColl")!)!;
+        var todo = new List<dynamic>();
         foreach (dynamic u in r.Updates)
-            if (want.Contains((string)u.Identity.UpdateID)) { try { if (!(bool)u.EulaAccepted) u.AcceptEula(); } catch { } coll.Add(u); }
-        if ((int)coll.Count == 0) return (0, false);
-        dynamic dl = session.CreateUpdateDownloader();
-        dl.Updates = coll;
-        dl.Download();
-        dynamic inst = session.CreateUpdateInstaller();
-        inst.Updates = coll;
-        dynamic ir = inst.Install();
-        int ok = 0;
-        for (int i = 0; i < (int)coll.Count; i++)
+            if (want.Contains((string)u.Identity.UpdateID)) todo.Add(u);
+        int ok = 0; bool reboot = false;
+        for (int i = 0; i < todo.Count; i++)
         {
-            int code = (int)ir.GetUpdateResult(i).ResultCode;   // 2 = correcto, 3 = correcto con errores
-            if (code is 2 or 3) ok++;
-            Logger.Info(T("lg.pcd.wu", (string)coll.Item(i).Title, code is 2 or 3 ? "OK" : "code " + code));
+            dynamic u = todo[i];
+            string title = u.Title;
+            onStart?.Invoke(i, title);
+            try
+            {
+                try { if (!(bool)u.EulaAccepted) u.AcceptEula(); } catch { }
+                dynamic coll = Activator.CreateInstance(Type.GetTypeFromProgID("Microsoft.Update.UpdateColl")!)!;
+                coll.Add(u);
+                dynamic dl = session.CreateUpdateDownloader();
+                dl.Updates = coll;
+                dl.Download();
+                dynamic inst = session.CreateUpdateInstaller();
+                inst.Updates = coll;
+                dynamic ir = inst.Install();
+                int code = (int)ir.GetUpdateResult(0).ResultCode;   // 2 = correcto, 3 = correcto con errores
+                if (code is 2 or 3) ok++;
+                reboot |= (bool)ir.RebootRequired;
+                Logger.Info(T("lg.pcd.wu", title, code is 2 or 3 ? "OK" : "code " + code));
+            }
+            catch (Exception ex) { Logger.Error(T("lg.pcd.wu", title, ex.Message)); }
         }
-        return (ok, (bool)ir.RebootRequired);
+        return (ok, reboot);
     }
 
     // ------------------------------------------------------------------

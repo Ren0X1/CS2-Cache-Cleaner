@@ -48,6 +48,8 @@ public sealed class Settings
     public double HudOpacity { get; set; } = 0.58;
     /// <summary>Ajustes de Windows aplicados por el usuario desde RNX (ids de WinTweaks).</summary>
     public List<string> WinTweaks { get; set; } = [];
+    /// <summary>Drivers PC descartados por el usuario ("dev:nombre|etiqueta" o "comp:id|etiqueta"): no vuelven a salir en los analisis.</summary>
+    public List<string> PcIgnore { get; set; } = [];
     public bool HudCpu { get; set; } = true;
     public bool HudRam { get; set; } = true;
     public bool HudGpu { get; set; } = true;
@@ -128,6 +130,7 @@ public sealed class Settings
         public double? HudOpacity { get; set; }
         public bool[]? HudRows { get; set; }
         public List<string>? WinTweaks { get; set; }
+        public List<string>? PcIgnore { get; set; }
     }
 
     public string ExportPortable() => JsonSerializer.Serialize(new Portable
@@ -139,7 +142,7 @@ public sealed class Settings
         VibrancePrimaryOnly = VibrancePrimaryOnly, VibranceProfiles = VibranceProfiles,
         HudEnabled = HudEnabled, HudHotkeyMods = HudHotkeyMods, HudHotkeyVk = HudHotkeyVk, HudStyle = HudStyle, HudCorner = HudCorner,
         HudX = HudX, HudY = HudY, HudScale = HudScale, HudOpacity = HudOpacity, HudRows = [HudCpu, HudRam, HudGpu, HudFps, HudGraph],
-        WinTweaks = WinTweaks,
+        WinTweaks = WinTweaks, PcIgnore = PcIgnore,
     }, Json);
 
     /// <summary>Aplica lo que venga en el json (lo que no venga, se queda como esta).</summary>
@@ -172,6 +175,7 @@ public sealed class Settings
         if (p.HudOpacity is { } ho) HudOpacity = ho;
         if (p.HudRows is { Length: 5 } hr) (HudCpu, HudRam, HudGpu, HudFps, HudGraph) = (hr[0], hr[1], hr[2], hr[3], hr[4]);
         if (p.WinTweaks is { } wt) WinTweaks = wt;
+        if (p.PcIgnore is { } pi) PcIgnore = pi;
         FirstRunDone = true;
     }
 

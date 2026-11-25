@@ -30,13 +30,26 @@ public partial class App
     /// <summary>false si ya hay otra RNX abierta (a la que se le pide que se muestre).</summary>
     internal static bool ClaimSingleInstance()
     {
-        _single = new Mutex(true, MutexName, out bool created);
+        // Permisos explicitos para el usuario actual: la RNX que arranca con Windows (tarea programada) y la que se
+        // abre con el acceso directo tienen tokens distintos; con los permisos por defecto no se veian entre si.
+        var me = System.Security.Principal.WindowsIdentity.GetCurrent().User!;
+        bool created;
+        try
+        {
+            var ms = new System.Security.AccessControl.MutexSecurity();
+            ms.AddAccessRule(new System.Security.AccessControl.MutexAccessRule(me, System.Security.AccessControl.MutexRights.FullControl, System.Security.AccessControl.AccessControlType.Allow));
+            _single = System.Threading.MutexAcl.Create(true, MutexName, out created, ms);
+        }
+        catch (UnauthorizedAccessException) { created = false; }   // existe pero creada con otros permisos: hay otra RNX
         if (!created)
         {
+            AllowSetForegroundWindow(-1);   // la RNX ya abierta puede ponerse delante
             try { EventWaitHandle.OpenExisting(ShowEvent).Set(); } catch { }
             return false;
         }
-        var ev = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEvent);
+        var es = new System.Security.AccessControl.EventWaitHandleSecurity();
+        es.AddAccessRule(new System.Security.AccessControl.EventWaitHandleAccessRule(me, System.Security.AccessControl.EventWaitHandleRights.FullControl, System.Security.AccessControl.AccessControlType.Allow));
+        var ev = System.Threading.EventWaitHandleAcl.Create(false, EventResetMode.AutoReset, ShowEvent, out _, es);
         new Thread(() =>
         {
             while (ev.WaitOne()) Current?.Dispatcher.BeginInvoke(ShowMain);
@@ -129,11 +142,18 @@ public partial class App
         if (_tray.ContextMenuStrip is { } m && m.Items.Count == 2) { m.Items[0].Text = T("tray.open"); m.Items[1].Text = T("tray.exit"); }
     }
 
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool AllowSetForegroundWindow(int processId);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hwnd);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hwnd, int cmd);
+
     public static void ShowMain()
     {
         if (Current?.MainWindow is not { } w) return;
         w.Show();
-        if (w.WindowState == WindowState.Minimized) w.WindowState = WindowState.Normal;
+        bool wasMin = w.WindowState == WindowState.Minimized;
+        if (wasMin) w.WindowState = WindowState.Normal;
+        var h = new System.Windows.Interop.WindowInteropHelper(w).Handle;
+        if (h != IntPtr.Zero) { ShowWindow(h, wasMin ? 9 /* SW_RESTORE */ : 5 /* SW_SHOW: respeta maximizada */); SetForegroundWindow(h); }
         w.Activate();
         w.Topmost = true; w.Topmost = false;
     }

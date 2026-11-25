@@ -297,7 +297,11 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 
 ## 📜 Changelog
 
-### v5.3.3 (current)
+### v5.3.4 (current)
+- 🪟 **Single instance fixed**: opening the shortcut while RNX is already running (including when it started with Windows in the tray) now brings the open window to the front instead of starting a second copy
+- 🔧 **PC drivers**: the scan only runs when you press **Scan**; the progress bar advances as each driver or component finishes and shows which one is being installed (“2 of 9”); and **Dismiss** hides a device or component from future scans (saved in your settings), with a **Dismissed** list to show them again
+
+### v5.3.3
 - 🧩 New **Drivers** drop-down with **NVIDIA driver** (NVIDIA cards only) and the new **PC drivers** tab
 - 🔧 **PC drivers**, like Driver Booster: lists every device with its driver, finds newer drivers from official, signed sources (**Windows Update** and the **Microsoft Update Catalog** by hardware ID, like OpenDriverUpdater) and **game components** (Java, Visual C++, .NET, DirectX, GameInput) through winget, and updates the selected ones with a restore point first. **NVIDIA drivers are never touched here**
 

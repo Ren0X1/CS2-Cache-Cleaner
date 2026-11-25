@@ -1767,7 +1767,13 @@ public partial class MainWindow : Window
             case "customres": NavCustomRes.IsChecked = true; break;
             case "hud": NavHud.IsChecked = true; break;
             case "nvdriver": NavNvDriver.IsChecked = true; await Task.Delay(4000); break;
-            case "pcdrivers": NavPcDrivers.IsChecked = true; await Task.Delay(30000); break;
+            case "pcdrivers":
+                NavPcDrivers.IsChecked = true;
+                // Solo en memoria (la captura no guarda nada): un componente descartado para ver la seccion
+                _settings.PcIgnore.Add("comp:microsoft.gameinput|Microsoft GameInput");
+                _pcShowIgnored = true;
+                await ScanPcDriversAsync();
+                await Task.Delay(500); break;
             case "wtweaks": NavWinTweaks.IsChecked = true; await Task.Delay(5000); break;
             case "wapps": NavWinApps.IsChecked = true; await Task.Delay(9000); break;
             case "wstartup": NavWinStartup.IsChecked = true; await Task.Delay(2000); break;
