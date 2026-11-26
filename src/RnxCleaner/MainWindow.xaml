@@ -805,6 +805,39 @@
                                         </DockPanel>
                                     </StackPanel>
                                 </Border>
+                            <!-- Limpieza del firewall -->
+                            <TextBlock Text="{c:L fw.section}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="{c:L fw.title}" FontWeight="SemiBold"/>
+                                    <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" Text="{c:L fw.sub}"/>
+                                    <DockPanel Margin="0,12,0,0">
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button x:Name="FwRestoreBtn" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="FwRestore_Click" Content="{c:L fw.restore}"/>
+                                            <Button x:Name="FwScanBtn" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="FwScan_Click" Content="{c:L pcd.scan}"/>
+                                            <Button x:Name="FwRemoveBtn" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Click="FwRemove_Click" Content="-" Visibility="Collapsed"/>
+                                        </StackPanel>
+                                        <TextBlock x:Name="FwState" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,14,0" Text="-"/>
+                                    </DockPanel>
+                                    <StackPanel x:Name="FwList"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Informe del PC -->
+                            <TextBlock Text="{c:L rep.section}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Button x:Name="ReportBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Center" Click="Report_Click" Content="{c:L rep.btn}"/>
+                                        <StackPanel Margin="0,0,18,0">
+                                            <TextBlock Text="{c:L rep.title}" FontWeight="SemiBold"/>
+                                            <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" Text="{c:L rep.sub}"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <TextBlock x:Name="ReportState" FontSize="12.5" FontWeight="SemiBold" Margin="0,10,0,0" TextWrapping="Wrap" Foreground="{DynamicResource Accent}"/>
+                                </StackPanel>
+                            </Border>
+
                             <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,18,0,0" TextWrapping="Wrap" Text="{c:L clock.credit}"/>
                         </StackPanel>
                     </ScrollViewer>

@@ -333,7 +333,7 @@ public partial class MainWindow : Window
         if (sender == NavCustomRes) RenderRes();
         if (sender == NavHud) LoadHud();
         if (sender == NavNvDriver) LoadNvDriver();
-        if (sender == NavWinMods) { LoadMods(); _ = RefreshNatAsync(); }
+        if (sender == NavWinMods) { LoadMods(); _ = RefreshNatAsync(); RenderFirewall(); }
         if (sender == NavPcDrivers) LoadPcDrivers();
         if (sender == NavWinTweaks) LoadWindows("tweaks");
         if (sender == NavWinApps) LoadWindows("apps");

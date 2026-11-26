@@ -155,6 +155,13 @@ The **CS2 video** tab edits `Steam\userdata\<account>\730\local\cfg\cs2_video.tx
 - **Lock switch**: marks the file **read-only** so CS2 never overwrites it. While locked the form is disabled; unlock it to edit. **Every change is saved straight away**, keeping the rest of the file exactly as it was. The first change makes a backup (`cs2_video.txt.rnxbak`).
 - Several Steam accounts on the PC? Pick which one at the top.
 
+### 🧱 Firewall cleanup and PC report
+
+In **Windows → Mods and fixes**:
+
+- **Firewall rule cleanup** — programs and games leave Windows Firewall rules behind when they're uninstalled or moved. **Scan** lists orphaned rules (the program no longer exists) and exact duplicates; you choose which to remove. A full copy of the firewall is exported first and **Restore copy** brings it back exactly. Windows and RNX rules are never touched.
+- **PC report** — builds an anonymous summary (hardware, Windows, drivers, disks, network, RNX settings and recent errors), saves it to the desktop and copies it to the clipboard to paste into Discord. User name, PC name, IP and MAC addresses are removed.
+
 ### 🕒 Custom taskbar clock
 
 **Windows → Mods and fixes → Custom taskbar clock** replaces the Windows clock with RNX's: two lines with any time/date format and variables for CPU, GPU, temperatures, VRAM, RAM and network speed, templates, font, size, color and bold, with a live preview. Nothing is injected into Windows: the native clock is hidden with its official *Show time and date in the system tray* setting and RNX draws its clock just left of the tray icons. Clicking it opens the Windows calendar; it hides in fullscreen games; and the Windows clock always comes back when the option is turned off or RNX is closed. Inspired by *Taskbar Clock Customization* for Windhawk by m417z (GPL-3.0), implemented independently.
@@ -306,7 +313,11 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 
 ## 📜 Changelog
 
-### v5.4.0 (current)
+### v5.4.1 (current)
+- 🧱 **Firewall rule cleanup** (Windows → Mods and fixes): finds rules left behind by programs and games that no longer exist and exact duplicates, lets you choose which to remove, and saves a **full copy of the firewall** first (`netsh advfirewall export`) so **Restore copy** puts it back exactly. Windows and RNX rules are never touched
+- 📋 **PC report** (Windows → Mods and fixes → Support): one click builds an anonymous summary of hardware, Windows, drivers, disks, network, RNX settings and the latest errors in the Log, saves it to the desktop and copies it to the clipboard, ready to paste into Discord when asking for help. No user name, PC name, IP or MAC addresses
+
+### v5.4.0
 - 🕒 **Custom taskbar clock**, like Windhawk's *Taskbar Clock Customization* but without injecting anything: RNX hides the Windows clock with its official setting and shows its own next to the tray, with any time and date format, two lines, variables (`%time%`, `%date%`, `%weekday%`, `%weeknum%`, `%cpu%`, `%cpu_temp%`, `%gpu%`, `%gpu_temp%`, `%vram%`, `%ram%`, `%download%`, `%upload%`…), templates (time and date, seconds, performance, temperatures, network), font, size, color and bold, with live preview. Clicking it opens the Windows calendar, it hides in fullscreen games, and the Windows clock always comes back when you turn it off or close RNX
 - 🧰 New **Windows → Mods and fixes** tab with the taskbar clock and, moved from Custom, the **Microsoft Store fix**, **disconnected and faulty devices** and **Open NAT for older Call of Duty games**
 

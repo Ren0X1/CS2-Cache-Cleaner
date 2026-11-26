@@ -84,6 +84,37 @@ public partial class App : Application
             return;
         }
 
+        int ssp = Array.FindIndex(e.Args, a => a.Equals("--selftest-support", StringComparison.OrdinalIgnoreCase));
+        if (ssp >= 0 && ssp + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            var dir = e.Args[ssp + 1];
+            _ = Task.Run(async () =>
+            {
+                var log = new System.Text.StringBuilder();
+                try
+                {
+                    var sw = System.Diagnostics.Stopwatch.StartNew();
+                    var rules = await FirewallCleaner.ScanAsync(CancellationToken.None);
+                    log.AppendLine($"firewall: {rules.Count(r => r.Kind == FirewallCleaner.Kind.Orphan)} huerfanas, {rules.Count(r => r.Kind == FirewallCleaner.Kind.Duplicate)} duplicadas en {sw.ElapsedMilliseconds} ms");
+                    foreach (var g in rules.GroupBy(r => (r.Kind, r.Name)).Take(20)) log.AppendLine($"   {g.Key.Kind} {g.Key.Name} x{g.Count()}");
+                    log.AppendLine("RNX tocadas: " + rules.Count(r => r.Name.StartsWith("RNX", StringComparison.OrdinalIgnoreCase)));
+                    var bak = await FirewallCleaner.BackupAsync(CancellationToken.None);
+                    log.AppendLine($"copia: {System.IO.Path.GetFileName(bak)} {new System.IO.FileInfo(bak).Length / 1024} KB");
+                    sw.Restart();
+                    var rep = await PcReport.BuildAsync(Shared, CancellationToken.None);
+                    log.AppendLine($"informe: {rep.Length} caracteres en {sw.ElapsedMilliseconds} ms");
+                    var user = Environment.UserName; var pc = Environment.MachineName;
+                    log.AppendLine($"contiene usuario: {rep.Contains(user, StringComparison.OrdinalIgnoreCase)} · contiene PC: {rep.Contains(pc, StringComparison.OrdinalIgnoreCase)} · IPs privadas: {System.Text.RegularExpressions.Regex.IsMatch(rep, @"(192\.168|10\.)\d")}");
+                    await System.IO.File.WriteAllTextAsync(System.IO.Path.Combine(dir, "report.txt"), rep);
+                }
+                catch (Exception ex) { log.AppendLine("FALLO " + ex); }
+                await System.IO.File.WriteAllTextAsync(System.IO.Path.Combine(dir, "support.txt"), log.ToString());
+            }).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
         int sck = Array.FindIndex(e.Args, a => a.Equals("--selftest-clock", StringComparison.OrdinalIgnoreCase));
         if (sck >= 0 && sck + 1 < e.Args.Length)
         {
