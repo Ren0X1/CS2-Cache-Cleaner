@@ -115,6 +115,39 @@ public partial class App : Application
             return;
         }
 
+        int shh = Array.FindIndex(e.Args, a => a.Equals("--selftest-health", StringComparison.OrdinalIgnoreCase));
+        if (shh >= 0 && shh + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            var dir = e.Args[shh + 1];
+            _ = Task.Run(async () =>
+            {
+                var log = new System.Text.StringBuilder();
+                var file = System.IO.Path.Combine(AppPaths.Root, "hud_history.json");
+                var backup = System.IO.File.Exists(file) ? System.IO.File.ReadAllText(file) : null;
+                try
+                {
+                    var disks = await DiskHealth.ReadAsync(CancellationToken.None);
+                    foreach (var d in disks)
+                        log.AppendLine($"disco: {d.Name} {d.Media} {d.SizeGb} GB salud={d.Health} desgaste={d.Wear} temp={d.Temp} horas={d.Hours} errores={d.Errors} vols={string.Join(",", d.Volumes.Select(v => $"{v.Letter}:{v.FreeGb}/{v.SizeGb}"))} avisos={d.Issues.Count}");
+                    int before = HudHistory.Load().Count;
+                    var t = DateTime.Now;
+                    for (int i = 0; i < 75; i++)
+                        HudHistory.Feed(new HudData("cpu", 40, 4500, 65 + i % 5, "ram", 8000, 16000, "gpu", 90, 1900, 60 + i % 4, 4000, 12000, "cs2", 400, 380, 200, 120, 2.6, []), t.AddSeconds(i));
+                    HudHistory.Feed(new HudData("cpu", 5, 800, 40, "ram", 8000, 16000, "gpu", 2, 300, 40, 1000, 12000, "explorer", 0, 0, 0, 0, 0, []), t.AddSeconds(100));
+                    var all = HudHistory.Load();
+                    var s = all.LastOrDefault();
+                    log.AppendLine($"historial: {before} -> {all.Count} · ultima: {s?.Game} {s?.Seconds}s avg={s?.AvgFps} low1={s?.Low1} low01={s?.Low01} cpuMax={s?.CpuTempMax} gpuMax={s?.GpuTempMax}");
+                    log.AppendLine(all.Count == before + 1 && s?.Game == "cs2" && s.AvgFps == 380 ? "RESULTADO: TODO OK" : "RESULTADO: HAY FALLOS");
+                }
+                catch (Exception ex) { log.AppendLine("FALLO " + ex); }
+                finally { if (backup is null) System.IO.File.Delete(file); else System.IO.File.WriteAllText(file, backup); }
+                await System.IO.File.WriteAllTextAsync(System.IO.Path.Combine(dir, "health.txt"), log.ToString());
+            }).ContinueWith(_ => Dispatcher.Invoke(() => Shutdown()));
+            return;
+        }
+
         int sck = Array.FindIndex(e.Args, a => a.Equals("--selftest-clock", StringComparison.OrdinalIgnoreCase));
         if (sck >= 0 && sck + 1 < e.Args.Length)
         {
@@ -283,7 +316,13 @@ public partial class App : Application
             MainWindow = sw;
             sw.Show();
             string? Arg(int k) => snap + k < e.Args.Length ? e.Args[snap + k] : null;
-            _ = sw.SnapshotAsync(e.Args[snap + 1], Arg(2) ?? "home", Arg(3), Arg(4), Arg(5));
+            var snapFile = e.Args[snap + 1];
+            // Un error durante la captura se guarda junto a la imagen (antes se perdia en silencio)
+            _ = sw.SnapshotAsync(snapFile, Arg(2) ?? "home", Arg(3), Arg(4), Arg(5)).ContinueWith(t =>
+            {
+                System.IO.File.WriteAllText(snapFile + ".err", t.Exception!.ToString());
+                Dispatcher.Invoke(() => Shutdown(2));
+            }, TaskContinuationOptions.OnlyOnFaulted);
             return;
         }
 

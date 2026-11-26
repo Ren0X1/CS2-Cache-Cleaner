@@ -155,6 +155,11 @@ The **CS2 video** tab edits `Steam\userdata\<account>\730\local\cfg\cs2_video.tx
 - **Lock switch**: marks the file **read-only** so CS2 never overwrites it. While locked the form is disabled; unlock it to edit. **Every change is saved straight away**, keeping the rest of the file exactly as it was. The first change makes a backup (`cs2_video.txt.rnxbak`).
 - Several Steam accounts on the PC? Pick which one at the top.
 
+### 📈 Performance history and disk health
+
+- **Performance history** (HUD tab) — with the HUD enabled (even hidden), every game session of 1 minute or more is saved with average FPS, 1 % / 0.1 % lows and maximum temperatures. A chart per game (average FPS bars and a 1 % low line) and a table of the latest sessions show whether a new driver or setting made a difference.
+- **Disk health** (Windows → Mods and fixes → Support) — what Windows knows about each disk: health, SSD wear, temperature, power-on hours, uncorrected errors and free space. It's checked automatically once a day; problems are shown inside the app with a badge in the menu, never as Windows notifications.
+
 ### 🧱 Firewall cleanup and PC report
 
 In **Windows → Mods and fixes**:
@@ -313,7 +318,11 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 
 ## 📜 Changelog
 
-### v5.4.1 (current)
+### v5.4.2 (current)
+- 📈 **Performance history** (HUD tab): every game session of 1 minute or more is saved with average FPS, 1 % and 0.1 % lows and maximum CPU/GPU temperatures; a chart per game and a table of the latest sessions show whether a driver or a setting improved performance (requires the HUD to be enabled, it can stay hidden)
+- 💽 **Disk health** (Windows → Mods and fixes → Support): health, SSD wear, temperature, power-on hours, errors and free space for every disk, checked automatically once a day when RNX opens; if something is wrong, RNX warns inside the app (message and a badge in the menu)
+
+### v5.4.1
 - 🧱 **Firewall rule cleanup** (Windows → Mods and fixes): finds rules left behind by programs and games that no longer exist and exact duplicates, lets you choose which to remove, and saves a **full copy of the firewall** first (`netsh advfirewall export`) so **Restore copy** puts it back exactly. Windows and RNX rules are never touched
 - 📋 **PC report** (Windows → Mods and fixes → Support): one click builds an anonymous summary of hardware, Windows, drivers, disks, network, RNX settings and the latest errors in the Log, saves it to the desktop and copies it to the clipboard, ready to paste into Discord when asking for help. No user name, PC name, IP or MAC addresses
 

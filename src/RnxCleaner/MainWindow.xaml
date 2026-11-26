@@ -81,7 +81,14 @@
                         <RadioButton x:Name="NavWinApps" Content="{c:L nav.win.apps}" Tag="&#xE71D;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
                         <RadioButton x:Name="NavWinStartup" Content="{c:L nav.win.startup}" Tag="&#xE7E8;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
                         <RadioButton x:Name="NavWinTasks" Content="{c:L nav.win.tasks}" Tag="&#xE823;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
-                        <RadioButton x:Name="NavWinMods" Content="{c:L nav.win.mods}" Tag="&#xE90F;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
+                        <RadioButton x:Name="NavWinMods" Tag="&#xE90F;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{c:L nav.win.mods}"/>
+                                <Border x:Name="DiskBadge" Visibility="Collapsed" Background="{DynamicResource Warn}" CornerRadius="5" Padding="6,1" Margin="9,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="!" FontSize="10.5" FontWeight="Bold" Foreground="White"/>
+                                </Border>
+                            </StackPanel>
+                        </RadioButton>
                     </StackPanel>
                     <RadioButton x:Name="NavServers" Content="{c:L nav.servers}" Tag="&#xE909;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavBackup" Content="{c:L nav.backup}" Tag="&#xE753;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
@@ -600,6 +607,19 @@
                                     <TextBlock x:Name="HudPreviewNote" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12" FontSize="11.5" Foreground="#E6FFFFFF" Text="-"/>
                                 </Grid>
                             </Border>
+
+                            <DockPanel Margin="0,22,0,8">
+                                <Button x:Name="HhClearBtn" DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Click="HhClear_Click" Content="{c:L hh.clear}"/>
+                                <TextBlock Text="{c:L hh.title}" Style="{StaticResource Overline}" VerticalAlignment="Bottom"/>
+                            </DockPanel>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource Sub}" FontSize="12" TextWrapping="Wrap" Text="{c:L hh.sub}"/>
+                                    <WrapPanel x:Name="HhGames" Margin="0,12,0,0"/>
+                                    <Canvas x:Name="HhChart" Height="150" Margin="0,12,0,0" ClipToBounds="True"/>
+                                    <StackPanel x:Name="HhTable" Margin="0,12,0,0"/>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </ScrollViewer>
 
@@ -825,6 +845,18 @@
 
                             <!-- Informe del PC -->
                             <TextBlock Text="{c:L rep.section}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                            <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <Button x:Name="DiskBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Center" Click="DiskCheck_Click" Content="{c:L dh.check}"/>
+                                        <StackPanel Margin="0,0,18,0">
+                                            <TextBlock Text="{c:L dh.title}" FontWeight="SemiBold"/>
+                                            <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" Text="{c:L dh.sub}"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <StackPanel x:Name="DiskList" Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </Border>
                             <Border Style="{StaticResource Card}">
                                 <StackPanel>
                                     <DockPanel>

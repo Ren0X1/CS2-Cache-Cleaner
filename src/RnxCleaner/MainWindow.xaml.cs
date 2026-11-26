@@ -37,6 +37,7 @@ public partial class MainWindow : Window
         _autoMode = autoMode;
         _scheduled = scheduled;
         App.NvUpdateChanged += OnNvUpdateChanged;
+        Loaded += (_, _) => HookHealth();
         // Con el color activado, cerrar = quedarse en la bandeja
         Closing += (_, e) =>
         {
@@ -333,7 +334,7 @@ public partial class MainWindow : Window
         if (sender == NavCustomRes) RenderRes();
         if (sender == NavHud) LoadHud();
         if (sender == NavNvDriver) LoadNvDriver();
-        if (sender == NavWinMods) { LoadMods(); _ = RefreshNatAsync(); RenderFirewall(); }
+        if (sender == NavWinMods) { LoadMods(); _ = RefreshNatAsync(); RenderFirewall(); RenderDisks(); }
         if (sender == NavPcDrivers) LoadPcDrivers();
         if (sender == NavWinTweaks) LoadWindows("tweaks");
         if (sender == NavWinApps) LoadWindows("apps");
@@ -1755,6 +1756,13 @@ public partial class MainWindow : Window
             case "home": _history = Demo(); DrawHomeChart(); break;
             case "custom": NavCustom.IsChecked = true; break;
             case "mods": NavWinMods.IsChecked = true; await Task.Delay(2500); break;
+            case "hudhistory":
+                {
+                    var rh = new Random(3); var t0 = DateTime.Now.AddDays(-14);
+                    HudHistory.Demo = Enumerable.Range(0, 18).Select(i => new HudHistory.Session("cs2", t0.AddDays(i * 0.8), rh.Next(900, 3600), 380 + rh.Next(-40, 60) + (i > 10 ? 35 : 0), 190 + rh.Next(-30, 30) + (i > 10 ? 25 : 0), 120 + rh.Next(-20, 20), 70 + rh.Next(0, 12), 62 + rh.Next(0, 10), 45, 80)).ToList();
+                    NavHud.IsChecked = true; await Task.Delay(1500); PageHud.ScrollToEnd(); await Task.Delay(500); break;
+                }
+            case "disks": NavWinMods.IsChecked = true; await Task.Delay(800); DiskCheck_Click(this, new RoutedEventArgs()); await Task.Delay(9000); PageMods.ScrollToEnd(); await Task.Delay(500); break;
             case "modsbottom": NavWinMods.IsChecked = true; await Task.Delay(2500); PageMods.ScrollToEnd(); await Task.Delay(400); break;
             case "devices":
             {

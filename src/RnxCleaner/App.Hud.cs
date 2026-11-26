@@ -71,6 +71,7 @@ public partial class App
             {
                 TrackForeground();
                 HudLast = Snapshot();
+                HudHistory.Feed(HudLast, DateTime.Now);
                 if (_hudWin is { } w)
                 {
                     w.View.Render(HudLast, Shared);
@@ -90,6 +91,7 @@ public partial class App
     private static void StopHud()
     {
         if (_hudTimer is null) return;
+        HudHistory.Flush();
         _hudTimer.Stop();
         _hudTimer = null;
         _sensorRun = false;

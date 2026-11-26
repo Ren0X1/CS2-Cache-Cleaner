@@ -62,12 +62,39 @@ public partial class App
         // Digital Vibrance siempre activo mientras RNX este abierta
         StartVibrance();
         ApplyHud();
-        if (!SnapMode) { RepairNativeClock(); ApplyClock(); }
+        if (!SnapMode) { RepairNativeClock(); ApplyClock(); CheckDisksDaily(); }
         if (!SnapMode)
         {
             _ = Task.Run(NvidiaDriver.CleanWork);
             WatchNvidiaDriver();
         }
+    }
+
+    // ---- Salud de los discos: una vez al dia, en segundo plano; el aviso es solo dentro de la app
+    public static List<DiskHealth.Disk>? DiskAlerts { get; private set; }
+    public static event Action? DiskAlertsChanged;
+
+    private static async void CheckDisksDaily()
+    {
+        var today = DateTime.Now.ToString("yyyy-MM-dd");
+        if (Shared.DiskCheckDay == today) return;
+        await Task.Delay(TimeSpan.FromSeconds(40));
+        try
+        {
+            var disks = await DiskHealth.ReadAsync(CancellationToken.None);
+            Shared.DiskCheckDay = today;
+            Shared.Save();
+            SetDiskAlerts(disks);
+            DiskHealth.Log(disks.Where(d => d.Issues.Count > 0).ToList());
+        }
+        catch (Exception ex) { Logger.Detail("DISKS: " + ex.Message); }
+    }
+
+    public static void SetDiskAlerts(List<DiskHealth.Disk> disks)
+    {
+        var bad = disks.Where(d => d.Issues.Count > 0).ToList();
+        DiskAlerts = bad.Count > 0 ? bad : null;
+        DiskAlertsChanged?.Invoke();
     }
 
     // ---- Aviso de driver nuevo de NVIDIA (solo dentro de la app): al abrir y cada 12 h mientras RNX siga abierta

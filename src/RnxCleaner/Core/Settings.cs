@@ -63,6 +63,8 @@ public sealed class Settings
     public string ClockColor { get; set; } = "";
     /// <summary>true mientras RNX tiene oculto el reloj de Windows (para reponerlo siempre).</summary>
     public bool ClockHidNative { get; set; }
+    /// <summary>Ultimo dia (yyyy-MM-dd) en que se comprobo sola la salud de los discos.</summary>
+    public string DiskCheckDay { get; set; } = "";
     public bool HudCpu { get; set; } = true;
     public bool HudRam { get; set; } = true;
     public bool HudGpu { get; set; } = true;

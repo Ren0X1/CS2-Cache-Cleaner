@@ -23,6 +23,7 @@ public partial class MainWindow
             PreviewKeyDown += HudKeyCapture;
         }
         RenderHud();
+        RenderHudHistory();
     }
 
     private void RenderHud()
