@@ -26,7 +26,7 @@ public partial class MainWindow
         if (open)
         {
             if (!(NavCs2.IsChecked == true || NavVideo.IsChecked == true || NavFonts.IsChecked == true)) { NavCs2Group.IsChecked = false; NavCs2Items.Visibility = Visibility.Collapsed; }
-            if (!(NavWinTweaks.IsChecked == true || NavWinApps.IsChecked == true || NavWinStartup.IsChecked == true || NavWinTasks.IsChecked == true)) { NavWinGroup.IsChecked = false; NavWinItems.Visibility = Visibility.Collapsed; }
+            if (!(NavWinTweaks.IsChecked == true || NavWinApps.IsChecked == true || NavWinStartup.IsChecked == true || NavWinTasks.IsChecked == true || NavWinMods.IsChecked == true)) { NavWinGroup.IsChecked = false; NavWinItems.Visibility = Visibility.Collapsed; }
         }
         NavDrvGroup.IsChecked = open;
         NavDrvItems.Visibility = open ? Visibility.Visible : Visibility.Collapsed;

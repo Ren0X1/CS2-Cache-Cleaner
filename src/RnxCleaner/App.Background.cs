@@ -62,6 +62,7 @@ public partial class App
         // Digital Vibrance siempre activo mientras RNX este abierta
         StartVibrance();
         ApplyHud();
+        if (!SnapMode) { RepairNativeClock(); ApplyClock(); }
         if (!SnapMode)
         {
             _ = Task.Run(NvidiaDriver.CleanWork);
@@ -182,6 +183,7 @@ public partial class App
         try { Vibrance?.Dispose(); } catch { }
         try { NvidiaDriver.CleanWork(); } catch { }
         try { Shared.HudEnabled = Shared.HudEnabled; StopHudForExit(); } catch { }
+        try { StopClockForExit(); } catch { }
         try { if (_tray is not null) { _tray.Visible = false; _tray.Dispose(); } } catch { }
         base.OnExit(e);
     }

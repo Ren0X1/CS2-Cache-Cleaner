@@ -84,6 +84,55 @@ public partial class App : Application
             return;
         }
 
+        int sck = Array.FindIndex(e.Args, a => a.Equals("--selftest-clock", StringComparison.OrdinalIgnoreCase));
+        if (sck >= 0 && sck + 1 < e.Args.Length)
+        {
+            SnapMode = true;
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            var dir = e.Args[sck + 1];
+            Dispatcher.BeginInvoke(async () =>
+            {
+                var log = new System.Text.StringBuilder();
+                bool before = TaskbarClock.NativeVisible();
+                log.AppendLine("nativo visible antes: " + before);
+                var loc0 = TaskbarClock.Locate();
+                log.AppendLine($"barra: {loc0?.Taskbar}  bandeja izq: {loc0?.TrayLeft}");
+                // Ajustes solo en memoria (no se guardan): plantilla de rendimiento
+                var (en, top, bot, hid) = (Shared.ClockEnabled, Shared.ClockTop, Shared.ClockBottom, Shared.ClockHidNative);
+                Shared.ClockEnabled = true; Shared.ClockTop = "%time%  ·  CPU %cpu%"; Shared.ClockBottom = "GPU %gpu%  ·  %gpu_temp%";
+                try
+                {
+                    StartClock();
+                    await Task.Delay(5000);
+                    log.AppendLine("nativo visible con RNX: " + TaskbarClock.NativeVisible());
+                    var loc = TaskbarClock.Locate();
+                    log.AppendLine($"bandeja izq con RNX: {loc?.TrayLeft}  texto: {ClockPreviewTop} | {ClockPreviewBottom}");
+                    if (loc is { } l)
+                    {
+                        int x = (int)Math.Max(0, l.TrayLeft - 520), y = (int)l.Taskbar.Y, w = (int)(l.Taskbar.X + l.Taskbar.W - x), h = (int)l.Taskbar.H;
+                        using var bmp = new System.Drawing.Bitmap(w, h);
+                        using (var g = System.Drawing.Graphics.FromImage(bmp)) g.CopyFromScreen(x, y, 0, 0, new System.Drawing.Size(w, h));
+                        bmp.Save(System.IO.Path.Combine(dir, "clock_on.png"));
+                    }
+                }
+                catch (Exception ex) { log.AppendLine("FALLO " + ex); }
+                finally
+                {
+                    StopClock(restoreNative: true);
+                    if (before && !TaskbarClock.NativeVisible()) TaskbarClock.SetNativeVisible(true);
+                    (Shared.ClockEnabled, Shared.ClockTop, Shared.ClockBottom, Shared.ClockHidNative) = (en, top, bot, hid);
+                    Shared.Save();
+                    await Task.Delay(2500);
+                    log.AppendLine("nativo visible despues: " + TaskbarClock.NativeVisible());
+                    var loc2 = TaskbarClock.Locate();
+                    log.AppendLine($"bandeja izq despues: {loc2?.TrayLeft}");
+                    System.IO.File.WriteAllText(System.IO.Path.Combine(dir, "clock.txt"), log.ToString());
+                    Shutdown();
+                }
+            });
+            return;
+        }
+
         int spd = Array.FindIndex(e.Args, a => a.Equals("--selftest-pcdrivers", StringComparison.OrdinalIgnoreCase));
         if (spd >= 0 && spd + 1 < e.Args.Length)
         {

@@ -50,6 +50,19 @@ public sealed class Settings
     public List<string> WinTweaks { get; set; } = [];
     /// <summary>Drivers PC descartados por el usuario ("dev:nombre|etiqueta" o "comp:id|etiqueta"): no vuelven a salir en los analisis.</summary>
     public List<string> PcIgnore { get; set; } = [];
+    // Reloj de la barra de tareas (Windows → Mods y arreglos)
+    public bool ClockEnabled { get; set; }
+    public string ClockTop { get; set; } = "%time%";
+    public string ClockBottom { get; set; } = "%date%";
+    public string ClockTimeFormat { get; set; } = "HH:mm";
+    public string ClockDateFormat { get; set; } = "dd/MM/yyyy";
+    public string ClockFont { get; set; } = "Segoe UI Variable Text";
+    public double ClockSize { get; set; } = 12;
+    public bool ClockBold { get; set; }
+    /// <summary>"" = automatico (color de texto de la barra), o #RRGGBB.</summary>
+    public string ClockColor { get; set; } = "";
+    /// <summary>true mientras RNX tiene oculto el reloj de Windows (para reponerlo siempre).</summary>
+    public bool ClockHidNative { get; set; }
     public bool HudCpu { get; set; } = true;
     public bool HudRam { get; set; } = true;
     public bool HudGpu { get; set; } = true;
@@ -131,6 +144,15 @@ public sealed class Settings
         public bool[]? HudRows { get; set; }
         public List<string>? WinTweaks { get; set; }
         public List<string>? PcIgnore { get; set; }
+        public bool? ClockEnabled { get; set; }
+        public string? ClockTop { get; set; }
+        public string? ClockBottom { get; set; }
+        public string? ClockTimeFormat { get; set; }
+        public string? ClockDateFormat { get; set; }
+        public string? ClockFont { get; set; }
+        public double? ClockSize { get; set; }
+        public bool? ClockBold { get; set; }
+        public string? ClockColor { get; set; }
     }
 
     public string ExportPortable() => JsonSerializer.Serialize(new Portable
@@ -143,6 +165,8 @@ public sealed class Settings
         HudEnabled = HudEnabled, HudHotkeyMods = HudHotkeyMods, HudHotkeyVk = HudHotkeyVk, HudStyle = HudStyle, HudCorner = HudCorner,
         HudX = HudX, HudY = HudY, HudScale = HudScale, HudOpacity = HudOpacity, HudRows = [HudCpu, HudRam, HudGpu, HudFps, HudGraph],
         WinTweaks = WinTweaks, PcIgnore = PcIgnore,
+        ClockEnabled = ClockEnabled, ClockTop = ClockTop, ClockBottom = ClockBottom, ClockTimeFormat = ClockTimeFormat, ClockDateFormat = ClockDateFormat,
+        ClockFont = ClockFont, ClockSize = ClockSize, ClockBold = ClockBold, ClockColor = ClockColor,
     }, Json);
 
     /// <summary>Aplica lo que venga en el json (lo que no venga, se queda como esta).</summary>
@@ -176,6 +200,15 @@ public sealed class Settings
         if (p.HudRows is { Length: 5 } hr) (HudCpu, HudRam, HudGpu, HudFps, HudGraph) = (hr[0], hr[1], hr[2], hr[3], hr[4]);
         if (p.WinTweaks is { } wt) WinTweaks = wt;
         if (p.PcIgnore is { } pi) PcIgnore = pi;
+        if (p.ClockEnabled is { } ce) ClockEnabled = ce;
+        if (p.ClockTop is { } ct) ClockTop = ct;
+        if (p.ClockBottom is { } cb) ClockBottom = cb;
+        if (p.ClockTimeFormat is { } ctf) ClockTimeFormat = ctf;
+        if (p.ClockDateFormat is { } cdf) ClockDateFormat = cdf;
+        if (p.ClockFont is { } cf) ClockFont = cf;
+        if (p.ClockSize is { } cs2) ClockSize = cs2;
+        if (p.ClockBold is { } cbo) ClockBold = cbo;
+        if (p.ClockColor is { } cc) ClockColor = cc;
         FirstRunDone = true;
     }
 

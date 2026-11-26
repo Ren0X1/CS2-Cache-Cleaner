@@ -81,6 +81,7 @@
                         <RadioButton x:Name="NavWinApps" Content="{c:L nav.win.apps}" Tag="&#xE71D;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
                         <RadioButton x:Name="NavWinStartup" Content="{c:L nav.win.startup}" Tag="&#xE7E8;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
                         <RadioButton x:Name="NavWinTasks" Content="{c:L nav.win.tasks}" Tag="&#xE823;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
+                        <RadioButton x:Name="NavWinMods" Content="{c:L nav.win.mods}" Tag="&#xE90F;" Style="{StaticResource NavButton}" Margin="16,1,0,1" GroupName="nav" Checked="Nav_Checked"/>
                     </StackPanel>
                     <RadioButton x:Name="NavServers" Content="{c:L nav.servers}" Tag="&#xE909;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
                     <RadioButton x:Name="NavBackup" Content="{c:L nav.backup}" Tag="&#xE753;" Style="{StaticResource NavButton}" GroupName="nav" Checked="Nav_Checked"/>
@@ -230,35 +231,6 @@
                                         <StackPanel><TextBlock Text="{c:L mod.oem}" FontWeight="SemiBold"/><TextBlock Text="{c:L mod.oem.d}" Style="{StaticResource Sub}" FontSize="12"/></StackPanel>
                                     </CheckBox>
                                 </UniformGrid>
-                                <TextBlock Text="{c:L custom.fixes}" Style="{StaticResource Overline}" Margin="0,12,0,8"/>
-                                <Border Style="{StaticResource Card}" Margin="0,0,8,0">
-                                    <DockPanel>
-                                        <Button x:Name="FixStoreBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Center" Click="FixStore_Click" Content="{c:L fix.store.btn}"/>
-                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L fix.store.title}" FontWeight="SemiBold"/><TextBlock x:Name="FixStoreSub" Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,0" Text="{c:L fix.store.sub}"/></StackPanel>
-                                    </DockPanel>
-                                </Border>
-                                <Border Style="{StaticResource Card}" Margin="0,12,8,0">
-                                    <DockPanel>
-                                        <Button x:Name="DevicesBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Center" Click="Devices_Click" Content="{c:L dev.btn}"/>
-                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L dev.title}" FontWeight="SemiBold"/><TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,0" Text="{c:L dev.sub}"/></StackPanel>
-                                    </DockPanel>
-                                </Border>
-
-                                <!-- Open NAT para Call of Duty antiguos (antes: T6-Open-Nat-Script) -->
-                                <TextBlock Text="{c:L nat.section}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
-                                <Border Style="{StaticResource Card}" Margin="0,0,8,0">
-                                    <StackPanel>
-                                        <TextBlock Text="{c:L nat.title}" FontWeight="SemiBold"/>
-                                        <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" Text="{c:L nat.sub}"/>
-                                        <DockPanel Margin="0,12,0,0">
-                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Button x:Name="NatCloseBtn" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="NatClose_Click" Content="{c:L nat.close}" IsEnabled="False"/>
-                                                <Button x:Name="NatOpenBtn" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="NatOpen_Click" Content="{c:L nat.open}"/>
-                                            </StackPanel>
-                                            <TextBlock x:Name="NatState" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,14,0" Text="-"/>
-                                        </DockPanel>
-                                    </StackPanel>
-                                </Border>
                             </StackPanel>
                         </ScrollViewer>
                         <Border Grid.Row="2" Style="{StaticResource Card}" Padding="20,12" Margin="0,12,8,0">
@@ -732,6 +704,108 @@
                                 </StackPanel>
                             </Border>
                             <StackPanel x:Name="PcHost"/>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- ======== WINDOWS → MODS Y ARREGLOS ======== -->
+                    <ScrollViewer x:Name="PageMods" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="36,34,36,28">
+                            <TextBlock Text="{c:L mods.title}" Style="{StaticResource H1}"/>
+                            <TextBlock Style="{StaticResource Sub}" FontSize="14.5" Margin="0,4,0,22" TextWrapping="Wrap" Text="{c:L mods.sub}"/>
+
+                            <TextBlock Text="{c:L clock.section}" Style="{StaticResource Overline}" Margin="0,0,0,8"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <CheckBox x:Name="ClockToggle" DockPanel.Dock="Right" Style="{StaticResource Toggle}" VerticalAlignment="Center" Click="ClockToggle_Click"/>
+                                        <StackPanel Margin="0,0,18,0">
+                                            <TextBlock Text="{c:L clock.title}" Style="{StaticResource H2}"/>
+                                            <TextBlock Style="{StaticResource Sub}" FontSize="12.5" Margin="0,4,0,0" TextWrapping="Wrap" Text="{c:L clock.sub}"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <Border Height="1" Background="{DynamicResource Line2}" Margin="0,14"/>
+                                    <!-- Vista previa sobre una "barra" -->
+                                    <DockPanel>
+                                        <Border x:Name="ClockPreviewBar" DockPanel.Dock="Right" CornerRadius="8" Padding="16,6" MinWidth="150" Background="#202020">
+                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right">
+                                                <TextBlock x:Name="ClockPrevTop" HorizontalAlignment="Right" Text="-"/>
+                                                <TextBlock x:Name="ClockPrevBottom" HorizontalAlignment="Right" Text="-"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <StackPanel Margin="0,0,18,0" VerticalAlignment="Center">
+                                            <TextBlock Text="{c:L clock.presets}" FontWeight="SemiBold"/>
+                                            <WrapPanel x:Name="ClockPresets" Margin="0,8,0,0"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <Border Height="1" Background="{DynamicResource Line2}" Margin="0,14"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="16"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="{c:L clock.top}" Style="{StaticResource Meta}" FontSize="12"/>
+                                            <TextBox x:Name="ClockTopBox" Margin="0,4,0,10" Padding="8,6" FontFamily="{StaticResource Mono}" TextChanged="ClockText_Changed"/>
+                                            <TextBlock Text="{c:L clock.bottom}" Style="{StaticResource Meta}" FontSize="12"/>
+                                            <TextBox x:Name="ClockBottomBox" Margin="0,4,0,0" Padding="8,6" FontFamily="{StaticResource Mono}" TextChanged="ClockText_Changed"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Text="{c:L clock.timefmt}" Style="{StaticResource Meta}" FontSize="12"/>
+                                            <TextBox x:Name="ClockTimeBox" Margin="0,4,0,10" Padding="8,6" FontFamily="{StaticResource Mono}" TextChanged="ClockText_Changed"/>
+                                            <TextBlock Text="{c:L clock.datefmt}" Style="{StaticResource Meta}" FontSize="12"/>
+                                            <TextBox x:Name="ClockDateBox" Margin="0,4,0,0" Padding="8,6" FontFamily="{StaticResource Mono}" TextChanged="ClockText_Changed"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,10,0,0" TextWrapping="Wrap" Text="{c:L clock.vars}"/>
+                                    <WrapPanel x:Name="ClockVars" Margin="0,6,0,0"/>
+                                    <Border Height="1" Background="{DynamicResource Line2}" Margin="0,14"/>
+                                    <WrapPanel>
+                                        <StackPanel Margin="0,0,22,8">
+                                            <TextBlock Text="{c:L clock.font}" Style="{StaticResource Meta}" FontSize="12"/>
+                                            <ContentControl x:Name="ClockFontHost" Margin="0,4,0,0" Focusable="False"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,22,8">
+                                            <TextBlock Text="{c:L clock.size}" Style="{StaticResource Meta}" FontSize="12"/>
+                                            <Border Style="{StaticResource SegBox}" Margin="0,4,0,0"><StackPanel x:Name="ClockSizes" Orientation="Horizontal"/></Border>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,22,8">
+                                            <TextBlock Text="{c:L clock.color}" Style="{StaticResource Meta}" FontSize="12"/>
+                                            <StackPanel x:Name="ClockColors" Orientation="Horizontal" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                        <StackPanel Margin="0,0,0,8" VerticalAlignment="Bottom">
+                                            <CheckBox x:Name="ClockBoldBox" Content="{c:L clock.bold}" Foreground="{DynamicResource Ink}" Click="ClockBold_Click" Margin="0,0,0,8"/>
+                                        </StackPanel>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                                <TextBlock Text="{c:L mods.repairs}" Style="{StaticResource Overline}" Margin="0,26,0,8"/>
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,0">
+                                    <DockPanel>
+                                        <Button x:Name="FixStoreBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Center" Click="FixStore_Click" Content="{c:L fix.store.btn}"/>
+                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L fix.store.title}" FontWeight="SemiBold"/><TextBlock x:Name="FixStoreSub" Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,0" Text="{c:L fix.store.sub}"/></StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <Border Style="{StaticResource Card}" Margin="0,12,0,0">
+                                    <DockPanel>
+                                        <Button x:Name="DevicesBtn" DockPanel.Dock="Right" Style="{StaticResource GhostButton}" VerticalAlignment="Center" Click="Devices_Click" Content="{c:L dev.btn}"/>
+                                        <StackPanel Margin="0,0,18,0"><TextBlock Text="{c:L dev.title}" FontWeight="SemiBold"/><TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,0" Text="{c:L dev.sub}"/></StackPanel>
+                                    </DockPanel>
+                                </Border>
+
+                                <!-- Open NAT para Call of Duty antiguos (antes: T6-Open-Nat-Script) -->
+                                <TextBlock Text="{c:L nat.section}" Style="{StaticResource Overline}" Margin="0,22,0,8"/>
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="{c:L nat.title}" FontWeight="SemiBold"/>
+                                        <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap" Text="{c:L nat.sub}"/>
+                                        <DockPanel Margin="0,12,0,0">
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button x:Name="NatCloseBtn" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="NatClose_Click" Content="{c:L nat.close}" IsEnabled="False"/>
+                                                <Button x:Name="NatOpenBtn" Style="{StaticResource GhostButton}" Margin="8,0,0,0" Click="NatOpen_Click" Content="{c:L nat.open}"/>
+                                            </StackPanel>
+                                            <TextBlock x:Name="NatState" FontSize="12.5" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,14,0" Text="-"/>
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
+                            <TextBlock Style="{StaticResource Sub}" FontSize="12" Margin="0,18,0,0" TextWrapping="Wrap" Text="{c:L clock.credit}"/>
                         </StackPanel>
                     </ScrollViewer>
 

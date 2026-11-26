@@ -135,6 +135,10 @@ public partial class App
         StopHud();
         if (t is not null) await Task.Run(() => t.Join(TimeSpan.FromSeconds(10)));
         _sensorThread = null;
+        // El reloj sigue, pero sin leer la GPU mientras se cambia el driver
+        var ct = _clockSensorThread;
+        StopClockSensors();
+        if (ct is not null) await Task.Run(() => ct.Join(TimeSpan.FromSeconds(10)));
     }
 
     /// <summary>Tras la instalacion: espera a que el driver nuevo este listo y lo vuelve a arrancar todo.</summary>

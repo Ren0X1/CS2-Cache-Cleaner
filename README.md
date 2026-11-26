@@ -137,9 +137,9 @@ Your settings, Google sign-in, history and backups live in `%LOCALAPPDATA%\RNX C
 
 **Everything** (`/todo` and `/nobackup`) runs all of them: shader cache, mouse config, NVIDIA profile, power plan, network and OEM information. **Custom** has a card for each one too.
 
-### 🔧 Repairs (by hand only)
+### 🔧 Repairs (Windows → Mods and fixes, by hand only)
 
-In **Custom → Repairs**. These are never run by Everything:
+In **Windows → Mods and fixes → Repairs**. These are never run by Everything:
 
 - **Old and faulty devices** — like Driver Booster: removes devices Windows remembers but that are no longer connected (with `pnputil /remove-device`) and restarts connected devices that report an error. **Shows the full list before doing anything.** Drivers are kept, so anything you plug back in reinstalls by itself (it only loses settings saved for that device). System, CPU, firmware and TPM entries are never touched. A restore point is created first if enabled.
 - **Fix Microsoft Store (AtlasOS)** — runs AtlasOS's `fixStoreIssues.cmd` (bundled unchanged) for when the Store or apps won't install or update: it rebuilds the app deployment database and removes Gaming Services. Only enabled on AtlasOS.
@@ -155,9 +155,13 @@ The **CS2 video** tab edits `Steam\userdata\<account>\730\local\cfg\cs2_video.tx
 - **Lock switch**: marks the file **read-only** so CS2 never overwrites it. While locked the form is disabled; unlock it to edit. **Every change is saved straight away**, keeping the rest of the file exactly as it was. The first change makes a backup (`cs2_video.txt.rnxbak`).
 - Several Steam accounts on the PC? Pick which one at the top.
 
+### 🕒 Custom taskbar clock
+
+**Windows → Mods and fixes → Custom taskbar clock** replaces the Windows clock with RNX's: two lines with any time/date format and variables for CPU, GPU, temperatures, VRAM, RAM and network speed, templates, font, size, color and bold, with a live preview. Nothing is injected into Windows: the native clock is hidden with its official *Show time and date in the system tray* setting and RNX draws its clock just left of the tray icons. Clicking it opens the Windows calendar; it hides in fullscreen games; and the Windows clock always comes back when the option is turned off or RNX is closed. Inspired by *Taskbar Clock Customization* for Windhawk by m417z (GPL-3.0), implemented independently.
+
 ### 🎮 Open NAT for older Call of Duty games
 
-**Custom → Online compatibility → Open port** opens port **3074 TCP + UDP** in the Windows Firewall and on the router through UPnP, so older Call of Duty titles such as **Black Ops II (T6)** don't get Strict or Moderate NAT (long searches, empty lobbies, no hosting). It never duplicates firewall rules, re-points the router mapping if your PC's IP changed and shows whether the port is open in the firewall and on the router. If the router has UPnP disabled, only the firewall is configured and the card tells you. **Close port** removes only RNX's rules and mappings.
+**Windows → Mods and fixes → Online compatibility → Open port** opens port **3074 TCP + UDP** in the Windows Firewall and on the router through UPnP, so older Call of Duty titles such as **Black Ops II (T6)** don't get Strict or Moderate NAT (long searches, empty lobbies, no hosting). It never duplicates firewall rules, re-points the router mapping if your PC's IP changed and shows whether the port is open in the firewall and on the router. If the router has UPnP disabled, only the firewall is configured and the card tells you. **Close port** removes only RNX's rules and mappings.
 
 ### 🔧 PC drivers
 
@@ -294,6 +298,7 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 - Microsoft Store fix: `fixStoreIssues.cmd` from [AtlasOS](https://github.com/Atlas-OS/Atlas) (bundled unchanged).
 - Windows optimization: selection and risk classification based on [optimizerDuck](https://github.com/itsfatduck/optimizerDuck) by itsfatduck (GPL-3.0), implemented independently in RNX.
 - NVIDIA driver: idea from NVCleanstall by TechPowerUp; driver lookup like [TinyNvidiaUpdateChecker](https://github.com/HawaiiBeach/TinyNvidiaUpdateChecker); GPU ids from [nvidia-data](https://github.com/ZenitH-AT/nvidia-data); unpacked with [7-Zip](https://www.7-zip.org) `7zr.exe` by Igor Pavlov (public domain, bundled).
+- Taskbar clock: inspired by [Taskbar Clock Customization](https://github.com/ramensoftware/windhawk-mods) for Windhawk by m417z (GPL-3.0), implemented independently without code injection.
 - PC drivers: Microsoft Update Catalog approach from [OpenDriverUpdater](https://github.com/OpenDriverUpdater/OpenDriverUpdater) (MIT), implemented independently in RNX.
 - HUD sensors: [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) (MPL-2.0) and the [PawnIO](https://github.com/namazso/PawnIO.Setup) driver; FPS via ETW with Microsoft TraceEvent.
 
@@ -301,7 +306,11 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 
 ## 📜 Changelog
 
-### v5.3.5 (current)
+### v5.4.0 (current)
+- 🕒 **Custom taskbar clock**, like Windhawk's *Taskbar Clock Customization* but without injecting anything: RNX hides the Windows clock with its official setting and shows its own next to the tray, with any time and date format, two lines, variables (`%time%`, `%date%`, `%weekday%`, `%weeknum%`, `%cpu%`, `%cpu_temp%`, `%gpu%`, `%gpu_temp%`, `%vram%`, `%ram%`, `%download%`, `%upload%`…), templates (time and date, seconds, performance, temperatures, network), font, size, color and bold, with live preview. Clicking it opens the Windows calendar, it hides in fullscreen games, and the Windows clock always comes back when you turn it off or close RNX
+- 🧰 New **Windows → Mods and fixes** tab with the taskbar clock and, moved from Custom, the **Microsoft Store fix**, **disconnected and faulty devices** and **Open NAT for older Call of Duty games**
+
+### v5.3.5
 - 🎮 **Open NAT for older Call of Duty games** (Custom → Online compatibility): opens port **3074 TCP + UDP** in the Windows Firewall **and** on the router (UPnP) in one click, for Black Ops II (T6) and other CoD titles that need it to avoid Strict/Moderate NAT. Never duplicates firewall rules, refreshes the router mapping if the PC's IP changed, shows the current state and **Close port** removes only RNX's rules and mappings. Replaces the separate T6-Open-Nat-Script
 
 ### v5.3.4
