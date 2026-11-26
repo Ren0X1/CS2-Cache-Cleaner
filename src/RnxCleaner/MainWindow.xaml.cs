@@ -331,6 +331,7 @@ public partial class MainWindow : Window
         if (sender == NavCustomRes) RenderRes();
         if (sender == NavHud) LoadHud();
         if (sender == NavNvDriver) LoadNvDriver();
+        if (sender == NavCustom) _ = RefreshNatAsync();
         if (sender == NavPcDrivers) LoadPcDrivers();
         if (sender == NavWinTweaks) LoadWindows("tweaks");
         if (sender == NavWinApps) LoadWindows("apps");
@@ -1751,6 +1752,7 @@ public partial class MainWindow : Window
         {
             case "home": _history = Demo(); DrawHomeChart(); break;
             case "custom": NavCustom.IsChecked = true; break;
+            case "nat": NavCustom.IsChecked = true; await Task.Delay(2500); CustomScroll?.ScrollToEnd(); await Task.Delay(400); break;
             case "devices":
             {
                 NavCustom.IsChecked = true;

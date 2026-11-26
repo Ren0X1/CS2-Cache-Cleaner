@@ -155,6 +155,10 @@ The **CS2 video** tab edits `Steam\userdata\<account>\730\local\cfg\cs2_video.tx
 - **Lock switch**: marks the file **read-only** so CS2 never overwrites it. While locked the form is disabled; unlock it to edit. **Every change is saved straight away**, keeping the rest of the file exactly as it was. The first change makes a backup (`cs2_video.txt.rnxbak`).
 - Several Steam accounts on the PC? Pick which one at the top.
 
+### 🎮 Open NAT for older Call of Duty games
+
+**Custom → Online compatibility → Open port** opens port **3074 TCP + UDP** in the Windows Firewall and on the router through UPnP, so older Call of Duty titles such as **Black Ops II (T6)** don't get Strict or Moderate NAT (long searches, empty lobbies, no hosting). It never duplicates firewall rules, re-points the router mapping if your PC's IP changed and shows whether the port is open in the firewall and on the router. If the router has UPnP disabled, only the firewall is configured and the card tells you. **Close port** removes only RNX's rules and mappings.
+
 ### 🔧 PC drivers
 
 **Drivers → PC drivers** works like Driver Booster: it reads every device and its driver and shows **Outdated drivers**, **Game components** and **Up to date**. Drivers come only from official, signed sources — **Windows Update** and the **Microsoft Update Catalog** (searched by hardware ID, installed with Windows' own `pnputil`, which only applies a driver that matches the device) — and game components (Java, Visual C++, .NET, DirectX, GameInput…) are updated with **winget**. A restore point is created first if enabled. **NVIDIA drivers are excluded**: they're handled in **Drivers → NVIDIA driver**.
@@ -297,7 +301,10 @@ Needs the **.NET 10 SDK**; the MSI uses WiX Toolset 5 (restored automatically fr
 
 ## 📜 Changelog
 
-### v5.3.4 (current)
+### v5.3.5 (current)
+- 🎮 **Open NAT for older Call of Duty games** (Custom → Online compatibility): opens port **3074 TCP + UDP** in the Windows Firewall **and** on the router (UPnP) in one click, for Black Ops II (T6) and other CoD titles that need it to avoid Strict/Moderate NAT. Never duplicates firewall rules, refreshes the router mapping if the PC's IP changed, shows the current state and **Close port** removes only RNX's rules and mappings. Replaces the separate T6-Open-Nat-Script
+
+### v5.3.4
 - 🪟 **Single instance fixed**: opening the shortcut while RNX is already running (including when it started with Windows in the tray) now brings the open window to the front instead of starting a second copy
 - 🔧 **PC drivers**: the scan only runs when you press **Scan**; the progress bar advances as each driver or component finishes and shows which one is being installed (“2 of 9”); and **Dismiss** hides a device or component from future scans (saved in your settings), with a **Dismissed** list to show them again
 

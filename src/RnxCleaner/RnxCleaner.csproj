@@ -15,7 +15,7 @@
     <ApplicationIcon>Assets\rnx.ico</ApplicationIcon>
 
     <!-- Version unica del programa: la lee tambien el workflow de release -->
-    <Version>5.3.4</Version>
+    <Version>5.3.5</Version>
     <Product>RNX Cache Cleaner Pro</Product>
     <Company>RNX Systems</Company>
     <Copyright>Ren0X1</Copyright>
